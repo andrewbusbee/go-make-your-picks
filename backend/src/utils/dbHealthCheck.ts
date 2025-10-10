@@ -104,20 +104,36 @@ async function initializeDatabase(connection: any): Promise<void> {
     // Read the init.sql file (it's copied into the Docker image)
     const initSqlPath = path.join(__dirname, '../../database/init.sql');
     
+    console.log(`   Looking for init.sql at: ${initSqlPath}`);
+    
     if (!fs.existsSync(initSqlPath)) {
+      console.error(`   init.sql not found! Checked: ${initSqlPath}`);
+      console.error(`   __dirname is: ${__dirname}`);
+      // List what files are in the database directory
+      const dbDir = path.join(__dirname, '../../database');
+      if (fs.existsSync(dbDir)) {
+        console.error(`   Files in ${dbDir}:`, fs.readdirSync(dbDir));
+      } else {
+        console.error(`   Directory ${dbDir} does not exist`);
+      }
       throw new Error(`init.sql not found at ${initSqlPath}`);
     }
     
     const initSql = fs.readFileSync(initSqlPath, 'utf8');
+    console.log(`   Read ${initSql.length} bytes from init.sql`);
     
     // Remove comments and split into statements
     const lines = initSql.split('\n');
+    console.log(`   File has ${lines.length} lines`);
+    
     const sqlWithoutComments = lines
       .filter(line => {
         const trimmed = line.trim();
         return trimmed.length > 0 && !trimmed.startsWith('--');
       })
       .join('\n');
+    
+    console.log(`   After removing comments: ${sqlWithoutComments.length} bytes`);
     
     // Split by semicolon and filter out empty statements
     const statements = sqlWithoutComments
