@@ -1,7 +1,7 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: sportspicks-mysql
+    container_name: gomakeyourpicks-mysql
     restart: always
     networks:
       - gomakeyourpicks-network
