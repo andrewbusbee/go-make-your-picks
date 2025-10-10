@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   mysql:
     image: mysql:8.0
@@ -49,7 +47,7 @@ services:
       SMTP_SECURE: ${SMTP_SECURE:-false}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_FROM: ${SMTP_FROM:-noreply@gomakeyourpicks.com}
+      SMTP_FROM: ${SMTP_FROM:-noreply@yourdomain.com}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Go Make Your Picks}
       APP_URL: ${APP_URL:-http://localhost:3003}
       ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-false}
