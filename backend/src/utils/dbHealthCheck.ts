@@ -110,18 +110,32 @@ async function initializeDatabase(connection: any): Promise<void> {
     
     const initSql = fs.readFileSync(initSqlPath, 'utf8');
     
-    // Split SQL file into individual statements
-    // MySQL doesn't support multiple statements in one query by default
-    const statements = initSql
+    // Remove comments and split into statements
+    const lines = initSql.split('\n');
+    const sqlWithoutComments = lines
+      .filter(line => {
+        const trimmed = line.trim();
+        return trimmed.length > 0 && !trimmed.startsWith('--');
+      })
+      .join('\n');
+    
+    // Split by semicolon and filter out empty statements
+    const statements = sqlWithoutComments
       .split(';')
       .map(stmt => stmt.trim())
-      .filter(stmt => stmt.length > 0 && !stmt.startsWith('--'));
+      .filter(stmt => stmt.length > 0);
     
     console.log(`   Executing ${statements.length} SQL statements...`);
     
-    for (const statement of statements) {
-      if (statement.trim()) {
+    for (let i = 0; i < statements.length; i++) {
+      const statement = statements[i];
+      try {
         await connection.query(statement);
+        console.log(`   ✓ Statement ${i + 1}/${statements.length} executed`);
+      } catch (error: any) {
+        console.error(`   ✗ Failed on statement ${i + 1}:`, error.message);
+        console.error(`   Statement: ${statement.substring(0, 100)}...`);
+        throw error;
       }
     }
     
