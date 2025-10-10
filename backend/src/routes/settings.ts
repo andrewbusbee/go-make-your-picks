@@ -1,0 +1,181 @@
+import express, { Response } from 'express';
+import { authenticateAdmin, requireMainAdmin, AuthRequest } from '../middleware/auth';
+import db from '../config/database';
+import { RowDataPacket, ResultSetHeader } from 'mysql2';
+import { isValidTimezone } from '../utils/timezones';
+import logger from '../utils/logger';
+import { SettingsService } from '../services/settingsService';
+
+const router = express.Router();
+
+// Get all settings (public - needed for frontend)
+router.get('/', async (req, res) => {
+  try {
+    const [textSettings] = await db.query<RowDataPacket[]>(
+      'SELECT setting_key, setting_value FROM text_settings'
+    );
+    
+    const [numericSettings] = await db.query<RowDataPacket[]>(
+      'SELECT setting_key, setting_value FROM numeric_settings'
+    );
+
+    // Convert to key-value object with defaults
+    const settingsObj: any = {
+      app_title: 'Go Make Your Picks',
+      app_tagline: 'Predict. Compete. Win.',
+      footer_message: 'Built for Sports Fans',
+      default_timezone: 'America/New_York',
+      points_first_place: 6,
+      points_second_place: 5,
+      points_third_place: 4,
+      points_fourth_place: 3,
+      points_fifth_place: 2,
+      points_sixth_plus_place: 1
+    };
+    
+    textSettings.forEach((setting) => {
+      settingsObj[setting.setting_key] = setting.setting_value;
+    });
+    
+    numericSettings.forEach((setting) => {
+      settingsObj[setting.setting_key] = setting.setting_value; // Already INT
+    });
+
+    res.json(settingsObj);
+  } catch (error) {
+    logger.error('Get settings error', { error });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update setting (all admins)
+router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+  const { 
+    appTitle, 
+    appTagline, 
+    footerMessage,
+    defaultTimezone,
+    pointsFirstPlace,
+    pointsSecondPlace,
+    pointsThirdPlace,
+    pointsFourthPlace,
+    pointsFifthPlace,
+    pointsSixthPlusPlace
+  } = req.body;
+
+  if (!appTitle || !appTagline || !footerMessage) {
+    return res.status(400).json({ error: 'App title, tagline, and footer message are required' });
+  }
+
+  if (appTitle.length > 100 || appTagline.length > 200 || footerMessage.length > 100) {
+    return res.status(400).json({ error: 'Title, tagline, or footer message is too long' });
+  }
+
+  // Validate timezone if provided
+  if (defaultTimezone && !isValidTimezone(defaultTimezone)) {
+    return res.status(400).json({ error: 'Invalid timezone. Please select a valid IANA timezone.' });
+  }
+
+  // Validate point values if provided
+  const pointFields = [
+    { name: 'First place', value: pointsFirstPlace },
+    { name: 'Second place', value: pointsSecondPlace },
+    { name: 'Third place', value: pointsThirdPlace },
+    { name: 'Fourth place', value: pointsFourthPlace },
+    { name: 'Fifth place', value: pointsFifthPlace },
+    { name: 'Sixth place and below', value: pointsSixthPlusPlace }
+  ];
+
+  for (const field of pointFields) {
+    if (field.value !== undefined) {
+      const points = parseInt(field.value);
+      if (isNaN(points) || points < 0 || points > 20) {
+        return res.status(400).json({ error: `${field.name} points must be between 0 and 20` });
+      }
+    }
+  }
+
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    // Update or insert text settings
+    await connection.query(
+      `INSERT INTO text_settings (setting_key, setting_value) VALUES ('app_title', ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+      [appTitle]
+    );
+
+    await connection.query(
+      `INSERT INTO text_settings (setting_key, setting_value) VALUES ('app_tagline', ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+      [appTagline]
+    );
+
+    await connection.query(
+      `INSERT INTO text_settings (setting_key, setting_value) VALUES ('footer_message', ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+      [footerMessage]
+    );
+
+    // Update default timezone if provided
+    if (defaultTimezone) {
+      await connection.query(
+        `INSERT INTO text_settings (setting_key, setting_value) VALUES ('default_timezone', ?)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+        [defaultTimezone]
+      );
+    }
+
+    // Update numeric point values if provided
+    const pointSettings = [
+      { key: 'points_first_place', value: pointsFirstPlace },
+      { key: 'points_second_place', value: pointsSecondPlace },
+      { key: 'points_third_place', value: pointsThirdPlace },
+      { key: 'points_fourth_place', value: pointsFourthPlace },
+      { key: 'points_fifth_place', value: pointsFifthPlace },
+      { key: 'points_sixth_plus_place', value: pointsSixthPlusPlace }
+    ];
+
+    for (const setting of pointSettings) {
+      if (setting.value !== undefined) {
+        const intValue = parseInt(setting.value);
+        await connection.query(
+          `INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) VALUES (?, ?, 0, 20)
+           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+          [setting.key, intValue]
+        );
+      }
+    }
+
+    await connection.commit();
+
+    // Clear settings cache so new values are loaded immediately
+    SettingsService.clearCache();
+
+    res.json({ 
+      message: 'Settings updated successfully',
+      settings: {
+        app_title: appTitle,
+        app_tagline: appTagline,
+        footer_message: footerMessage,
+        default_timezone: defaultTimezone,
+        points_first_place: pointsFirstPlace,
+        points_second_place: pointsSecondPlace,
+        points_third_place: pointsThirdPlace,
+        points_fourth_place: pointsFourthPlace,
+        points_fifth_place: pointsFifthPlace,
+        points_sixth_plus_place: pointsSixthPlusPlace
+      }
+    });
+  } catch (error) {
+    await connection.rollback();
+    logger.error('Update settings error', { error });
+    res.status(500).json({ error: 'Server error' });
+  } finally {
+    connection.release();
+  }
+});
+
+export default router;

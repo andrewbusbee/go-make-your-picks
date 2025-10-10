@@ -1,0 +1,134 @@
+import { useRef, useEffect } from 'react';
+import {
+  cardClasses,
+  tableClasses,
+  tableHeadClasses,
+  tableHeaderCellClasses,
+  tableBodyClasses,
+  tableCellClasses,
+  tableCellSecondaryClasses,
+  badgeSuccessClasses,
+  badgeGrayClasses
+} from '../styles/commonClasses';
+
+interface Round {
+  id: number;
+  sport_name: string;
+  status: string;
+  champion_team: string | null;
+  finals_team_1: string | null;
+  finals_team_2: string | null;
+  first_place_team: string | null;
+  lock_time: string;
+}
+
+interface LeaderboardEntry {
+  userId: number;
+  userName: string;
+  picks: any;
+  scores: any;
+  totalPoints: number;
+  rank: number;
+}
+
+interface LeaderboardTableProps {
+  rounds: Round[];
+  leaderboard: LeaderboardEntry[];
+}
+
+export default function LeaderboardTable({ rounds, leaderboard }: LeaderboardTableProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to the right on mount to show Total column
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      setTimeout(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollLeft = scrollContainerRef.current.scrollWidth;
+        }
+      }, 100);
+    }
+  }, []);
+
+  const isRoundVisible = (round: Round) => {
+    return round.status === 'locked' || round.status === 'completed';
+  };
+
+  return (
+    <div className={`${cardClasses} shadow-lg overflow-hidden`}>
+      <div ref={scrollContainerRef} className="overflow-x-auto">
+        <table className={tableClasses}>
+          <thead className={tableHeadClasses}>
+            <tr>
+              <th className={`${tableHeaderCellClasses} sticky left-0 z-10 bg-gray-50 dark:bg-gray-900 w-40 min-w-40`}>
+                Player
+              </th>
+              {rounds.map((round) => (
+                <th key={round.id} className={`${tableHeaderCellClasses} whitespace-nowrap w-28 md:w-32 lg:w-36`}>
+                  <div className="text-center">
+                    <div>{round.sport_name}</div>
+                    {round.first_place_team && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                        ({round.first_place_team})
+                      </div>
+                    )}
+                  </div>
+                </th>
+              ))}
+              <th className={`${tableHeaderCellClasses} w-24`}>
+                Total
+              </th>
+            </tr>
+          </thead>
+          <tbody className={tableBodyClasses}>
+            {leaderboard.map((entry) => (
+              <tr key={entry.userId} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                <td className={`${tableCellClasses} sticky left-0 z-10 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium py-2 w-40 min-w-40`}>
+                  <span className="text-gray-500 dark:text-gray-400">#{entry.rank}</span> {entry.userName}
+                </td>
+                {rounds.map((round) => {
+                  const pick = entry.picks[round.id];
+                  const score = entry.scores[round.id];
+                  const visible = isRoundVisible(round);
+                  
+                  return (
+                    <td key={round.id} className={`${tableCellSecondaryClasses} py-2 w-28 md:w-32 lg:w-36`}>
+                      {visible && pick ? (
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="font-medium text-sm">
+                            {pick.pickItems && pick.pickItems.length > 0 ? (
+                              pick.pickItems.map((item: any, i: number) => (
+                                <span key={i}>
+                                  {item.pickValue}
+                                  {i < pick.pickItems.length - 1 ? ', ' : ''}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-gray-400 dark:text-gray-500 italic">No pick</span>
+                            )}
+                          </div>
+                          {score && (
+                            <span className={`${score.total_points > 0 ? badgeSuccessClasses : badgeGrayClasses} text-xs px-1.5 py-0.5 shrink-0`}>
+                              {score.total_points > 0 ? '+' : ''}{score.total_points}
+                            </span>
+                          )}
+                        </div>
+                      ) : visible && !pick ? (
+                        <span className="text-gray-400 dark:text-gray-500 italic text-sm">No pick</span>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500 text-sm">-</span>
+                      )}
+                    </td>
+                  );
+                })}
+                <td className={`${tableCellClasses} font-bold text-blue-600 dark:text-blue-400 py-2 w-24`}>
+                  {entry.totalPoints} pts
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

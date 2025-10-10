@@ -1,0 +1,42 @@
+{
+  "name": "go-make-your-picks-backend",
+  "version": "0.1.0-beta.1",
+  "description": "Backend API for Go Make Your Picks",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon --exec ts-node src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@types/node-cron": "^3.0.11",
+    "async-retry": "^1.3.3",
+    "bcrypt": "^5.1.1",
+    "compression": "^1.7.4",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^8.1.0",
+    "express-validator": "^7.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "moment-timezone": "^0.5.43",
+    "mysql2": "^3.6.5",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^6.9.7",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1"
+  },
+  "devDependencies": {
+    "@types/async-retry": "^1.4.8",
+    "@types/bcrypt": "^5.0.2",
+    "@types/compression": "^1.7.5",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.10.6",
+    "@types/nodemailer": "^6.4.14",
+    "nodemon": "^3.0.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

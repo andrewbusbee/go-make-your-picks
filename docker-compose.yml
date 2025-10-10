@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: sportspicks-mysql
+    restart: always
+    networks:
+      - gomakeyourpicks-network
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-sports_picks}
+      MYSQL_USER: ${MYSQL_USER:-picksuser}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pickspass}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    # Database port - OPTIONAL: Only expose to localhost for debugging/admin tools
+    # Comment out or remove in production for maximum security (app connects via docker network)
+    # For production, consider removing 'ports' entirely - app uses docker network (mysql:3306)
+    ports:
+      - "127.0.0.1:3306:3306"  # Only accessible from VM localhost, not internet
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  app:
+    image: ghcr.io/andrewbusbee/go-make-your-picks:latest
+    container_name: gomakeyourpicks-app
+    restart: always
+    networks:
+      - gomakeyourpicks-network
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: ${MYSQL_DATABASE:-sports_picks}
+      DB_USER: ${MYSQL_USER:-picksuser}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-pickspass}
+      # ⚠️ CRITICAL SECURITY: Generate a strong JWT secret!
+      # Run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+      # Or use .env file override (recommended)
+      JWT_SECRET: ${JWT_SECRET:-CHANGE_ME_OR_APP_WILL_NOT_START_IN_PRODUCTION}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_FROM: ${SMTP_FROM:-noreply@gomakeyourpicks.com}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Go Make Your Picks}
+      APP_URL: ${APP_URL:-http://localhost:3003}
+      ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-false}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+networks:
+  gomakeyourpicks-network:
+    driver: bridge
+    internal: false  # false required for magic link functionality
+
+volumes:
+  mysql-data:

@@ -1,0 +1,36 @@
+# Example docker-compose override file
+# Copy this to docker-compose.override.yml and fill in your values
+# docker-compose.override.yml is in .gitignore and safe to use for secrets
+#
+# This override adds build configuration for local development
+# The main docker-compose.yml uses the published image from ghcr.io
+
+services:
+  app:
+    # Override image with build for local development
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Remove image override for development builds
+    # image: ghcr.io/andrewbusbee/go-make-your-picks:latest
+    environment:
+      # Enable development tools in local development (set to "false" for production)
+      ENABLE_DEV_TOOLS: "true"
+      # SMTP Configuration - Required for sending magic links
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: 587
+      SMTP_SECURE: false
+      SMTP_USER: your-email@gmail.com
+      SMTP_PASSWORD: your-gmail-app-password
+      SMTP_FROM: noreply@gomakeyourpicks.com
+      
+      # Application URL (used in magic links)
+      APP_URL: http://localhost:3003
+      
+      # JWT Secret - MUST be changed for production!
+      # Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+      JWT_SECRET: change-this-to-a-long-random-string-32-chars-minimum
+      
+      # Optional: Override database passwords
+      # DB_PASSWORD: your-secure-database-password
+      # MYSQL_PASSWORD: your-secure-database-password

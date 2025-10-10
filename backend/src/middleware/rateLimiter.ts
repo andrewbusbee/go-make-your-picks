@@ -1,0 +1,46 @@
+import rateLimit from 'express-rate-limit';
+
+// Login rate limiter - prevent brute force attacks
+export const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per window
+  message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Password reset rate limiter - prevent email spam
+export const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 3, // 3 attempts per hour
+  message: { error: 'Too many password reset requests. Please try again in an hour.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Round activation limiter - prevent magic link email spam
+export const activationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 activations per hour
+  message: { error: 'Too many activations. Please wait before activating more sports.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Test email limiter - prevent email spam
+export const testEmailLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // 5 test emails per hour
+  message: { error: 'Too many test emails. Please wait before sending more.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Pick submission limiter - prevent spam
+export const pickSubmissionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 10, // 10 submissions per hour (allows updates)
+  message: { error: 'Too many pick submissions. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
