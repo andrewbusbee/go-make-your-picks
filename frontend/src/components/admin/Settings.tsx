@@ -58,7 +58,7 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
         >
           Email
         </button>
-        {isMainAdmin && (
+        {!!isMainAdmin && (
           <button
             onClick={() => handleTabChange('admins')}
             className={getSubTabClass('admins')}
@@ -72,7 +72,7 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
       <div>
         {activeTab === 'customize' && <AppSettings />}
         {activeTab === 'email' && <TestEmail />}
-        {activeTab === 'admins' && isMainAdmin && <AdminsManagement />}
+        {activeTab === 'admins' && !!isMainAdmin && <AdminsManagement />}
       </div>
     </div>
   );
