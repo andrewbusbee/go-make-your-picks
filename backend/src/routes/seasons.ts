@@ -325,19 +325,19 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
     // Handle ties properly - assign ranks with tie handling
     let currentRank = 1;
     let currentScore = leaderboard.length > 0 ? leaderboard[0].total_points : 0;
-    let skipNextRank = 0;
+    let tiedCount = 1;
     
     for (let i = 0; i < leaderboard.length && i < 5; i++) { // Store up to 5 winners for podium flexibility
       const player = leaderboard[i];
       
       // If this player has a different score than the previous, update rank
       if (i > 0 && player.total_points < currentScore) {
-        currentRank = i + 1;
+        currentRank += tiedCount; // Skip ranks after ties
         currentScore = player.total_points;
-        skipNextRank = 0;
+        tiedCount = 1;
       } else if (i > 0 && player.total_points === currentScore) {
         // Same score as previous player - they're tied, keep the same rank
-        skipNextRank++;
+        tiedCount++;
       }
       
       logger.debug('Inserting winner', { seasonId, place: currentRank, userId: player.user_id, totalPoints: player.total_points });
