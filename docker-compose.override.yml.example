@@ -6,6 +6,13 @@
 # The main docker-compose.yml uses the published image from ghcr.io
 
 services:
+  mysql:
+    environment:
+      MYSQL_ROOT_PASSWORD: your-root-password
+      MYSQL_DATABASE: sports_picks
+      MYSQL_USER: picksuser
+      MYSQL_PASSWORD: your-secure-database-password
+
   go-make-your-picks:
     # Override image with build for local development
     build:
