@@ -223,16 +223,23 @@ export default function RoundsManagement() {
       // Convert datetime-local format to ISO 8601
       const lockTimeISO = lockTime ? new Date(lockTime).toISOString() : null;
 
-      await api.post('/admin/rounds', {
+      // Build the payload, only including numWriteInPicks for multiple pick type
+      const payload: any = {
         seasonId: currentSeason.id,
         sportName,
         pickType,
-        numWriteInPicks: pickType === 'multiple' ? numWriteInPicks : null,
         emailMessage,
         lockTime: lockTimeISO,
         timezone,
         teams: pickType === 'single' ? teams : []
-      });
+      };
+
+      // Only include numWriteInPicks if pick type is multiple
+      if (pickType === 'multiple') {
+        payload.numWriteInPicks = numWriteInPicks;
+      }
+
+      await api.post('/admin/rounds', payload);
       
       await loadRounds(currentSeason.id);
       closeCreateModal();
@@ -252,15 +259,22 @@ export default function RoundsManagement() {
       // Convert datetime-local format to ISO 8601
       const lockTimeISO = lockTime ? new Date(lockTime).toISOString() : null;
 
-      // Update basic round info
-      await api.put(`/admin/rounds/${editingRound.id}`, {
+      // Build the payload, only including numWriteInPicks for multiple pick type
+      const payload: any = {
         sportName,
         pickType,
-        numWriteInPicks: pickType === 'multiple' ? numWriteInPicks : null,
         emailMessage,
         lockTime: lockTimeISO,
         timezone
-      });
+      };
+
+      // Only include numWriteInPicks if pick type is multiple
+      if (pickType === 'multiple') {
+        payload.numWriteInPicks = numWriteInPicks;
+      }
+
+      // Update basic round info
+      await api.put(`/admin/rounds/${editingRound.id}`, payload);
 
       // Update teams only if pick type is 'single'
       if (pickType === 'single') {
