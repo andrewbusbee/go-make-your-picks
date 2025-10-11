@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { JWT_TOKEN_EXPIRY } from '../config/constants';
+import db from '../config/database';
+import { RowDataPacket } from 'mysql2';
 
 // JWT_SECRET validation is now handled by startupValidation.ts on app start
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -11,7 +13,7 @@ export interface AuthRequest extends Request {
   isMainAdmin?: boolean;
 }
 
-export const authenticateAdmin = (req: AuthRequest, res: Response, next: NextFunction) => {
+export const authenticateAdmin = async (req: AuthRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -27,9 +29,23 @@ export const authenticateAdmin = (req: AuthRequest, res: Response, next: NextFun
       isMainAdmin: boolean;
     };
     
-    req.adminId = decoded.adminId;
-    req.username = decoded.username;
-    req.isMainAdmin = decoded.isMainAdmin;
+    // 🔒 SECURITY FIX: Verify admin still exists in database
+    // This prevents old tokens from deleted admins from accessing the system
+    const [admins] = await db.query<RowDataPacket[]>(
+      'SELECT id, username, is_main_admin FROM admins WHERE id = ? AND username = ?',
+      [decoded.adminId, decoded.username]
+    );
+
+    if (admins.length === 0) {
+      return res.status(401).json({ error: 'Admin account no longer exists' });
+    }
+
+    const admin = admins[0];
+    
+    // Update request with verified admin data
+    req.adminId = admin.id;
+    req.username = admin.username;
+    req.isMainAdmin = admin.is_main_admin;
     
     next();
   } catch (error) {

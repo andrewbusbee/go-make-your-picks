@@ -290,13 +290,15 @@ router.post('/reset-password', passwordResetLimiter, validateRequest(resetPasswo
 // Get current admin info
 router.get('/me', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   try {
+    // 🔒 ADDITIONAL SECURITY: Double-check admin exists (redundant but explicit)
+    // The authenticateAdmin middleware already verifies this, but this provides extra validation
     const [admins] = await db.query<RowDataPacket[]>(
       'SELECT id, username, email, is_main_admin, must_change_password FROM admins WHERE id = ?',
       [req.adminId]
     );
 
     if (admins.length === 0) {
-      return res.status(404).json({ error: 'Admin not found' });
+      return res.status(404).json({ error: 'Admin account no longer exists' });
     }
 
     res.json(admins[0]);

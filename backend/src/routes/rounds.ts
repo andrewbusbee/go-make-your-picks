@@ -9,6 +9,7 @@ import { activationLimiter, pickSubmissionLimiter } from '../middleware/rateLimi
 import { isValidTimezone } from '../utils/timezones';
 import { validateRequest } from '../middleware/validator';
 import { createRoundValidators, updateRoundValidators, completeRoundValidators } from '../validators/roundsValidators';
+import { SettingsService } from '../services/settingsService';
 import logger from '../utils/logger';
 
 const router = express.Router();
@@ -41,6 +42,9 @@ const getUserPerformanceData = async (roundId: number, userId: number) => {
       { place: 5, team: round.fifth_place_team }
     ].filter(result => result.team);
 
+    // Get points settings for dynamic calculation
+    const pointsSettings = await SettingsService.getPointsSettings();
+
     // Calculate user's points for this round
     let userPoints = 0;
     let userPick = 'No pick';
@@ -52,47 +56,76 @@ const getUserPerformanceData = async (roundId: number, userId: number) => {
         
         // Check against final results
         if (round.first_place_team && userPickValue === round.first_place_team.toLowerCase()) {
-          userPoints = 6; // 1st place points
+          userPoints = pointsSettings.pointsFirst;
         } else if (round.second_place_team && userPickValue === round.second_place_team.toLowerCase()) {
-          userPoints = 5; // 2nd place points
+          userPoints = pointsSettings.pointsSecond;
         } else if (round.third_place_team && userPickValue === round.third_place_team.toLowerCase()) {
-          userPoints = 4; // 3rd place points
+          userPoints = pointsSettings.pointsThird;
         } else if (round.fourth_place_team && userPickValue === round.fourth_place_team.toLowerCase()) {
-          userPoints = 3; // 4th place points
+          userPoints = pointsSettings.pointsFourth;
         } else if (round.fifth_place_team && userPickValue === round.fifth_place_team.toLowerCase()) {
-          userPoints = 2; // 5th place points
+          userPoints = pointsSettings.pointsFifth;
         } else {
-          userPoints = 1; // 6th+ place points
+          userPoints = pointsSettings.pointsSixthPlus;
         }
       }
     }
 
-    // Get current season leaderboard (top 5)
+    // Get current season leaderboard (top 5) with dynamic points calculation
     const [seasonId] = await db.query<RowDataPacket[]>(
       'SELECT season_id FROM rounds WHERE id = ?',
       [roundId]
     );
 
-    const [leaderboard] = await db.query<RowDataPacket[]>(
-      `SELECT u.name, u.id, COALESCE(SUM(s.points), 0) as total_points
-       FROM users u
-       LEFT JOIN scores s ON u.id = s.user_id AND s.round_id IN (
-         SELECT id FROM rounds WHERE season_id = ? AND status = 'completed'
-       )
-       JOIN season_participants sp ON u.id = sp.user_id AND sp.season_id = ?
-       WHERE u.is_active = TRUE
-       GROUP BY u.id, u.name
-       ORDER BY total_points DESC
-       LIMIT 5`,
-      [seasonId[0].season_id, seasonId[0].season_id]
+    // Get all completed rounds for this season
+    const [completedRounds] = await db.query<RowDataPacket[]>(
+      'SELECT id FROM rounds WHERE season_id = ? AND status = ?',
+      [seasonId[0].season_id, 'completed']
     );
 
-    // Format leaderboard with user highlight
-    const formattedLeaderboard = leaderboard.map(entry => ({
-      name: entry.name,
-      points: entry.total_points,
-      isCurrentUser: entry.id === userId
-    }));
+    const completedRoundIds = completedRounds.map(r => r.id);
+
+    // Get leaderboard data with dynamic points calculation
+    const [leaderboardData] = await db.query<RowDataPacket[]>(
+      `SELECT u.name, u.id, s.round_id, s.first_place, s.second_place, s.third_place, s.fourth_place, s.fifth_place, s.sixth_plus_place
+       FROM users u
+       LEFT JOIN scores s ON u.id = s.user_id AND s.round_id IN (${completedRoundIds.map(() => '?').join(',')})
+       JOIN season_participants sp ON u.id = sp.user_id AND sp.season_id = ?
+       WHERE u.is_active = TRUE`,
+      [...completedRoundIds, seasonId[0].season_id]
+    );
+
+    // Calculate total points for each user
+    const userTotals = new Map<number, { name: string; points: number }>();
+    
+    leaderboardData.forEach(entry => {
+      if (!userTotals.has(entry.id)) {
+        userTotals.set(entry.id, { name: entry.name, points: 0 });
+      }
+      
+      if (entry.round_id) {
+        // Calculate points for this round
+        const roundPoints = 
+          (entry.first_place || 0) * pointsSettings.pointsFirst +
+          (entry.second_place || 0) * pointsSettings.pointsSecond +
+          (entry.third_place || 0) * pointsSettings.pointsThird +
+          (entry.fourth_place || 0) * pointsSettings.pointsFourth +
+          (entry.fifth_place || 0) * pointsSettings.pointsFifth +
+          (entry.sixth_plus_place || 0) * pointsSettings.pointsSixthPlus;
+        
+        userTotals.get(entry.id)!.points += roundPoints;
+      }
+    });
+
+    // Sort by total points and take top 5
+    const formattedLeaderboard = Array.from(userTotals.values())
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 5)
+      .map(entry => ({
+        name: entry.name,
+        points: entry.points,
+        isCurrentUser: entry.name === leaderboardData.find(d => d.id === userId)?.name
+      }));
 
     return {
       userPick,
