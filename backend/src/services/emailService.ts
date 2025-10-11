@@ -11,6 +11,25 @@ import {
   EMAIL_RETRY_MAX_TIMEOUT 
 } from '../config/constants';
 
+async function getSettings() {
+  const settings = await SettingsService.getAllSettings();
+  return {
+    app_title: settings.appTitle,
+    app_tagline: settings.appTagline
+  };
+}
+
+function getCommissionerSignature(commissioner?: string): string {
+  if (commissioner && commissioner.trim()) {
+    return `<p style="text-align: center; margin-top: 30px; color: #666; font-style: italic;">
+              From the desk of The Commissioner: ${commissioner}
+            </p>`;
+  }
+  return `<p style="text-align: center; margin-top: 30px; color: #666; font-style: italic;">
+            From the desk of The Commissioner
+          </p>`;
+}
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp.gmail.com',
   port: parseInt(process.env.SMTP_PORT || '587'),
@@ -58,28 +77,14 @@ async function sendEmailWithRetry(
   );
 }
 
-const getSettings = async () => {
-  try {
-    const settings = await SettingsService.getTextSettings();
-    return {
-      app_title: settings.appTitle,
-      app_tagline: settings.appTagline
-    };
-  } catch (error) {
-    logger.error('Error loading settings for email', { error });
-    return {
-      app_title: 'Go Make Your Picks',
-      app_tagline: 'Predict. Compete. Win.'
-    };
-  }
-};
 
 export const sendMagicLink = async (
   email: string,
   name: string,
   sportName: string,
   magicLink: string,
-  customMessage?: string
+  customMessage?: string,
+  commissioner?: string
 ): Promise<void> => {
   const settings = await getSettings();
   const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
@@ -124,6 +129,8 @@ export const sendMagicLink = async (
                 <span style="word-break: break-all;">${magicLink}</span>
               </p>
               <p><strong>Important:</strong> This link is unique to you and will expire once picks are locked. You can update your pick as many times as you want before the deadline.</p>
+              
+              ${getCommissionerSignature(commissioner)}
             </div>
             <div class="footer">
               <p>${settings.app_title} - ${settings.app_tagline}</p>
@@ -199,6 +206,8 @@ export const sendLockedNotification = async (
               <div style="text-align: center;">
                 <a href="${leaderboardLink}" class="button">View Leaderboard</a>
               </div>
+              
+              ${getCommissionerSignature()}
             </div>
             <div class="footer">
               <p>${settings.app_title} - ${settings.app_tagline}</p>
@@ -231,7 +240,8 @@ export const sendSportCompletionEmail = async (
   userPoints: number,
   finalResults: Array<{place: number, team: string}>,
   leaderboard: Array<{name: string, points: number, isCurrentUser: boolean}>,
-  leaderboardLink: string
+  leaderboardLink: string,
+  commissioner?: string
 ): Promise<void> => {
   const settings = await getSettings();
   const pointsSettings = await SettingsService.getPointsSettings();
@@ -342,6 +352,8 @@ export const sendSportCompletionEmail = async (
               <div style="text-align: center;">
                 <a href="${leaderboardLink}" class="button">View Full Leaderboard</a>
               </div>
+              
+              ${getCommissionerSignature(commissioner)}
             </div>
             <div class="footer">
               <p>${settings.app_title} - ${settings.app_tagline}</p>

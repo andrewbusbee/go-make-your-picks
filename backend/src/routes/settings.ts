@@ -55,6 +55,7 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     appTagline, 
     footerMessage,
     defaultTimezone,
+    commissioner,
     pointsFirstPlace,
     pointsSecondPlace,
     pointsThirdPlace,
@@ -69,6 +70,11 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
 
   if (appTitle.length > 100 || appTagline.length > 200 || footerMessage.length > 100) {
     return res.status(400).json({ error: 'Title, tagline, or footer message is too long' });
+  }
+
+  // Validate commissioner length if provided
+  if (commissioner && commissioner.length > 100) {
+    return res.status(400).json({ error: 'Commissioner name is too long (max 100 characters)' });
   }
 
   // Validate timezone if provided
@@ -127,6 +133,13 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
         [defaultTimezone]
       );
     }
+
+    // Update commissioner (can be empty string to clear it)
+    await connection.query(
+      `INSERT INTO text_settings (setting_key, setting_value) VALUES ('commissioner', ?)
+       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+      [commissioner || '']
+    );
 
     // Update numeric point values if provided
     const pointSettings = [

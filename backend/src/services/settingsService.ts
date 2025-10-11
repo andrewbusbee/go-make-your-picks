@@ -22,6 +22,7 @@ export interface TextSettings {
   appTagline: string;
   footerMessage: string;
   defaultTimezone: string;
+  commissioner: string;
 }
 
 export interface AllSettings extends PointsSettings, TextSettings {}
@@ -110,6 +111,7 @@ export class SettingsService {
         appTagline: settingsMap.get('app_tagline') || 'Predict. Compete. Win.',
         footerMessage: settingsMap.get('footer_message') || 'Built for Sports Fans',
         defaultTimezone: settingsMap.get('default_timezone') || 'America/New_York',
+        commissioner: settingsMap.get('commissioner') || '',
       };
 
       // Update cache
@@ -127,6 +129,7 @@ export class SettingsService {
         appTagline: 'Predict. Compete. Win.',
         footerMessage: 'Built for Sports Fans',
         defaultTimezone: 'America/New_York',
+        commissioner: '',
       };
     }
   }

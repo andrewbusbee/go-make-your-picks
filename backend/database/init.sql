@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS rounds (
     pick_type ENUM('single', 'multiple') DEFAULT 'single',
     num_write_in_picks INT DEFAULT NULL,
     email_message TEXT DEFAULT NULL,
+    commissioner VARCHAR(255) DEFAULT NULL,
     lock_time TIMESTAMP NOT NULL,
     timezone VARCHAR(100) DEFAULT 'America/New_York',
     status ENUM('draft', 'active', 'locked', 'completed') DEFAULT 'draft',
@@ -239,7 +240,8 @@ ON DUPLICATE KEY UPDATE username=username;
 INSERT INTO text_settings (setting_key, setting_value) VALUES 
 ('app_title', 'Go Make Your Picks'),
 ('app_tagline', 'Predict. Compete. Win.'),
-('footer_message', 'Built for Sports Fans')
+('footer_message', 'Built for Sports Fans'),
+('commissioner', '')
 ON DUPLICATE KEY UPDATE setting_key=setting_key;
 
 -- Insert default numeric settings
