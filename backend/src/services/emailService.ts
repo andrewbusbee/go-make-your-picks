@@ -191,20 +191,14 @@ export const sendLockedNotification = async (
               
               <div class="locked-notice">
                 <h3 style="margin-top: 0; color: #856404;">📋 ${sportName} picks are now locked!</h3>
-                <p style="margin-bottom: 0; color: #856404;">The deadline has passed and no further picks can be submitted for this sport.</p>
+                <p style="margin-bottom: 0; color: #856404;">The deadline to pick for ${sportName} has passed, so picks can no longer be submitted.</p>
               </div>
-              
-              ${customMessage ? `<div class="custom-message">${customMessage.replace(/\n/g, '<br>')}</div>` : ''}
               
               <p>You can view the current standings and leaderboard on our website.</p>
               
               <div style="text-align: center;">
                 <a href="${leaderboardLink}" class="button">View Leaderboard</a>
               </div>
-              
-              <p style="text-align: center; margin-top: 30px; color: #666;">
-                Thank you for participating!
-              </p>
             </div>
             <div class="footer">
               <p>${settings.app_title} - ${settings.app_tagline}</p>
