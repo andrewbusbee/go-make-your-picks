@@ -240,15 +240,51 @@ export const sendSportCompletionEmail = async (
   leaderboardLink: string
 ): Promise<void> => {
   const settings = await getSettings();
+  const pointsSettings = await SettingsService.getPointsSettings();
   const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
   
-  // Format final results with medals
+  // Format final results with medals and points
   const formatResults = (results: Array<{place: number, team: string}>) => {
-    return results.map(result => {
+    const formattedResults = results.map(result => {
       const medal = result.place === 1 ? '🥇' : result.place === 2 ? '🥈' : result.place === 3 ? '🥉' : '';
-      return `${result.place}${result.place <= 3 ? 'st' : result.place === 2 ? 'nd' : result.place === 3 ? 'rd' : 'th'}: ${result.team} ${medal}`;
-    }).join('<br>');
+      let points = 0;
+      let placeText = '';
+      
+      switch (result.place) {
+        case 1:
+          points = pointsSettings.pointsFirst;
+          placeText = `Champion (${points} Points)`;
+          break;
+        case 2:
+          points = pointsSettings.pointsSecond;
+          placeText = `2nd (${points} Points)`;
+          break;
+        case 3:
+          points = pointsSettings.pointsThird;
+          placeText = `3rd (${points} Points)`;
+          break;
+        case 4:
+          points = pointsSettings.pointsFourth;
+          placeText = `4th (${points} Points)`;
+          break;
+        case 5:
+          points = pointsSettings.pointsFifth;
+          placeText = `5th (${points} Points)`;
+          break;
+        default:
+          points = pointsSettings.pointsSixthPlus;
+          placeText = `${result.place}th (${points} Points)`;
+      }
+      
+      return `${placeText}: ${result.team} ${medal}`;
+    });
+    
+    // Add the line about other picks
+    const otherPicksLine = `All other picks received ${pointsSettings.pointsSixthPlus} point${pointsSettings.pointsSixthPlus !== 1 ? 's' : ''}`;
+    formattedResults.push(otherPicksLine);
+    
+    return formattedResults.join('<br>');
   };
 
   // Format leaderboard with user highlight
@@ -291,7 +327,7 @@ export const sendSportCompletionEmail = async (
             <div class="content">
               <h2>Hi ${name}!</h2>
               
-              <p><strong>📊 ${sportName} has been completed!</strong></p>
+              <p><strong>${sportName} has been completed!</strong></p>
               
               <div class="user-highlight">
                 <div class="section-title">🎯 Your Result:</div>
@@ -300,7 +336,7 @@ export const sendSportCompletionEmail = async (
               </div>
               
               <div class="results-box">
-                <div class="section-title">📊 Final Results:</div>
+                <div class="section-title">📊 ${sportName} Results:</div>
                 <p>${formatResults(finalResults)}</p>
               </div>
               
