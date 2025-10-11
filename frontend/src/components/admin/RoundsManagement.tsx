@@ -750,8 +750,8 @@ export default function RoundsManagement() {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className={`${cardClasses} rounded-lg max-w-2xl w-full my-8`}>
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+          <div className={`${cardClasses} rounded-lg max-w-2xl w-full my-2 sm:my-8 max-h-[95vh] overflow-y-auto`}>
             <h3 className={`${subheadingClasses} mb-4`}>
               Add New Sport to {currentSeason?.name}
             </h3>
@@ -903,8 +903,8 @@ export default function RoundsManagement() {
 
       {/* Edit Modal */}
       {showEditModal && editingRound && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className={`${cardClasses} max-w-2xl w-full my-8`}>
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+          <div className={`${cardClasses} max-w-2xl w-full my-2 sm:my-8 max-h-[95vh] overflow-y-auto`}>
             <h3 className={`${subheadingClasses} mb-4`}>Edit Sport</h3>
 
             {error && (
@@ -1063,8 +1063,8 @@ export default function RoundsManagement() {
 
       {/* Complete Modal */}
       {showCompleteModal && selectedRound && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className={`${cardClasses} max-w-4xl w-full my-8`}>
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+          <div className={`${cardClasses} max-w-4xl w-full my-2 sm:my-8 max-h-[95vh] overflow-y-auto`}>
             <h3 className={`${headingClasses} mb-6`}>
               Complete Round: {selectedRound.sport_name}
             </h3>
@@ -1075,13 +1075,13 @@ export default function RoundsManagement() {
               </div>
             )}
 
-            <form onSubmit={handleCompleteSubmit} className="space-y-6">
+            <form onSubmit={handleCompleteSubmit} className="space-y-4 sm:space-y-6">
               {/* Final Placements Section */}
               <div>
                 <h4 className={`${subheadingClasses} mb-3`}>
                   Final Placements
                 </h4>
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {/* Champion (1st Place) */}
                   <div>
                     <label className={labelClasses}>
@@ -1247,7 +1247,7 @@ export default function RoundsManagement() {
                       Select the placement for each player (only one placement per player)
                     </p>
                   </div>
-                  <div className="overflow-x-auto">
+                  <div className="overflow-x-auto overflow-y-auto max-h-64 sm:max-h-none">
                     <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                       <thead className="bg-gray-50 dark:bg-gray-900">
                         <tr>
