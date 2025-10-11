@@ -284,7 +284,7 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
 // Update round (admin only)
 router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), async (req: AuthRequest, res: Response) => {
   const roundId = parseInt(req.params.id);
-  const { sportName, pickType, numWriteInPicks, emailMessage, lockTime, timezone } = req.body;
+  const { seasonId, sportName, pickType, numWriteInPicks, emailMessage, lockTime, timezone } = req.body;
 
   // Validate pickType if provided
   if (pickType && !['single', 'multiple'].includes(pickType)) {
@@ -301,6 +301,26 @@ router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), as
   // Validate timezone if provided
   if (timezone && !isValidTimezone(timezone)) {
     return res.status(400).json({ error: 'Invalid timezone. Please select a valid timezone.' });
+  }
+
+  // Validate season if provided
+  if (seasonId) {
+    const [seasons] = await db.query<RowDataPacket[]>(
+      'SELECT id, is_active, ended_at FROM seasons WHERE id = ? AND deleted_at IS NULL',
+      [seasonId]
+    );
+
+    if (seasons.length === 0) {
+      return res.status(400).json({ error: 'Season not found' });
+    }
+
+    if (seasons[0].ended_at) {
+      return res.status(400).json({ error: 'Cannot move sport to an ended season' });
+    }
+
+    if (!seasons[0].is_active) {
+      return res.status(400).json({ error: 'Cannot move sport to an inactive season' });
+    }
   }
 
   // Parse datetime in the selected timezone if both lockTime and timezone are provided
@@ -325,6 +345,7 @@ router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), as
   try {
     await db.query(
       `UPDATE rounds SET 
+        season_id = COALESCE(?, season_id),
         sport_name = COALESCE(?, sport_name),
         pick_type = COALESCE(?, pick_type),
         num_write_in_picks = ?,
@@ -332,7 +353,7 @@ router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), as
         lock_time = COALESCE(?, lock_time),
         timezone = COALESCE(?, timezone)
       WHERE id = ?`,
-      [sportName, pickType, pickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, mysqlLockTime, timezone, roundId]
+      [seasonId, sportName, pickType, pickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, mysqlLockTime, timezone, roundId]
     );
 
     res.json({ message: 'Round updated successfully' });

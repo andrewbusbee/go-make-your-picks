@@ -64,6 +64,7 @@ export default function RoundsManagement() {
   const [permanentDeleteCheckbox, setPermanentDeleteCheckbox] = useState(false);
   
   // Create/Edit form
+  const [selectedSeasonId, setSelectedSeasonId] = useState<number | null>(null);
   const [sportName, setSportName] = useState('');
   const [pickType, setPickType] = useState<'single' | 'multiple'>('single');
   const [numWriteInPicks, setNumWriteInPicks] = useState(1);
@@ -188,6 +189,7 @@ export default function RoundsManagement() {
   };
 
   const openCreateModal = () => {
+    setSelectedSeasonId(currentSeason?.id || null);
     setSportName('');
     setPickType('single');
     setNumWriteInPicks(1);
@@ -213,6 +215,7 @@ export default function RoundsManagement() {
       const roundData = res.data;
       
       setEditingRound(roundData);
+      setSelectedSeasonId(roundData.season_id);
       setSportName(roundData.sport_name);
       setPickType(roundData.pick_type || 'single');
       setNumWriteInPicks(roundData.num_write_in_picks || 1);
@@ -247,8 +250,8 @@ export default function RoundsManagement() {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentSeason) {
-      setError('Please create a season first');
+    if (!selectedSeasonId) {
+      setError('Please select a season');
       return;
     }
     
@@ -267,7 +270,7 @@ export default function RoundsManagement() {
 
       // Build the payload, only including numWriteInPicks for multiple pick type
       const payload: any = {
-        seasonId: currentSeason.id,
+        seasonId: selectedSeasonId,
         sportName,
         pickType,
         emailMessage,
@@ -283,7 +286,7 @@ export default function RoundsManagement() {
 
       await api.post('/admin/rounds', payload);
       
-      await loadRounds(currentSeason.id);
+      await loadRounds(selectedSeasonId);
       closeCreateModal();
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to create round');
@@ -304,6 +307,7 @@ export default function RoundsManagement() {
 
       // Build the payload, only including numWriteInPicks for multiple pick type
       const payload: any = {
+        seasonId: selectedSeasonId,
         sportName,
         pickType,
         emailMessage,
@@ -816,7 +820,7 @@ export default function RoundsManagement() {
         <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
           <div className={`${cardClasses} rounded-lg max-w-2xl w-full my-2 sm:my-8 max-h-[95vh] overflow-y-auto`}>
             <h3 className={`${subheadingClasses} mb-4`}>
-              Add New Sport to {currentSeason?.name}
+              Add New Sport
             </h3>
 
             {error && (
@@ -826,6 +830,31 @@ export default function RoundsManagement() {
             )}
 
             <form onSubmit={handleCreateSubmit} className="space-y-4">
+              {/* Season Selection */}
+              <div>
+                <label className={labelClasses}>
+                  Season
+                </label>
+                <select
+                  value={selectedSeasonId || ''}
+                  onChange={(e) => setSelectedSeasonId(Number(e.target.value) || null)}
+                  className={inputClasses}
+                  required
+                >
+                  <option value="">Select a season...</option>
+                  {seasons
+                    .filter((season: any) => season.is_active && !season.ended_at)
+                    .map((season: any) => (
+                      <option key={season.id} value={season.id}>
+                        {season.name} ({season.year_start}-{season.year_end})
+                      </option>
+                    ))}
+                </select>
+                <p className={`${helpTextClasses} mt-1`}>
+                  Select which season this sport belongs to. Only active seasons are shown.
+                </p>
+              </div>
+
               {/* Sport Name */}
               <div>
                 <label className={labelClasses}>
@@ -986,6 +1015,31 @@ export default function RoundsManagement() {
             )}
 
             <form onSubmit={handleEditSubmit} className="space-y-4">
+              {/* Season Selection */}
+              <div>
+                <label className={labelClasses}>
+                  Season
+                </label>
+                <select
+                  value={selectedSeasonId || ''}
+                  onChange={(e) => setSelectedSeasonId(Number(e.target.value) || null)}
+                  className={inputClasses}
+                  required
+                >
+                  <option value="">Select a season...</option>
+                  {seasons
+                    .filter((season: any) => season.is_active && !season.ended_at)
+                    .map((season: any) => (
+                      <option key={season.id} value={season.id}>
+                        {season.name} ({season.year_start}-{season.year_end})
+                      </option>
+                    ))}
+                </select>
+                <p className={`${helpTextClasses} mt-1`}>
+                  Select which season this sport belongs to. Only active seasons are shown.
+                </p>
+              </div>
+
               {/* Sport Name */}
               <div>
                 <label className={labelClasses}>
