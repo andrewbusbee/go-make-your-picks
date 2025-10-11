@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { authenticateAdmin, AuthRequest } from '../middleware/auth';
 import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
-import { sendMagicLink } from '../services/emailService';
+import { sendMagicLink, sendSportCompletionEmail } from '../services/emailService';
 import { manualSendReminder, manualSendLockedNotification, manualSendGenericReminder } from '../services/reminderScheduler';
 import { activationLimiter, pickSubmissionLimiter } from '../middleware/rateLimiter';
 import { isValidTimezone } from '../utils/timezones';
@@ -12,6 +12,100 @@ import { createRoundValidators, updateRoundValidators, completeRoundValidators }
 import logger from '../utils/logger';
 
 const router = express.Router();
+
+// Helper function to get user performance data and leaderboard for completion email
+const getUserPerformanceData = async (roundId: number, userId: number) => {
+  try {
+    // Get user's pick for this round
+    const [userPicks] = await db.query<RowDataPacket[]>(
+      `SELECT p.*, pi.pick_value 
+       FROM picks p 
+       LEFT JOIN pick_items pi ON p.id = pi.pick_id 
+       WHERE p.round_id = ? AND p.user_id = ?`,
+      [roundId, userId]
+    );
+
+    // Get final results for this round
+    const [roundData] = await db.query<RowDataPacket[]>(
+      `SELECT sport_name, first_place_team, second_place_team, third_place_team, fourth_place_team, fifth_place_team 
+       FROM rounds WHERE id = ?`,
+      [roundId]
+    );
+
+    const round = roundData[0];
+    const finalResults = [
+      { place: 1, team: round.first_place_team },
+      { place: 2, team: round.second_place_team },
+      { place: 3, team: round.third_place_team },
+      { place: 4, team: round.fourth_place_team },
+      { place: 5, team: round.fifth_place_team }
+    ].filter(result => result.team);
+
+    // Calculate user's points for this round
+    let userPoints = 0;
+    let userPick = 'No pick';
+    
+    if (userPicks.length > 0) {
+      const userPickValue = userPicks[0].pick_value?.toLowerCase();
+      if (userPickValue) {
+        userPick = userPicks[0].pick_value;
+        
+        // Check against final results
+        if (round.first_place_team && userPickValue === round.first_place_team.toLowerCase()) {
+          userPoints = 6; // 1st place points
+        } else if (round.second_place_team && userPickValue === round.second_place_team.toLowerCase()) {
+          userPoints = 5; // 2nd place points
+        } else if (round.third_place_team && userPickValue === round.third_place_team.toLowerCase()) {
+          userPoints = 4; // 3rd place points
+        } else if (round.fourth_place_team && userPickValue === round.fourth_place_team.toLowerCase()) {
+          userPoints = 3; // 4th place points
+        } else if (round.fifth_place_team && userPickValue === round.fifth_place_team.toLowerCase()) {
+          userPoints = 2; // 5th place points
+        } else {
+          userPoints = 1; // 6th+ place points
+        }
+      }
+    }
+
+    // Get current season leaderboard (top 5)
+    const [seasonId] = await db.query<RowDataPacket[]>(
+      'SELECT season_id FROM rounds WHERE id = ?',
+      [roundId]
+    );
+
+    const [leaderboard] = await db.query<RowDataPacket[]>(
+      `SELECT u.name, u.id, COALESCE(SUM(s.points), 0) as total_points
+       FROM users u
+       LEFT JOIN scores s ON u.id = s.user_id AND s.round_id IN (
+         SELECT id FROM rounds WHERE season_id = ? AND status = 'completed'
+       )
+       JOIN season_participants sp ON u.id = sp.user_id AND sp.season_id = ?
+       WHERE u.is_active = TRUE
+       GROUP BY u.id, u.name
+       ORDER BY total_points DESC
+       LIMIT 5`,
+      [seasonId[0].season_id, seasonId[0].season_id]
+    );
+
+    // Format leaderboard with user highlight
+    const formattedLeaderboard = leaderboard.map(entry => ({
+      name: entry.name,
+      points: entry.total_points,
+      isCurrentUser: entry.id === userId
+    }));
+
+    return {
+      userPick,
+      userPoints,
+      finalResults,
+      leaderboard: formattedLeaderboard,
+      sportName: round.sport_name
+    };
+  } catch (error) {
+    logger.error('Error getting user performance data', { error, roundId, userId });
+    throw error;
+  }
+};
 
 // Get all rounds (admin only) - for checking system status
 router.get('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
@@ -445,6 +539,63 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
     }
 
     await connection.commit();
+
+    // Send completion emails to all participants
+    try {
+      // Get all season participants for this round
+      const [seasonId] = await db.query<RowDataPacket[]>(
+        'SELECT season_id FROM rounds WHERE id = ?',
+        [roundId]
+      );
+
+      const [participants] = await db.query<RowDataPacket[]>(
+        `SELECT u.id, u.name, u.email 
+         FROM users u
+         JOIN season_participants sp ON u.id = sp.user_id 
+         WHERE sp.season_id = ? AND u.is_active = TRUE`,
+        [seasonId[0].season_id]
+      );
+
+      const APP_URL = process.env.APP_URL || 'http://localhost:3003';
+      const leaderboardLink = `${APP_URL}`;
+
+      // Send completion emails to all participants in parallel
+      await Promise.allSettled(
+        participants.map(async (participant) => {
+          try {
+            const performanceData = await getUserPerformanceData(roundId, participant.id);
+            
+            await sendSportCompletionEmail(
+              participant.email,
+              participant.name,
+              performanceData.sportName,
+              performanceData.userPick,
+              performanceData.userPoints,
+              performanceData.finalResults,
+              performanceData.leaderboard,
+              leaderboardLink
+            );
+          } catch (emailError) {
+            logger.error(`Failed to send completion email to ${participant.email}`, { 
+              emailError, 
+              roundId, 
+              participantId: participant.id 
+            });
+          }
+        })
+      );
+
+      logger.info('Completion emails sent', { 
+        roundId, 
+        participantCount: participants.length 
+      });
+    } catch (emailError) {
+      // Don't fail the round completion if emails fail
+      logger.error('Error sending completion emails', { 
+        error: emailError, 
+        roundId 
+      });
+    }
 
     res.json({ message: 'Round completed and scores calculated successfully' });
   } catch (error) {
