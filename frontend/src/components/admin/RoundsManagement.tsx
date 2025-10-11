@@ -220,13 +220,16 @@ export default function RoundsManagement() {
         .map(t => t.trim())
         .filter(t => t.length > 0);
 
+      // Convert datetime-local format to ISO 8601
+      const lockTimeISO = lockTime ? new Date(lockTime).toISOString() : null;
+
       await api.post('/admin/rounds', {
         seasonId: currentSeason.id,
         sportName,
         pickType,
         numWriteInPicks: pickType === 'multiple' ? numWriteInPicks : null,
         emailMessage,
-        lockTime,
+        lockTime: lockTimeISO,
         timezone,
         teams: pickType === 'single' ? teams : []
       });
@@ -246,13 +249,16 @@ export default function RoundsManagement() {
     setLoading(true);
 
     try {
+      // Convert datetime-local format to ISO 8601
+      const lockTimeISO = lockTime ? new Date(lockTime).toISOString() : null;
+
       // Update basic round info
       await api.put(`/admin/rounds/${editingRound.id}`, {
         sportName,
         pickType,
         numWriteInPicks: pickType === 'multiple' ? numWriteInPicks : null,
         emailMessage,
-        lockTime,
+        lockTime: lockTimeISO,
         timezone
       });
 
