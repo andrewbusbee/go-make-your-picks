@@ -103,6 +103,10 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
     return res.status(400).json({ error: 'Invalid timezone. Please select a valid IANA timezone.' });
   }
 
+  // Convert ISO 8601 to MySQL datetime format
+  const lockTimeDate = new Date(lockTime);
+  const mysqlLockTime = lockTimeDate.toISOString().slice(0, 19).replace('T', ' ');
+
   const connection = await db.getConnection();
   
   try {
@@ -110,7 +114,7 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
 
     const [result] = await connection.query<ResultSetHeader>(
       'INSERT INTO rounds (season_id, sport_name, pick_type, num_write_in_picks, email_message, lock_time, timezone, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [seasonId, sportName, validPickType, validPickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, lockTime, validTimezone, 'draft']
+      [seasonId, sportName, validPickType, validPickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, mysqlLockTime, validTimezone, 'draft']
     );
 
     const roundId = result.insertId;
@@ -169,6 +173,13 @@ router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), as
     return res.status(400).json({ error: 'Invalid timezone. Please select a valid timezone.' });
   }
 
+  // Convert ISO 8601 to MySQL datetime format if lockTime is provided
+  let mysqlLockTime = lockTime;
+  if (lockTime) {
+    const lockTimeDate = new Date(lockTime);
+    mysqlLockTime = lockTimeDate.toISOString().slice(0, 19).replace('T', ' ');
+  }
+
   try {
     await db.query(
       `UPDATE rounds SET 
@@ -179,7 +190,7 @@ router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), as
         lock_time = COALESCE(?, lock_time),
         timezone = COALESCE(?, timezone)
       WHERE id = ?`,
-      [sportName, pickType, pickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, lockTime, timezone, roundId]
+      [sportName, pickType, pickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, mysqlLockTime, timezone, roundId]
     );
 
     res.json({ message: 'Round updated successfully' });
