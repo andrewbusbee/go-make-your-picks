@@ -261,8 +261,9 @@ export default function RoundsManagement() {
         .map(t => t.trim())
         .filter(t => t.length > 0);
 
-      // Convert datetime-local format to ISO 8601
-      const lockTimeISO = lockTime ? new Date(lockTime).toISOString() : null;
+      // Send datetime as-is - backend will interpret it in the selected timezone
+      // Don't convert to ISO/UTC here as that would apply the browser's timezone
+      const lockTimeISO = lockTime || null;
 
       // Build the payload, only including numWriteInPicks for multiple pick type
       const payload: any = {
@@ -297,8 +298,9 @@ export default function RoundsManagement() {
     setLoading(true);
 
     try {
-      // Convert datetime-local format to ISO 8601
-      const lockTimeISO = lockTime ? new Date(lockTime).toISOString() : null;
+      // Send datetime as-is - backend will interpret it in the selected timezone
+      // Don't convert to ISO/UTC here as that would apply the browser's timezone
+      const lockTimeISO = lockTime || null;
 
       // Build the payload, only including numWriteInPicks for multiple pick type
       const payload: any = {

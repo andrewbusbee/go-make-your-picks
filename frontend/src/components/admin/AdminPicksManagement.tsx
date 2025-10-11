@@ -38,6 +38,12 @@ export default function AdminPicksManagement() {
     if (selectedSeasonId) {
       loadRounds(selectedSeasonId);
       loadParticipants(selectedSeasonId);
+    } else {
+      // Clear rounds and picks when no season selected
+      setRounds([]);
+      setSelectedRoundId(null);
+      setPicks([]);
+      setRoundDetails(null);
     }
   }, [selectedSeasonId]);
 
@@ -51,11 +57,31 @@ export default function AdminPicksManagement() {
   const loadSeasons = async () => {
     try {
       const res = await api.get('/admin/seasons');
-      setSeasons(res.data);
-      if (res.data.length > 0) {
-        const defaultSeason = res.data.find((s: any) => s.is_default) || res.data[0];
-        setSelectedSeasonId(defaultSeason.id);
-      }
+      
+      // Sort seasons: default first, then active, then ended (most recent first)
+      const sortedSeasons = res.data.sort((a: any, b: any) => {
+        // Default season first
+        if (a.is_default && !b.is_default) return -1;
+        if (!a.is_default && b.is_default) return 1;
+        
+        // Active seasons before ended
+        if (!a.ended_at && b.ended_at) return -1;
+        if (a.ended_at && !b.ended_at) return 1;
+        
+        // For ended seasons, sort by most recently ended first
+        if (a.ended_at && b.ended_at) {
+          return new Date(b.ended_at).getTime() - new Date(a.ended_at).getTime();
+        }
+        
+        // For active seasons, sort by year descending
+        return b.year_start - a.year_start;
+      });
+      
+      setSeasons(sortedSeasons);
+      // Don't auto-select - let user choose
+      setSelectedSeasonId(null);
+      setRounds([]);
+      setSelectedRoundId(null);
     } catch (error) {
       console.error('Error loading seasons:', error);
     }
@@ -65,11 +91,10 @@ export default function AdminPicksManagement() {
     try {
       const res = await api.get(`/admin/rounds/season/${seasonId}`);
       setRounds(res.data);
-      if (res.data.length > 0) {
-        setSelectedRoundId(res.data[0].id);
-      } else {
-        setSelectedRoundId(null);
-      }
+      // Don't auto-select - let user choose
+      setSelectedRoundId(null);
+      setPicks([]);
+      setRoundDetails(null);
     } catch (error) {
       console.error('Error loading rounds:', error);
     }
@@ -207,12 +232,15 @@ export default function AdminPicksManagement() {
             </label>
             <select
               value={selectedSeasonId || ''}
-              onChange={(e) => setSelectedSeasonId(Number(e.target.value))}
+              onChange={(e) => setSelectedSeasonId(Number(e.target.value) || null)}
               className={selectClasses}
             >
+              <option value="">Select a Season</option>
               {seasons.map(season => (
                 <option key={season.id} value={season.id}>
                   {season.name}
+                  {season.is_default ? ' (Default)' : ''}
+                  {season.ended_at ? ' (Ended)' : ''}
                 </option>
               ))}
             </select>
@@ -224,19 +252,16 @@ export default function AdminPicksManagement() {
             </label>
             <select
               value={selectedRoundId || ''}
-              onChange={(e) => setSelectedRoundId(Number(e.target.value))}
+              onChange={(e) => setSelectedRoundId(Number(e.target.value) || null)}
               className={selectClasses}
-              disabled={rounds.length === 0}
+              disabled={!selectedSeasonId || rounds.length === 0}
             >
-              {rounds.length === 0 ? (
-                <option value="">No sports available</option>
-              ) : (
-                rounds.map(round => (
-                  <option key={round.id} value={round.id}>
-                    {round.sport_name} - {round.status}
-                  </option>
-                ))
-              )}
+              <option value="">Select a Sport</option>
+              {rounds.map(round => (
+                <option key={round.id} value={round.id}>
+                  {round.sport_name} ({round.status})
+                </option>
+              ))}
             </select>
           </div>
         </div>

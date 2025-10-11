@@ -1,5 +1,6 @@
 import express, { Response } from 'express';
 import crypto from 'crypto';
+import moment from 'moment-timezone';
 import { authenticateAdmin, AuthRequest } from '../middleware/auth';
 import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
@@ -230,9 +231,11 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
     return res.status(400).json({ error: 'Invalid timezone. Please select a valid IANA timezone.' });
   }
 
-  // Convert ISO 8601 to MySQL datetime format
-  const lockTimeDate = new Date(lockTime);
-  const mysqlLockTime = lockTimeDate.toISOString().slice(0, 19).replace('T', ' ');
+  // Parse datetime in the selected timezone, not browser timezone
+  // lockTime comes as "2024-10-15T12:00" from datetime-local input
+  // Interpret this as 12:00 in the selected timezone, then convert to UTC for storage
+  const lockTimeMoment = moment.tz(lockTime, validTimezone);
+  const mysqlLockTime = lockTimeMoment.utc().format('YYYY-MM-DD HH:mm:ss');
 
   const connection = await db.getConnection();
   
@@ -300,11 +303,23 @@ router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), as
     return res.status(400).json({ error: 'Invalid timezone. Please select a valid timezone.' });
   }
 
-  // Convert ISO 8601 to MySQL datetime format if lockTime is provided
+  // Parse datetime in the selected timezone if both lockTime and timezone are provided
   let mysqlLockTime = lockTime;
-  if (lockTime) {
-    const lockTimeDate = new Date(lockTime);
-    mysqlLockTime = lockTimeDate.toISOString().slice(0, 19).replace('T', ' ');
+  if (lockTime && timezone) {
+    // Interpret the datetime string in the selected timezone, then convert to UTC
+    const lockTimeMoment = moment.tz(lockTime, timezone);
+    mysqlLockTime = lockTimeMoment.utc().format('YYYY-MM-DD HH:mm:ss');
+  } else if (lockTime) {
+    // If only lockTime provided (no timezone change), get the current timezone from DB
+    const [currentRound] = await db.query<RowDataPacket[]>(
+      'SELECT timezone FROM rounds WHERE id = ?',
+      [roundId]
+    );
+    if (currentRound.length > 0) {
+      const currentTimezone = currentRound[0].timezone || 'America/New_York';
+      const lockTimeMoment = moment.tz(lockTime, currentTimezone);
+      mysqlLockTime = lockTimeMoment.utc().format('YYYY-MM-DD HH:mm:ss');
+    }
   }
 
   try {
