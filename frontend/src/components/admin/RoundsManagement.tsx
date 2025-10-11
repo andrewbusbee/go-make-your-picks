@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../utils/api';
 import TimezoneSelector from '../TimezoneSelector';
+import DateTimePicker from '../DateTimePicker';
 import {
   headingClasses,
   subheadingClasses,
@@ -876,10 +877,9 @@ export default function RoundsManagement() {
                   <label className={labelClasses}>
                     Lock Date & Time
                   </label>
-                  <input
-                    type="datetime-local"
+                  <DateTimePicker
                     value={lockTime}
-                    onChange={(e) => setLockTime(e.target.value)}
+                    onChange={setLockTime}
                     className={inputClasses}
                     required
                   />
@@ -1036,10 +1036,9 @@ export default function RoundsManagement() {
                   <label className={labelClasses}>
                     Lock Date & Time
                   </label>
-                  <input
-                    type="datetime-local"
+                  <DateTimePicker
                     value={lockTime}
-                    onChange={(e) => setLockTime(e.target.value)}
+                    onChange={setLockTime}
                     className={inputClasses}
                     required
                   />
