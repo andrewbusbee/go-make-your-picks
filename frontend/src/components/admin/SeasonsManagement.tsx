@@ -555,7 +555,7 @@ export default function SeasonsManagement() {
                     type="number"
                     value={yearStart}
                     onChange={(e) => setYearStart(e.target.value)}
-                    min="2020"
+                    min="1990"
                     max="2100"
                     className={inputClasses}
                     required
@@ -570,7 +570,7 @@ export default function SeasonsManagement() {
                     type="number"
                     value={yearEnd}
                     onChange={(e) => setYearEnd(e.target.value)}
-                    min="2020"
+                    min="1990"
                     max="2100"
                     className={inputClasses}
                     required
@@ -722,7 +722,7 @@ export default function SeasonsManagement() {
                     type="number"
                     value={editYearStart}
                     onChange={(e) => setEditYearStart(e.target.value)}
-                    min="2020"
+                    min="1990"
                     max="2100"
                     className={inputClasses}
                     required
@@ -737,7 +737,7 @@ export default function SeasonsManagement() {
                     type="number"
                     value={editYearEnd}
                     onChange={(e) => setEditYearEnd(e.target.value)}
-                    min="2020"
+                    min="1990"
                     max="2100"
                     className={inputClasses}
                     required

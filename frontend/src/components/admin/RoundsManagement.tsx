@@ -830,10 +830,25 @@ export default function RoundsManagement() {
             )}
 
             <form onSubmit={handleCreateSubmit} className="space-y-4">
+              {/* Sport Name */}
+              <div>
+                <label className={labelClasses}>
+                  Sport Name
+                </label>
+                <input
+                  type="text"
+                  value={sportName}
+                  onChange={(e) => setSportName(e.target.value)}
+                  placeholder="e.g., Baseball, Basketball, Wimbledon"
+                  className={inputClasses}
+                  required
+                />
+              </div>
+
               {/* Season Selection */}
               <div>
                 <label className={labelClasses}>
-                  Season
+                  Select Season:
                 </label>
                 <select
                   value={selectedSeasonId || ''}
@@ -853,21 +868,6 @@ export default function RoundsManagement() {
                 <p className={`${helpTextClasses} mt-1`}>
                   Select which season this sport belongs to. Only active seasons are shown.
                 </p>
-              </div>
-
-              {/* Sport Name */}
-              <div>
-                <label className={labelClasses}>
-                  Sport Name
-                </label>
-                <input
-                  type="text"
-                  value={sportName}
-                  onChange={(e) => setSportName(e.target.value)}
-                  placeholder="e.g., Baseball, Basketball, Wimbledon"
-                  className={inputClasses}
-                  required
-                />
               </div>
 
               {/* Pick Type */}
@@ -1015,10 +1015,25 @@ export default function RoundsManagement() {
             )}
 
             <form onSubmit={handleEditSubmit} className="space-y-4">
+              {/* Sport Name */}
+              <div>
+                <label className={labelClasses}>
+                  Sport Name
+                </label>
+                <input
+                  type="text"
+                  value={sportName}
+                  onChange={(e) => setSportName(e.target.value)}
+                  placeholder="e.g., Baseball, Basketball, Wimbledon"
+                  className={inputClasses}
+                  required
+                />
+              </div>
+
               {/* Season Selection */}
               <div>
                 <label className={labelClasses}>
-                  Season
+                  Select Season:
                 </label>
                 <select
                   value={selectedSeasonId || ''}
@@ -1038,21 +1053,6 @@ export default function RoundsManagement() {
                 <p className={`${helpTextClasses} mt-1`}>
                   Select which season this sport belongs to. Only active seasons are shown.
                 </p>
-              </div>
-
-              {/* Sport Name */}
-              <div>
-                <label className={labelClasses}>
-                  Sport Name
-                </label>
-                <input
-                  type="text"
-                  value={sportName}
-                  onChange={(e) => setSportName(e.target.value)}
-                  placeholder="e.g., Baseball, Basketball, Wimbledon"
-                  className={inputClasses}
-                  required
-                />
               </div>
 
               {/* Pick Type */}

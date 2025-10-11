@@ -8,6 +8,26 @@ import { SettingsService } from '../services/settingsService';
 
 const router = express.Router();
 
+// Validation function for season years
+const validateSeasonYears = (yearStart: number, yearEnd: number): string | null => {
+  const MIN_YEAR = 1990;
+  const MAX_YEAR = 2100;
+
+  if (yearStart < MIN_YEAR || yearStart > MAX_YEAR) {
+    return `Start year must be between ${MIN_YEAR} and ${MAX_YEAR}`;
+  }
+
+  if (yearEnd < MIN_YEAR || yearEnd > MAX_YEAR) {
+    return `End year must be between ${MIN_YEAR} and ${MAX_YEAR}`;
+  }
+
+  if (yearEnd < yearStart) {
+    return 'End year must be greater than or equal to start year';
+  }
+
+  return null; // No errors
+};
+
 // Get all seasons (public) - excludes deleted
 router.get('/', async (req, res) => {
   try {
@@ -96,6 +116,12 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ error: 'Commissioner name must be 255 characters or less' });
   }
 
+  // Validate years
+  const yearValidationError = validateSeasonYears(yearStart, yearEnd);
+  if (yearValidationError) {
+    return res.status(400).json({ error: yearValidationError });
+  }
+
   const connection = await db.getConnection();
 
   try {
@@ -159,12 +185,9 @@ router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) =>
   }
 
   // Validate years
-  if (yearStart < 2020 || yearStart > 2100) {
-    return res.status(400).json({ error: 'Start year must be between 2020 and 2100' });
-  }
-
-  if (yearEnd < yearStart) {
-    return res.status(400).json({ error: 'End year must be greater than or equal to start year' });
+  const yearValidationError = validateSeasonYears(yearStart, yearEnd);
+  if (yearValidationError) {
+    return res.status(400).json({ error: yearValidationError });
   }
 
   const connection = await db.getConnection();
