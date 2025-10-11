@@ -8,6 +8,7 @@ import {
   labelClasses,
   inputClasses,
   buttonPrimaryClasses,
+  buttonSecondaryClasses,
   buttonSuccessClasses,
   buttonDangerClasses,
   buttonWarningClasses,
@@ -49,6 +50,7 @@ export default function SeasonsManagement() {
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [isMainAdmin, setIsMainAdmin] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPermanentDeleteModal, setShowPermanentDeleteModal] = useState(false);
   const [seasonToDelete, setSeasonToDelete] = useState<any>(null);
@@ -59,9 +61,19 @@ export default function SeasonsManagement() {
   const [name, setName] = useState('');
   const [yearStart, setYearStart] = useState('');
   const [yearEnd, setYearEnd] = useState('');
+  const [commissioner, setCommissioner] = useState('');
   const [selectedParticipants, setSelectedParticipants] = useState<number[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Edit modal state
+  const [editingSeason, setEditingSeason] = useState<any>(null);
+  const [editName, setEditName] = useState('');
+  const [editYearStart, setEditYearStart] = useState('');
+  const [editYearEnd, setEditYearEnd] = useState('');
+  const [editCommissioner, setEditCommissioner] = useState('');
+  const [editError, setEditError] = useState('');
+  const [editLoading, setEditLoading] = useState(false);
 
   useEffect(() => {
     // Check if user is main admin
@@ -109,6 +121,7 @@ export default function SeasonsManagement() {
     setName('');
     setYearStart('');
     setYearEnd('');
+    setCommissioner('');
     setSelectedParticipants([]);
     setError('');
     setShowModal(true);
@@ -146,6 +159,7 @@ export default function SeasonsManagement() {
         name,
         yearStart: parseInt(yearStart),
         yearEnd: parseInt(yearEnd),
+        commissioner: commissioner || null,
         participantIds: selectedParticipants
       });
       
@@ -155,6 +169,50 @@ export default function SeasonsManagement() {
       setError(err.response?.data?.error || 'Failed to create season');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openEditModal = (season: any) => {
+    setEditingSeason(season);
+    setEditName(season.name);
+    setEditYearStart(season.year_start.toString());
+    setEditYearEnd(season.year_end.toString());
+    setEditCommissioner(season.commissioner || '');
+    setEditError('');
+    setShowEditModal(true);
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingSeason(null);
+    setEditName('');
+    setEditYearStart('');
+    setEditYearEnd('');
+    setEditCommissioner('');
+    setEditError('');
+  };
+
+  const handleEditSeason = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEditError('');
+
+    setEditLoading(true);
+
+    try {
+      await api.put(`/admin/seasons/${editingSeason.id}`, {
+        name: editName,
+        yearStart: parseInt(editYearStart),
+        yearEnd: parseInt(editYearEnd),
+        commissioner: editCommissioner || null
+      });
+      
+      await loadSeasons();
+      closeEditModal();
+      alert('Season updated successfully!');
+    } catch (err: any) {
+      setEditError(err.response?.data?.error || 'Failed to update season');
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -351,6 +409,12 @@ export default function SeasonsManagement() {
                 >
                   Manage Participants
                 </button>
+                <button
+                  onClick={() => openEditModal(season)}
+                  className={`flex-1 min-w-[100px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonSecondaryClasses}`}
+                >
+                  Edit Season
+                </button>
                 {season.is_active && (
                   <button
                     onClick={() => handleEndSeason(season.id)}
@@ -412,6 +476,12 @@ export default function SeasonsManagement() {
                     className={`flex-1 min-w-[140px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonPrimaryClasses}`}
                   >
                     Manage Participants
+                  </button>
+                  <button
+                    onClick={() => openEditModal(season)}
+                    className={`flex-1 min-w-[100px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonSecondaryClasses}`}
+                  >
+                    Edit Season
                   </button>
                   <button
                     onClick={() => handleReopenSeason(season.id)}
@@ -501,6 +571,23 @@ export default function SeasonsManagement() {
                 </div>
               </div>
 
+              <div>
+                <label className={labelClasses}>
+                  Commissioner (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={commissioner}
+                  onChange={(e) => setCommissioner(e.target.value)}
+                  placeholder="e.g., John Smith"
+                  maxLength={255}
+                  className={inputClasses}
+                />
+                <p className={`mt-1 ${helpTextClasses}`}>
+                  Appears in email signatures for all sports in this season. Leave blank for generic signature.
+                </p>
+              </div>
+
               {/* Participants Selection */}
               <div>
                 <label className={labelClasses}>
@@ -557,6 +644,112 @@ export default function SeasonsManagement() {
                 <button
                   type="button"
                   onClick={closeModal}
+                  className={buttonCancelClasses}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Season Modal */}
+      {showEditModal && editingSeason && (
+        <div className={modalBackdropClasses}>
+          <div className={modalClasses}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className={modalTitleClasses}>Edit Season</h3>
+              <button
+                onClick={closeEditModal}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            {editError && (
+              <div className={alertErrorClasses + " p-4 mb-4"}>
+                <p className={alertErrorTextClasses}>{editError}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleEditSeason} className="space-y-4">
+              <div>
+                <label className={labelClasses}>
+                  Season Name
+                </label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="e.g., Sports Picks Championship 2025-2026"
+                  maxLength={50}
+                  className={inputClasses}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className={labelClasses}>
+                    Start Year
+                  </label>
+                  <input
+                    type="number"
+                    value={editYearStart}
+                    onChange={(e) => setEditYearStart(e.target.value)}
+                    min="2020"
+                    max="2100"
+                    className={inputClasses}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClasses}>
+                    End Year
+                  </label>
+                  <input
+                    type="number"
+                    value={editYearEnd}
+                    onChange={(e) => setEditYearEnd(e.target.value)}
+                    min="2020"
+                    max="2100"
+                    className={inputClasses}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClasses}>
+                  Commissioner (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={editCommissioner}
+                  onChange={(e) => setEditCommissioner(e.target.value)}
+                  placeholder="e.g., John Smith"
+                  maxLength={255}
+                  className={inputClasses}
+                />
+                <p className={`mt-1 ${helpTextClasses}`}>
+                  Appears in email signatures for all sports in this season. Leave blank for generic signature.
+                </p>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="submit"
+                  disabled={editLoading}
+                  className={`flex-1 ${buttonPrimaryClasses}`}
+                >
+                  {editLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeEditModal}
                   className={buttonCancelClasses}
                 >
                   Cancel

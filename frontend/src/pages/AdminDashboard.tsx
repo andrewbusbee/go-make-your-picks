@@ -307,7 +307,7 @@ export default function AdminDashboard() {
                 <div>
                   <h3 className="text-sm font-semibold text-yellow-900 dark:text-yellow-200">Development Tools</h3>
                   <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                    Sample data: 5 players + 2 sports + simulated picks
+                    Sample data: 15 players + 1 season + 11 sports (2 active, 9 completed) + picks & scores
                   </p>
                 </div>
               </div>

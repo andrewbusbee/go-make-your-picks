@@ -12,11 +12,12 @@ export const checkAndSendReminders = async () => {
     // First, auto-lock any rounds that have passed their lock time
     await autoLockExpiredRounds();
     
-    // Get all active rounds that haven't been completed
+    // Get all active rounds that haven't been completed (with commissioner from season)
     const [rounds] = await db.query<RowDataPacket[]>(
-      `SELECT id, season_id, sport_name, lock_time, email_message, commissioner, status 
-       FROM rounds 
-       WHERE status = 'active' AND lock_time > NOW()`,
+      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, s.commissioner 
+       FROM rounds r
+       JOIN seasons s ON r.season_id = s.id 
+       WHERE r.status = 'active' AND r.lock_time > NOW()`,
       []
     );
 
@@ -38,11 +39,12 @@ export const checkAndSendReminders = async () => {
 
     // Check for rounds that just locked (locked in the last hour)
     const [lockedRounds] = await db.query<RowDataPacket[]>(
-      `SELECT id, season_id, sport_name, lock_time, email_message, status 
-       FROM rounds 
-       WHERE status = 'locked' 
-       AND lock_time <= NOW() 
-       AND lock_time >= DATE_SUB(NOW(), INTERVAL 1 HOUR)`,
+      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, s.commissioner 
+       FROM rounds r
+       JOIN seasons s ON r.season_id = s.id 
+       WHERE r.status = 'locked' 
+       AND r.lock_time <= NOW() 
+       AND r.lock_time >= DATE_SUB(NOW(), INTERVAL 1 HOUR)`,
       []
     );
 
@@ -58,11 +60,12 @@ export const checkAndSendReminders = async () => {
 // Auto-lock rounds that have passed their lock time
 export const autoLockExpiredRounds = async () => {
   try {
-    // Find active rounds that have passed their lock time
+    // Find active rounds that have passed their lock time (with commissioner from season)
     const [expiredRounds] = await db.query<RowDataPacket[]>(
-      `SELECT id, season_id, sport_name, lock_time, email_message, status 
-       FROM rounds 
-       WHERE status = 'active' AND lock_time <= NOW()`,
+      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, s.commissioner 
+       FROM rounds r
+       JOIN seasons s ON r.season_id = s.id 
+       WHERE r.status = 'active' AND r.lock_time <= NOW()`,
       []
     );
 

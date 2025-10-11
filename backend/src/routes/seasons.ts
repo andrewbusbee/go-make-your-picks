@@ -80,7 +80,7 @@ router.get('/:id/winners', async (req, res) => {
 
 // Create new season (admin only)
 router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
-  const { name, yearStart, yearEnd, participantIds } = req.body;
+  const { name, yearStart, yearEnd, commissioner, participantIds } = req.body;
 
   if (!name || !yearStart || !yearEnd) {
     return res.status(400).json({ error: 'Name, year start, and year end are required' });
@@ -89,6 +89,11 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   // Validate string length
   if (name.length > 50) {
     return res.status(400).json({ error: 'Season name must be 50 characters or less' });
+  }
+
+  // Validate commissioner length if provided
+  if (commissioner && commissioner.length > 255) {
+    return res.status(400).json({ error: 'Commissioner name must be 255 characters or less' });
   }
 
   const connection = await db.getConnection();
@@ -101,8 +106,8 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     await connection.query('UPDATE seasons SET is_default = FALSE');
 
     const [result] = await connection.query<ResultSetHeader>(
-      'INSERT INTO seasons (name, year_start, year_end, is_active, is_default) VALUES (?, ?, ?, ?, ?)',
-      [name, yearStart, yearEnd, true, true]
+      'INSERT INTO seasons (name, year_start, year_end, commissioner, is_active, is_default) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, yearStart, yearEnd, commissioner || null, true, true]
     );
 
     const seasonId = result.insertId;
@@ -128,6 +133,59 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Server error' });
   } finally {
     connection.release();
+  }
+});
+
+// Edit season (admin only)
+router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+  const seasonId = parseInt(req.params.id);
+  const { name, yearStart, yearEnd, commissioner } = req.body;
+
+  // Validate required fields
+  if (!name || !yearStart || !yearEnd) {
+    return res.status(400).json({ error: 'Name, year start, and year end are required' });
+  }
+
+  // Validate string length
+  if (name.length > 50) {
+    return res.status(400).json({ error: 'Season name must be 50 characters or less' });
+  }
+
+  // Validate commissioner length if provided
+  if (commissioner && commissioner.length > 255) {
+    return res.status(400).json({ error: 'Commissioner name must be 255 characters or less' });
+  }
+
+  // Validate years
+  if (yearStart < 2020 || yearStart > 2100) {
+    return res.status(400).json({ error: 'Start year must be between 2020 and 2100' });
+  }
+
+  if (yearEnd < yearStart) {
+    return res.status(400).json({ error: 'End year must be greater than or equal to start year' });
+  }
+
+  try {
+    // Check if season exists
+    const [existingSeasons] = await db.query<RowDataPacket[]>(
+      'SELECT id FROM seasons WHERE id = ? AND deleted_at IS NULL',
+      [seasonId]
+    );
+
+    if (existingSeasons.length === 0) {
+      return res.status(404).json({ error: 'Season not found' });
+    }
+
+    // Update season
+    await db.query(
+      'UPDATE seasons SET name = ?, year_start = ?, year_end = ?, commissioner = ? WHERE id = ?',
+      [name, yearStart, yearEnd, commissioner || null, seasonId]
+    );
+
+    res.json({ message: 'Season updated successfully' });
+  } catch (error) {
+    logger.error('Edit season error', { error, seasonId });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 

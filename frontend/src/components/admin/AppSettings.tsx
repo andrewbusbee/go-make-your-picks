@@ -25,7 +25,6 @@ export default function AppSettings() {
   const [appTagline, setAppTagline] = useState('');
   const [footerMessage, setFooterMessage] = useState('');
   const [defaultTimezone, setDefaultTimezone] = useState('America/New_York');
-  const [commissioner, setCommissioner] = useState('');
   const [pointsFirstPlace, setPointsFirstPlace] = useState(6);
   const [pointsSecondPlace, setPointsSecondPlace] = useState(5);
   const [pointsThirdPlace, setPointsThirdPlace] = useState(4);
@@ -36,7 +35,6 @@ export default function AppSettings() {
   const [originalTagline, setOriginalTagline] = useState('');
   const [originalFooterMessage, setOriginalFooterMessage] = useState('');
   const [originalDefaultTimezone, setOriginalDefaultTimezone] = useState('America/New_York');
-  const [originalCommissioner, setOriginalCommissioner] = useState('');
   const [originalPointsFirstPlace, setOriginalPointsFirstPlace] = useState(6);
   const [originalPointsSecondPlace, setOriginalPointsSecondPlace] = useState(5);
   const [originalPointsThirdPlace, setOriginalPointsThirdPlace] = useState(4);
@@ -59,7 +57,6 @@ export default function AppSettings() {
       setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
       setFooterMessage(res.data.footer_message || 'Built for Sports Fans');
       setDefaultTimezone(res.data.default_timezone || 'America/New_York');
-      setCommissioner(res.data.commissioner || '');
       setPointsFirstPlace(parseInt(res.data.points_first_place) || 6);
       setPointsSecondPlace(parseInt(res.data.points_second_place) || 5);
       setPointsThirdPlace(parseInt(res.data.points_third_place) || 4);
@@ -71,7 +68,6 @@ export default function AppSettings() {
       setOriginalTagline(res.data.app_tagline || 'Predict. Compete. Win.');
       setOriginalFooterMessage(res.data.footer_message || 'Built for Sports Fans');
       setOriginalDefaultTimezone(res.data.default_timezone || 'America/New_York');
-      setOriginalCommissioner(res.data.commissioner || '');
       setOriginalPointsFirstPlace(parseInt(res.data.points_first_place) || 6);
       setOriginalPointsSecondPlace(parseInt(res.data.points_second_place) || 5);
       setOriginalPointsThirdPlace(parseInt(res.data.points_third_place) || 4);
@@ -116,7 +112,6 @@ export default function AppSettings() {
         appTagline,
         footerMessage,
         defaultTimezone,
-        commissioner,
         pointsFirstPlace,
         pointsSecondPlace,
         pointsThirdPlace,
@@ -130,7 +125,6 @@ export default function AppSettings() {
       setOriginalTagline(appTagline);
       setOriginalFooterMessage(footerMessage);
       setOriginalDefaultTimezone(defaultTimezone);
-      setOriginalCommissioner(commissioner);
       setOriginalPointsFirstPlace(pointsFirstPlace);
       setOriginalPointsSecondPlace(pointsSecondPlace);
       setOriginalPointsThirdPlace(pointsThirdPlace);
@@ -154,7 +148,6 @@ export default function AppSettings() {
     setAppTagline(originalTagline);
     setFooterMessage(originalFooterMessage);
     setDefaultTimezone(originalDefaultTimezone);
-    setCommissioner(originalCommissioner);
     setPointsFirstPlace(originalPointsFirstPlace);
     setPointsSecondPlace(originalPointsSecondPlace);
     setPointsThirdPlace(originalPointsThirdPlace);
@@ -170,7 +163,6 @@ export default function AppSettings() {
     appTagline !== originalTagline ||
     footerMessage !== originalFooterMessage ||
     defaultTimezone !== originalDefaultTimezone ||
-    commissioner !== originalCommissioner ||
     pointsFirstPlace !== originalPointsFirstPlace ||
     pointsSecondPlace !== originalPointsSecondPlace ||
     pointsThirdPlace !== originalPointsThirdPlace ||
@@ -321,24 +313,6 @@ export default function AppSettings() {
               </p>
             </div>
 
-            <div>
-              <label htmlFor="commissioner" className={labelClasses}>
-                Commissioner Name (Optional)
-              </label>
-              <input
-                type="text"
-                id="commissioner"
-                value={commissioner}
-                onChange={(e) => setCommissioner(e.target.value)}
-                placeholder="e.g., John Smith"
-                maxLength={100}
-                className={inputClasses}
-              />
-              <p className={`mt-1 ${helpTextClasses}`}>
-                Appears in email signatures as "From the desk of The Commissioner: [Name]". 
-                Leave blank to show generic signature. Maximum 100 characters.
-              </p>
-            </div>
           </div>
 
           {/* Scoring Settings Section */}

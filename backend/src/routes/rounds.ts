@@ -239,13 +239,9 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
   try {
     await connection.beginTransaction();
 
-    // Get current commissioner setting
-    const settings = await SettingsService.getTextSettings();
-    const currentCommissioner = settings.commissioner || null;
-
     const [result] = await connection.query<ResultSetHeader>(
-      'INSERT INTO rounds (season_id, sport_name, pick_type, num_write_in_picks, email_message, commissioner, lock_time, timezone, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [seasonId, sportName, validPickType, validPickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, currentCommissioner, mysqlLockTime, validTimezone, 'draft']
+      'INSERT INTO rounds (season_id, sport_name, pick_type, num_write_in_picks, email_message, lock_time, timezone, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [seasonId, sportName, validPickType, validPickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, mysqlLockTime, validTimezone, 'draft']
     );
 
     const roundId = result.insertId;
@@ -285,7 +281,7 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
 // Update round (admin only)
 router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), async (req: AuthRequest, res: Response) => {
   const roundId = parseInt(req.params.id);
-  const { sportName, pickType, numWriteInPicks, emailMessage, commissioner, lockTime, timezone } = req.body;
+  const { sportName, pickType, numWriteInPicks, emailMessage, lockTime, timezone } = req.body;
 
   // Validate pickType if provided
   if (pickType && !['single', 'multiple'].includes(pickType)) {
@@ -304,11 +300,6 @@ router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), as
     return res.status(400).json({ error: 'Invalid timezone. Please select a valid timezone.' });
   }
 
-  // Validate commissioner length if provided
-  if (commissioner && commissioner.length > 255) {
-    return res.status(400).json({ error: 'Commissioner name is too long (max 255 characters)' });
-  }
-
   // Convert ISO 8601 to MySQL datetime format if lockTime is provided
   let mysqlLockTime = lockTime;
   if (lockTime) {
@@ -323,11 +314,10 @@ router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), as
         pick_type = COALESCE(?, pick_type),
         num_write_in_picks = ?,
         email_message = ?,
-        commissioner = ?,
         lock_time = COALESCE(?, lock_time),
         timezone = COALESCE(?, timezone)
       WHERE id = ?`,
-      [sportName, pickType, pickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, commissioner || null, mysqlLockTime, timezone, roundId]
+      [sportName, pickType, pickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, mysqlLockTime, timezone, roundId]
     );
 
     res.json({ message: 'Round updated successfully' });
@@ -342,9 +332,9 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
   const roundId = parseInt(req.params.id);
 
   try {
-    // Get round details
+    // Get round details with commissioner from season
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM rounds WHERE id = ?',
+      'SELECT r.*, s.commissioner FROM rounds r JOIN seasons s ON r.season_id = s.id WHERE r.id = ?',
       [roundId]
     );
 
@@ -612,9 +602,9 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
       const APP_URL = process.env.APP_URL || 'http://localhost:3003';
       const leaderboardLink = `${APP_URL}`;
 
-      // Get round data including commissioner
+      // Get commissioner from season
       const [roundData] = await db.query<RowDataPacket[]>(
-        'SELECT commissioner FROM rounds WHERE id = ?',
+        'SELECT s.commissioner FROM rounds r JOIN seasons s ON r.season_id = s.id WHERE r.id = ?',
         [roundId]
       );
       const roundCommissioner = roundData[0]?.commissioner || null;
