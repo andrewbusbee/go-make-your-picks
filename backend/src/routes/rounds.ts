@@ -681,6 +681,18 @@ router.post('/:id/send-reminder', authenticateAdmin, async (req: AuthRequest, re
   }
 });
 
+// Auto-lock expired rounds (admin only) - for immediate testing
+router.post('/auto-lock-expired', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { autoLockExpiredRounds } = await import('../services/reminderScheduler');
+    await autoLockExpiredRounds();
+    res.json({ message: 'Auto-lock check completed' });
+  } catch (error: any) {
+    logger.error('Auto-lock expired rounds error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 router.post('/:id/send-locked-notification', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   const roundId = parseInt(req.params.id);
 

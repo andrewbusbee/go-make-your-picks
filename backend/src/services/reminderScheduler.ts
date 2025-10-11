@@ -4,10 +4,13 @@ import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { sendMagicLink } from './emailService';
 import logger, { logSchedulerEvent } from '../utils/logger';
 
-// Check for rounds needing reminders
+// Check for rounds needing reminders and auto-lock expired rounds
 export const checkAndSendReminders = async () => {
   try {
     const now = new Date();
+    
+    // First, auto-lock any rounds that have passed their lock time
+    await autoLockExpiredRounds();
     
     // Get all active rounds that haven't been completed
     const [rounds] = await db.query<RowDataPacket[]>(
@@ -49,6 +52,49 @@ export const checkAndSendReminders = async () => {
 
   } catch (error) {
     logger.error('Error in reminder scheduler', { error });
+  }
+};
+
+// Auto-lock rounds that have passed their lock time
+export const autoLockExpiredRounds = async () => {
+  try {
+    // Find active rounds that have passed their lock time
+    const [expiredRounds] = await db.query<RowDataPacket[]>(
+      `SELECT id, season_id, sport_name, lock_time, email_message, status 
+       FROM rounds 
+       WHERE status = 'active' AND lock_time <= NOW()`,
+      []
+    );
+
+    for (const round of expiredRounds) {
+      try {
+        // Update status to locked
+        await db.query('UPDATE rounds SET status = ? WHERE id = ?', ['locked', round.id]);
+        
+        // Send locked notifications
+        await sendLockedNotificationIfNotSent(round);
+        
+        logSchedulerEvent(`Auto-locked round: ${round.sport_name} (ID: ${round.id})`);
+        logger.info('Auto-locked expired round', { 
+          roundId: round.id, 
+          sportName: round.sport_name,
+          lockTime: round.lock_time 
+        });
+      } catch (error) {
+        logger.error('Error auto-locking round', { 
+          error, 
+          roundId: round.id, 
+          sportName: round.sport_name 
+        });
+      }
+    }
+
+    if (expiredRounds.length > 0) {
+      logSchedulerEvent(`Auto-locked ${expiredRounds.length} expired round(s)`);
+    }
+
+  } catch (error) {
+    logger.error('Error in auto-lock expired rounds', { error });
   }
 };
 

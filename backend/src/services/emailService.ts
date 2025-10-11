@@ -148,6 +148,87 @@ export const sendMagicLink = async (
   }
 };
 
+export const sendLockedNotification = async (
+  email: string,
+  name: string,
+  sportName: string,
+  leaderboardLink: string,
+  customMessage?: string
+): Promise<void> => {
+  const settings = await getSettings();
+  const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
+  const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
+  
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to: email,
+    subject: `${settings.app_title} - ${sportName} picks are now locked!`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .button { display: inline-block; padding: 15px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+            .custom-message { background: #e7f3ff; border-left: 4px solid #2196F3; padding: 15px; margin: 20px 0; border-radius: 4px; }
+            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+            .locked-notice { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>${settings.app_title}</h1>
+              <div style="font-size: 48px; margin-top: 10px;">🏆</div>
+            </div>
+            <div class="content">
+              <h2>Hi ${name}!</h2>
+              
+              <div class="locked-notice">
+                <h3 style="margin-top: 0; color: #856404;">📋 ${sportName} picks are now locked!</h3>
+                <p style="margin-bottom: 0; color: #856404;">The deadline has passed and no further picks can be submitted for this sport.</p>
+              </div>
+              
+              ${customMessage ? `<div class="custom-message">${customMessage.replace(/\n/g, '<br>')}</div>` : ''}
+              
+              <p>You can view the current standings and leaderboard on our website.</p>
+              
+              <div style="text-align: center;">
+                <a href="${leaderboardLink}" class="button">View Leaderboard</a>
+              </div>
+              
+              <p style="text-align: center; margin-top: 30px; color: #666;">
+                Thank you for participating!
+              </p>
+            </div>
+            <div class="footer">
+              <p>${settings.app_title} - ${settings.app_tagline}</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  };
+
+  try {
+    await sendEmailWithRetry(mailOptions, 'Locked notification email');
+    logEmailSent(email, `${settings.app_title} - ${sportName} picks are now locked!`, true);
+  } catch (error: any) {
+    logger.error('Error sending locked notification email after retries', { 
+      error: error.message, 
+      to: email, 
+      sportName 
+    });
+    logEmailSent(email, `${settings.app_title} - ${sportName} picks are now locked!`, false);
+    throw new Error(`Failed to send email: ${error.message}`);
+  }
+};
+
 export const sendPasswordResetEmail = async (
   email: string,
   username: string,
