@@ -542,11 +542,15 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
 
     // Send completion emails to all participants
     try {
+      logger.info('Starting completion email process', { roundId });
+      
       // Get all season participants for this round
       const [seasonId] = await db.query<RowDataPacket[]>(
         'SELECT season_id FROM rounds WHERE id = ?',
         [roundId]
       );
+
+      logger.info('Got season ID for round', { roundId, seasonId: seasonId[0]?.season_id });
 
       const [participants] = await db.query<RowDataPacket[]>(
         `SELECT u.id, u.name, u.email 
@@ -556,14 +560,38 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
         [seasonId[0].season_id]
       );
 
+      logger.info('Found participants for completion email', { 
+        roundId, 
+        participantCount: participants.length,
+        participants: participants.map(p => ({ id: p.id, name: p.name, email: p.email }))
+      });
+
       const APP_URL = process.env.APP_URL || 'http://localhost:3003';
       const leaderboardLink = `${APP_URL}`;
 
       // Send completion emails to all participants in parallel
-      await Promise.allSettled(
+      const emailResults = await Promise.allSettled(
         participants.map(async (participant) => {
           try {
+            logger.info('Getting performance data for participant', { 
+              roundId, 
+              participantId: participant.id, 
+              participantName: participant.name 
+            });
+            
             const performanceData = await getUserPerformanceData(roundId, participant.id);
+            
+            logger.info('Got performance data for participant', { 
+              roundId, 
+              participantId: participant.id,
+              performanceData: {
+                sportName: performanceData.sportName,
+                userPick: performanceData.userPick,
+                userPoints: performanceData.userPoints,
+                finalResultsCount: performanceData.finalResults.length,
+                leaderboardCount: performanceData.leaderboard.length
+              }
+            });
             
             await sendSportCompletionEmail(
               participant.email,
@@ -575,19 +603,38 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
               performanceData.leaderboard,
               leaderboardLink
             );
+            
+            logger.info('Successfully sent completion email', { 
+              roundId, 
+              participantId: participant.id, 
+              participantEmail: participant.email 
+            });
           } catch (emailError) {
             logger.error(`Failed to send completion email to ${participant.email}`, { 
               emailError, 
               roundId, 
               participantId: participant.id 
             });
+            throw emailError;
           }
         })
       );
 
-      logger.info('Completion emails sent', { 
+      // Log results
+      const successful = emailResults.filter(result => result.status === 'fulfilled').length;
+      const failed = emailResults.filter(result => result.status === 'rejected').length;
+      
+      logger.info('Completion email process finished', { 
         roundId, 
-        participantCount: participants.length 
+        totalParticipants: participants.length,
+        successful,
+        failed,
+        results: emailResults.map((result, index) => ({
+          participantId: participants[index].id,
+          participantName: participants[index].name,
+          status: result.status,
+          error: result.status === 'rejected' ? result.reason?.message : null
+        }))
       });
     } catch (emailError) {
       // Don't fail the round completion if emails fail
@@ -841,6 +888,51 @@ router.post('/auto-lock-expired', authenticateAdmin, async (req: AuthRequest, re
   } catch (error: any) {
     logger.error('Auto-lock expired rounds error:', error);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Test completion email (admin only) - for debugging
+router.post('/test-completion-email', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { sendSportCompletionEmail } = await import('../services/emailService');
+    
+    // Test data
+    const testData = {
+      email: 'test@example.com', // You can change this to your email for testing
+      name: 'Test User',
+      sportName: 'Test Sport',
+      userPick: 'Yankees',
+      userPoints: 6,
+      finalResults: [
+        { place: 1, team: 'Yankees' },
+        { place: 2, team: 'Red Sox' },
+        { place: 3, team: 'Dodgers' }
+      ],
+      leaderboard: [
+        { name: 'Sarah Johnson', points: 24, isCurrentUser: false },
+        { name: 'Mike Chen', points: 22, isCurrentUser: false },
+        { name: 'Test User', points: 18, isCurrentUser: true },
+        { name: 'Emily Davis', points: 16, isCurrentUser: false },
+        { name: 'Alex Wilson', points: 14, isCurrentUser: false }
+      ],
+      leaderboardLink: process.env.APP_URL || 'http://localhost:3003'
+    };
+    
+    await sendSportCompletionEmail(
+      testData.email,
+      testData.name,
+      testData.sportName,
+      testData.userPick,
+      testData.userPoints,
+      testData.finalResults,
+      testData.leaderboard,
+      testData.leaderboardLink
+    );
+    
+    res.json({ message: 'Test completion email sent successfully' });
+  } catch (error: any) {
+    logger.error('Test completion email error:', error);
+    res.status(500).json({ error: error.message || 'Server error' });
   }
 });
 
