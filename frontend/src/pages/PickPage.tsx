@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../utils/api';
+import { usePageMeta } from '../utils/usePageMeta';
 import {
   labelClasses,
   selectClasses,
@@ -28,10 +29,30 @@ export default function PickPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [appTitle, setAppTitle] = useState('Go Make Your Picks');
+  const [appTagline, setAppTagline] = useState('Predict. Compete. Win.');
+
+  // Update page meta tags dynamically
+  usePageMeta({
+    title: `Make Your Pick - ${appTitle}`,
+    description: appTagline
+  });
 
   useEffect(() => {
+    loadSettings();
     loadPickData();
   }, [token]);
+
+  const loadSettings = async () => {
+    try {
+      const res = await api.get('/public/settings');
+      setAppTitle(res.data.app_title || 'Go Make Your Picks');
+      setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      // Don't throw - just use default values
+    }
+  };
 
   const loadPickData = async () => {
     try {

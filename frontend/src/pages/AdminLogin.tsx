@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../utils/api';
 import PasswordInput from '../components/PasswordInput';
+import { usePageMeta } from '../utils/usePageMeta';
 import {
   labelClasses,
   inputClasses,
@@ -18,7 +19,30 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [appTitle, setAppTitle] = useState('Go Make Your Picks');
+  const [appTagline, setAppTagline] = useState('Predict. Compete. Win.');
   const navigate = useNavigate();
+
+  // Update page meta tags dynamically
+  usePageMeta({
+    title: `Admin Login - ${appTitle}`,
+    description: appTagline
+  });
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const res = await api.get('/public/settings');
+      setAppTitle(res.data.app_title || 'Go Make Your Picks');
+      setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      // Don't throw - just use default values
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

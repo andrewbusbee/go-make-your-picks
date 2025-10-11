@@ -4,6 +4,7 @@ import Footer from '../components/Footer';
 import LeaderboardTable from '../components/LeaderboardTable';
 import CumulativeGraph from '../components/CumulativeGraph';
 import api from '../utils/api';
+import { usePageMeta } from '../utils/usePageMeta';
 import {
   pageContainerClasses,
   labelClasses,
@@ -22,6 +23,13 @@ export default function HomePage() {
   const [winners, setWinners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [appTitle, setAppTitle] = useState('Go Make Your Picks');
+  const [appTagline, setAppTagline] = useState('Predict. Compete. Win.');
+
+  // Update page meta tags dynamically
+  usePageMeta({
+    title: appTitle,
+    description: appTagline
+  });
 
   useEffect(() => {
     loadSettings();
@@ -65,6 +73,7 @@ export default function HomePage() {
     try {
       const res = await api.get('/public/settings');
       setAppTitle(res.data.app_title || 'Go Make Your Picks');
+      setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
     } catch (error) {
       console.error('Error loading settings:', error);
       // Don't throw - just use default values

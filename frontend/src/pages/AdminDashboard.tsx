@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
+import { usePageMeta } from '../utils/usePageMeta';
 import Footer from '../components/Footer';
 import {
   pageContainerClasses,
@@ -30,6 +31,7 @@ export default function AdminDashboard() {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showChangeEmail, setShowChangeEmail] = useState(false);
   const [appTitle, setAppTitle] = useState('Go Make Your Picks');
+  const [appTagline, setAppTagline] = useState('Predict. Compete. Win.');
   const [hasPlayers, setHasPlayers] = useState(false);
   const [hasSeasons, setHasSeasons] = useState(false);
   const [hasSports, setHasSports] = useState(false);
@@ -38,6 +40,12 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Update page meta tags dynamically
+  usePageMeta({
+    title: `Admin Dashboard - ${appTitle}`,
+    description: appTagline
+  });
 
   const isActive = (path: string) => {
     // Getting Started tab - check if it's the default when system is empty
@@ -114,6 +122,7 @@ export default function AdminDashboard() {
     try {
       const res = await api.get('/admin/settings');
       setAppTitle(res.data.app_title || 'Go Make Your Picks');
+      setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
     } catch (error) {
       console.error('Error loading settings:', error);
     }
