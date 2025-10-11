@@ -31,6 +31,8 @@ export default function AppSettings() {
   const [pointsFourthPlace, setPointsFourthPlace] = useState(3);
   const [pointsFifthPlace, setPointsFifthPlace] = useState(2);
   const [pointsSixthPlusPlace, setPointsSixthPlusPlace] = useState(1);
+  const [reminderFirstHours, setReminderFirstHours] = useState(48);
+  const [reminderFinalHours, setReminderFinalHours] = useState(6);
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalTagline, setOriginalTagline] = useState('');
   const [originalFooterMessage, setOriginalFooterMessage] = useState('');
@@ -63,6 +65,8 @@ export default function AppSettings() {
       setPointsFourthPlace(parseInt(res.data.points_fourth_place) || 3);
       setPointsFifthPlace(parseInt(res.data.points_fifth_place) || 2);
       setPointsSixthPlusPlace(parseInt(res.data.points_sixth_plus_place) || 1);
+      setReminderFirstHours(parseInt(res.data.reminder_first_hours) || 48);
+      setReminderFinalHours(parseInt(res.data.reminder_final_hours) || 6);
       
       setOriginalTitle(res.data.app_title || 'Go Make Your Picks');
       setOriginalTagline(res.data.app_tagline || 'Predict. Compete. Win.');
@@ -104,6 +108,22 @@ export default function AppSettings() {
       }
     }
 
+    // Validate reminder hours
+    if (reminderFirstHours < 2 || reminderFirstHours > 168) {
+      setError('First reminder hours must be between 2 and 168');
+      return;
+    }
+
+    if (reminderFinalHours < 1 || reminderFinalHours > 48) {
+      setError('Final reminder hours must be between 1 and 48');
+      return;
+    }
+
+    if (reminderFirstHours <= reminderFinalHours) {
+      setError('First reminder must be more hours before lock time than final reminder');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -117,7 +137,9 @@ export default function AppSettings() {
         pointsThirdPlace,
         pointsFourthPlace,
         pointsFifthPlace,
-        pointsSixthPlusPlace
+        pointsSixthPlusPlace,
+        reminderFirstHours,
+        reminderFinalHours
       });
       
       setSuccess('Settings updated successfully! Leaderboard scores will update automatically. Refresh the page to see the new scores.');
@@ -434,6 +456,50 @@ export default function AppSettings() {
                 />
                 <p className={`mt-1 ${helpTextClasses}`}>
                   Points for all other players (0-20)
+                </p>
+              </div>
+            </div>
+
+            <hr className={dividerClasses} />
+
+            {/* Reminder Settings */}
+            <h3 className={subheadingClasses}>Reminder Email Settings</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="reminderFirstHours" className={labelClasses}>
+                  First Reminder (hours before lock time)
+                </label>
+                <input
+                  type="number"
+                  id="reminderFirstHours"
+                  value={reminderFirstHours}
+                  onChange={(e) => setReminderFirstHours(parseInt(e.target.value) || 0)}
+                  min="2"
+                  max="168"
+                  className={inputClasses}
+                  required
+                />
+                <p className={`mt-1 ${helpTextClasses}`}>
+                  Default: 48 hours. Users receive first reminder this many hours before picks lock (2-168 hours, max 1 week)
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="reminderFinalHours" className={labelClasses}>
+                  Final Reminder (hours before lock time)
+                </label>
+                <input
+                  type="number"
+                  id="reminderFinalHours"
+                  value={reminderFinalHours}
+                  onChange={(e) => setReminderFinalHours(parseInt(e.target.value) || 0)}
+                  min="1"
+                  max="48"
+                  className={inputClasses}
+                  required
+                />
+                <p className={`mt-1 ${helpTextClasses}`}>
+                  Default: 6 hours. Users receive final reminder this many hours before picks lock (1-48 hours)
                 </p>
               </div>
             </div>

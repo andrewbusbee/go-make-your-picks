@@ -3,6 +3,7 @@ import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { sendMagicLink, sendLockedNotification } from './emailService';
 import logger, { logSchedulerEvent } from '../utils/logger';
+import { SettingsService } from './settingsService';
 
 // Check for rounds needing reminders and auto-lock expired rounds
 export const checkAndSendReminders = async () => {
@@ -11,6 +12,9 @@ export const checkAndSendReminders = async () => {
     
     // First, auto-lock any rounds that have passed their lock time
     await autoLockExpiredRounds();
+    
+    // Get reminder settings
+    const reminderSettings = await SettingsService.getReminderSettings();
     
     // Get all active rounds that haven't been completed (with commissioner from season)
     const [rounds] = await db.query<RowDataPacket[]>(
@@ -26,14 +30,16 @@ export const checkAndSendReminders = async () => {
       const timeDiff = lockTime.getTime() - now.getTime();
       const hoursDiff = timeDiff / (1000 * 60 * 60);
 
-      // Check if we need to send 48-hour reminder (between 47-49 hours)
-      if (hoursDiff >= 47 && hoursDiff <= 49) {
-        await sendReminderIfNotSent(round, '48h');
+      // Check if we need to send first reminder (with 1-hour window on each side)
+      if (hoursDiff >= (reminderSettings.firstReminderHours - 1) && 
+          hoursDiff <= (reminderSettings.firstReminderHours + 1)) {
+        await sendReminderIfNotSent(round, 'first', reminderSettings.firstReminderHours);
       }
 
-      // Check if we need to send 6-hour reminder (between 5-7 hours)
-      if (hoursDiff >= 5 && hoursDiff <= 7) {
-        await sendReminderIfNotSent(round, '6h');
+      // Check if we need to send final reminder (with 1-hour window on each side)
+      if (hoursDiff >= (reminderSettings.finalReminderHours - 1) && 
+          hoursDiff <= (reminderSettings.finalReminderHours + 1)) {
+        await sendReminderIfNotSent(round, 'final', reminderSettings.finalReminderHours);
       }
     }
 
@@ -102,7 +108,7 @@ export const autoLockExpiredRounds = async () => {
 };
 
 // Send reminder to users who haven't picked yet
-export const sendReminderIfNotSent = async (round: any, reminderType: '48h' | '6h') => {
+export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 'final', reminderHours: number) => {
   try {
     // Check if this reminder was already sent
     const [existing] = await db.query<RowDataPacket[]>(
@@ -165,9 +171,9 @@ export const sendReminderIfNotSent = async (round: any, reminderType: '48h' | '6
     }
 
     const APP_URL = process.env.APP_URL || 'http://localhost:3003';
-    const reminderText = reminderType === '48h' 
-      ? '⏰ Reminder: You have about 48 hours left to make your pick!'
-      : '🚨 Final reminder: You only have about 6 hours left to make your pick!';
+    const reminderText = reminderType === 'first' 
+      ? `⏰ Reminder: You have about ${reminderHours} hours left to make your pick!`
+      : `🚨 Final reminder: You only have about ${reminderHours} hours left to make your pick!`;
 
     // Send reminder emails in parallel
     await Promise.allSettled(
@@ -256,7 +262,7 @@ export const sendLockedNotificationIfNotSent = async (round: any) => {
 };
 
 // Manual trigger functions for admin use
-export const manualSendReminder = async (roundId: number, reminderType: '48h' | '6h') => {
+export const manualSendReminder = async (roundId: number, reminderType: 'first' | 'final') => {
   const [rounds] = await db.query<RowDataPacket[]>(
     'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, s.commissioner FROM rounds r JOIN seasons s ON r.season_id = s.id WHERE r.id = ?',
     [roundId]
@@ -266,10 +272,16 @@ export const manualSendReminder = async (roundId: number, reminderType: '48h' | 
     throw new Error('Round not found');
   }
 
+  // Get reminder settings to get the hours
+  const reminderSettings = await SettingsService.getReminderSettings();
+  const reminderHours = reminderType === 'first' 
+    ? reminderSettings.firstReminderHours 
+    : reminderSettings.finalReminderHours;
+
   // Remove existing log to allow resend
   await db.query('DELETE FROM reminder_log WHERE round_id = ? AND reminder_type = ?', [roundId, reminderType]);
   
-  await sendReminderIfNotSent(rounds[0], reminderType);
+  await sendReminderIfNotSent(rounds[0], reminderType, reminderHours);
 };
 
 // Manual generic reminder - send to all users who haven't picked yet

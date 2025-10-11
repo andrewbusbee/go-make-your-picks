@@ -205,7 +205,7 @@ CREATE TABLE IF NOT EXISTS numeric_settings (
 CREATE TABLE IF NOT EXISTS reminder_log (
     id INT PRIMARY KEY AUTO_INCREMENT,
     round_id INT NOT NULL,
-    reminder_type ENUM('48h', '6h', 'locked') NOT NULL,
+    reminder_type ENUM('first', 'final', 'locked', '48h', '6h') NOT NULL,
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     recipient_count INT NOT NULL DEFAULT 0,
     FOREIGN KEY (round_id) REFERENCES rounds(id) ON DELETE CASCADE,
@@ -257,5 +257,7 @@ INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) 
 ('points_third_place', 4, 0, 20),
 ('points_fourth_place', 3, 0, 20),
 ('points_fifth_place', 2, 0, 20),
-('points_sixth_plus_place', 1, 0, 20)
+('points_sixth_plus_place', 1, 0, 20),
+('reminder_first_hours', 48, 2, 168),
+('reminder_final_hours', 6, 1, 48)
 ON DUPLICATE KEY UPDATE setting_key=setting_key;

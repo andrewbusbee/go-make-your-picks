@@ -30,7 +30,9 @@ router.get('/', async (req, res) => {
       points_third_place: 4,
       points_fourth_place: 3,
       points_fifth_place: 2,
-      points_sixth_plus_place: 1
+      points_sixth_plus_place: 1,
+      reminder_first_hours: 48,
+      reminder_final_hours: 6
     };
     
     textSettings.forEach((setting) => {
@@ -60,7 +62,9 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     pointsThirdPlace,
     pointsFourthPlace,
     pointsFifthPlace,
-    pointsSixthPlusPlace
+    pointsSixthPlusPlace,
+    reminderFirstHours,
+    reminderFinalHours
   } = req.body;
 
   if (!appTitle || !appTagline || !footerMessage) {
@@ -92,6 +96,28 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
       if (isNaN(points) || points < 0 || points > 20) {
         return res.status(400).json({ error: `${field.name} points must be between 0 and 20` });
       }
+    }
+  }
+
+  // Validate reminder hours if provided
+  if (reminderFirstHours !== undefined) {
+    const hours = parseInt(reminderFirstHours);
+    if (isNaN(hours) || hours < 2 || hours > 168) {
+      return res.status(400).json({ error: 'First reminder hours must be between 2 and 168' });
+    }
+  }
+
+  if (reminderFinalHours !== undefined) {
+    const hours = parseInt(reminderFinalHours);
+    if (isNaN(hours) || hours < 1 || hours > 48) {
+      return res.status(400).json({ error: 'Final reminder hours must be between 1 and 48' });
+    }
+  }
+
+  // Validate that first reminder is after final reminder
+  if (reminderFirstHours !== undefined && reminderFinalHours !== undefined) {
+    if (parseInt(reminderFirstHours) <= parseInt(reminderFinalHours)) {
+      return res.status(400).json({ error: 'First reminder must be more hours before lock time than final reminder' });
     }
   }
 
@@ -147,6 +173,25 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
           [setting.key, intValue]
         );
       }
+    }
+
+    // Update reminder hours if provided
+    if (reminderFirstHours !== undefined) {
+      const intValue = parseInt(reminderFirstHours);
+      await connection.query(
+        `INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) VALUES ('reminder_first_hours', ?, 2, 168)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+        [intValue]
+      );
+    }
+
+    if (reminderFinalHours !== undefined) {
+      const intValue = parseInt(reminderFinalHours);
+      await connection.query(
+        `INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) VALUES ('reminder_final_hours', ?, 1, 48)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+        [intValue]
+      );
     }
 
     await connection.commit();

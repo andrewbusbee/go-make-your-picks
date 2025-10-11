@@ -24,6 +24,11 @@ export interface TextSettings {
   defaultTimezone: string;
 }
 
+export interface ReminderSettings {
+  firstReminderHours: number;
+  finalReminderHours: number;
+}
+
 export interface AllSettings extends PointsSettings, TextSettings {}
 
 export class SettingsService {
@@ -33,6 +38,8 @@ export class SettingsService {
   private static textCacheTime: number = 0;
   private static allCache: AllSettings | null = null;
   private static allCacheTime: number = 0;
+  private static reminderCache: ReminderSettings | null = null;
+  private static reminderCacheTime: number = 0;
   
   // Cache TTL: 1 minute (settings don't change often)
   private static readonly CACHE_TTL = 60000;
@@ -162,6 +169,46 @@ export class SettingsService {
     } catch (error) {
       logger.error('Error loading all settings', { error });
       throw error;
+    }
+  }
+
+  /**
+   * Get reminder settings with caching
+   */
+  static async getReminderSettings(): Promise<ReminderSettings> {
+    const now = Date.now();
+    
+    // Return cached if still valid
+    if (this.reminderCache && (now - this.reminderCacheTime) < this.CACHE_TTL) {
+      logger.debug('Returning cached reminder settings');
+      return this.reminderCache;
+    }
+
+    try {
+      const [settingsRows] = await db.query<RowDataPacket[]>(
+        'SELECT setting_key, setting_value FROM numeric_settings WHERE setting_key LIKE ?',
+        ['reminder_%']
+      );
+
+      const settings: ReminderSettings = {
+        firstReminderHours: settingsRows.find(s => s.setting_key === 'reminder_first_hours')?.setting_value || 48,
+        finalReminderHours: settingsRows.find(s => s.setting_key === 'reminder_final_hours')?.setting_value || 6,
+      };
+
+      // Update cache
+      this.reminderCache = settings;
+      this.reminderCacheTime = now;
+
+      logger.debug('Loaded and cached reminder settings');
+      return settings;
+    } catch (error) {
+      logger.error('Error loading reminder settings', { error });
+      
+      // Return defaults if query fails
+      return {
+        firstReminderHours: 48,
+        finalReminderHours: 6,
+      };
     }
   }
 
