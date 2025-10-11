@@ -385,8 +385,8 @@ export const manualSendLockedNotification = async (roundId: number) => {
 
 // Initialize the scheduler
 export const startReminderScheduler = () => {
-  // Run every hour
-  cron.schedule('0 * * * *', async () => {
+  // Run every minute
+  cron.schedule('* * * * *', async () => {
     try {
       logSchedulerEvent('Running reminder scheduler check');
       await checkAndSendReminders();
@@ -395,6 +395,6 @@ export const startReminderScheduler = () => {
     }
   });
 
-  logSchedulerEvent('Reminder scheduler started - checking every hour');
+  logSchedulerEvent('Reminder scheduler started - checking every minute');
 };
 
