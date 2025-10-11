@@ -88,6 +88,46 @@ export default function RoundsManagement() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Helper function to get available teams for each dropdown (excludes already selected teams)
+  const getAvailableTeams = (excludeTeams: string[]) => {
+    if (!selectedRound?.teams?.length) return [];
+    
+    return selectedRound.teams.filter((team: any) => 
+      !excludeTeams.includes(team.team_name)
+    );
+  };
+
+  // Helper function to handle team selection changes and clear dependent dropdowns
+  const handleFirstPlaceChange = (value: string) => {
+    setFirstPlaceTeam(value);
+    // Clear all subsequent selections when champion changes
+    setSecondPlaceTeam('');
+    setThirdPlaceTeam('');
+    setFourthPlaceTeam('');
+    setFifthPlaceTeam('');
+  };
+
+  const handleSecondPlaceChange = (value: string) => {
+    setSecondPlaceTeam(value);
+    // Clear subsequent selections when 2nd place changes
+    setThirdPlaceTeam('');
+    setFourthPlaceTeam('');
+    setFifthPlaceTeam('');
+  };
+
+  const handleThirdPlaceChange = (value: string) => {
+    setThirdPlaceTeam(value);
+    // Clear subsequent selections when 3rd place changes
+    setFourthPlaceTeam('');
+    setFifthPlaceTeam('');
+  };
+
+  const handleFourthPlaceChange = (value: string) => {
+    setFourthPlaceTeam(value);
+    // Clear subsequent selections when 4th place changes
+    setFifthPlaceTeam('');
+  };
+
   useEffect(() => {
     // Check if user is main admin
     const token = localStorage.getItem('adminToken');
@@ -740,7 +780,7 @@ export default function RoundsManagement() {
                       onClick={() => openCompleteModal(round)}
                       className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
                     >
-                      Complete Round
+                      Complete & Score Sport
                     </button>
                   </>
                 )}
@@ -1087,7 +1127,7 @@ export default function RoundsManagement() {
         <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
           <div className={`${cardClasses} max-w-4xl w-full my-2 sm:my-8 max-h-[95vh] overflow-y-auto`}>
             <h3 className={`${headingClasses} mb-6`}>
-              Complete Round: {selectedRound.sport_name}
+              Complete & Score {selectedRound.sport_name}
             </h3>
 
             {error && (
@@ -1111,12 +1151,12 @@ export default function RoundsManagement() {
                     {selectedRound.pick_type === 'single' && selectedRound.teams?.length > 0 ? (
                       <select
                         value={firstPlaceTeam}
-                        onChange={(e) => setFirstPlaceTeam(e.target.value)}
+                        onChange={(e) => handleFirstPlaceChange(e.target.value)}
                         className={inputClasses}
                         required
                       >
                         <option value="">Select champion...</option>
-                        {selectedRound.teams.map((team: any) => (
+                        {getAvailableTeams([]).map((team: any) => (
                           <option key={team.id} value={team.team_name}>
                             {team.team_name}
                           </option>
@@ -1140,18 +1180,31 @@ export default function RoundsManagement() {
                       Second Place
                     </label>
                     {selectedRound.pick_type === 'single' && selectedRound.teams?.length > 0 ? (
-                      <select
-                        value={secondPlaceTeam}
-                        onChange={(e) => setSecondPlaceTeam(e.target.value)}
-                        className={inputClasses}
-                      >
-                        <option value="">Select 2nd place...</option>
-                        {selectedRound.teams.map((team: any) => (
-                          <option key={team.id} value={team.team_name}>
-                            {team.team_name}
-                          </option>
-                        ))}
-                      </select>
+                      <>
+                        <select
+                          value={secondPlaceTeam}
+                          onChange={(e) => handleSecondPlaceChange(e.target.value)}
+                          className={`${inputClasses} ${!firstPlaceTeam ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={!firstPlaceTeam}
+                        >
+                          <option value="">Select 2nd place...</option>
+                          {getAvailableTeams([firstPlaceTeam]).map((team: any) => (
+                            <option key={team.id} value={team.team_name}>
+                              {team.team_name}
+                            </option>
+                          ))}
+                        </select>
+                        {!firstPlaceTeam && (
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Select a champion first
+                          </p>
+                        )}
+                        {firstPlaceTeam && getAvailableTeams([firstPlaceTeam]).length === 0 && (
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            No more teams available
+                          </p>
+                        )}
+                      </>
                     ) : (
                       <input
                         type="text"
@@ -1169,18 +1222,31 @@ export default function RoundsManagement() {
                       Third Place
                     </label>
                     {selectedRound.pick_type === 'single' && selectedRound.teams?.length > 0 ? (
-                      <select
-                        value={thirdPlaceTeam}
-                        onChange={(e) => setThirdPlaceTeam(e.target.value)}
-                        className={inputClasses}
-                      >
-                        <option value="">Select 3rd place...</option>
-                        {selectedRound.teams.map((team: any) => (
-                          <option key={team.id} value={team.team_name}>
-                            {team.team_name}
-                          </option>
-                        ))}
-                      </select>
+                      <>
+                        <select
+                          value={thirdPlaceTeam}
+                          onChange={(e) => handleThirdPlaceChange(e.target.value)}
+                          className={`${inputClasses} ${!firstPlaceTeam ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={!firstPlaceTeam}
+                        >
+                          <option value="">Select 3rd place...</option>
+                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam]).map((team: any) => (
+                            <option key={team.id} value={team.team_name}>
+                              {team.team_name}
+                            </option>
+                          ))}
+                        </select>
+                        {!firstPlaceTeam && (
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Select a champion first
+                          </p>
+                        )}
+                        {firstPlaceTeam && getAvailableTeams([firstPlaceTeam, secondPlaceTeam]).length === 0 && (
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            No more teams available
+                          </p>
+                        )}
+                      </>
                     ) : (
                       <input
                         type="text"
@@ -1198,18 +1264,31 @@ export default function RoundsManagement() {
                       Fourth Place
                     </label>
                     {selectedRound.pick_type === 'single' && selectedRound.teams?.length > 0 ? (
-                      <select
-                        value={fourthPlaceTeam}
-                        onChange={(e) => setFourthPlaceTeam(e.target.value)}
-                        className={inputClasses}
-                      >
-                        <option value="">Select 4th place...</option>
-                        {selectedRound.teams.map((team: any) => (
-                          <option key={team.id} value={team.team_name}>
-                            {team.team_name}
-                          </option>
-                        ))}
-                      </select>
+                      <>
+                        <select
+                          value={fourthPlaceTeam}
+                          onChange={(e) => handleFourthPlaceChange(e.target.value)}
+                          className={`${inputClasses} ${!firstPlaceTeam ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={!firstPlaceTeam}
+                        >
+                          <option value="">Select 4th place...</option>
+                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam]).map((team: any) => (
+                            <option key={team.id} value={team.team_name}>
+                              {team.team_name}
+                            </option>
+                          ))}
+                        </select>
+                        {!firstPlaceTeam && (
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Select a champion first
+                          </p>
+                        )}
+                        {firstPlaceTeam && getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam]).length === 0 && (
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            No more teams available
+                          </p>
+                        )}
+                      </>
                     ) : (
                       <input
                         type="text"
@@ -1227,18 +1306,31 @@ export default function RoundsManagement() {
                       Fifth Place
                     </label>
                     {selectedRound.pick_type === 'single' && selectedRound.teams?.length > 0 ? (
-                      <select
-                        value={fifthPlaceTeam}
-                        onChange={(e) => setFifthPlaceTeam(e.target.value)}
-                        className={inputClasses}
-                      >
-                        <option value="">Select 5th place...</option>
-                        {selectedRound.teams.map((team: any) => (
-                          <option key={team.id} value={team.team_name}>
-                            {team.team_name}
-                          </option>
-                        ))}
-                      </select>
+                      <>
+                        <select
+                          value={fifthPlaceTeam}
+                          onChange={(e) => setFifthPlaceTeam(e.target.value)}
+                          className={`${inputClasses} ${!firstPlaceTeam ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          disabled={!firstPlaceTeam}
+                        >
+                          <option value="">Select 5th place...</option>
+                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam, fourthPlaceTeam]).map((team: any) => (
+                            <option key={team.id} value={team.team_name}>
+                              {team.team_name}
+                            </option>
+                          ))}
+                        </select>
+                        {!firstPlaceTeam && (
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Select a champion first
+                          </p>
+                        )}
+                        {firstPlaceTeam && getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam, fourthPlaceTeam]).length === 0 && (
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            No more teams available
+                          </p>
+                        )}
+                      </>
                     ) : (
                       <input
                         type="text"
