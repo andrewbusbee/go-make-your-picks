@@ -9,6 +9,9 @@ const router = express.Router();
 // ⚠️ TEMPORARY ROUTE - REMOVE BEFORE PRODUCTION ⚠️
 // Seed sample data for development/testing purposes
 router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: AuthRequest, res: Response) => {
+  // Get settings BEFORE starting transaction to avoid connection conflicts
+  const points = await SettingsService.getPointsSettings();
+  
   const connection = await db.getConnection();
   
   try {
@@ -225,8 +228,7 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
         );
 
         // Create realistic scores using the current scoring system
-        // Get current point values to ensure consistency
-        const points = await SettingsService.getPointsSettings();
+        // (points already retrieved outside transaction to avoid connection conflicts)
         
         // Realistic single-round score options (max 6 points per round)
         const realisticPlaceOptions = [
@@ -327,15 +329,25 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
   } catch (error: any) {
     await connection.rollback();
     console.error('Seed sample data error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      sqlState: error.sqlState,
+      sqlMessage: error.sqlMessage
+    });
     
     // Check if data already exists
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ 
-        error: 'Sample data may already exist. Delete existing sample users first or reset the database.' 
+        error: 'Sample data may already exist. Delete existing sample users first or reset the database.',
+        details: error.message
       });
     }
     
-    res.status(500).json({ error: 'Failed to seed sample data' });
+    res.status(500).json({ 
+      error: 'Failed to seed sample data',
+      details: process.env.NODE_ENV === 'development' ? error.message : 'Check server logs for details'
+    });
   } finally {
     connection.release();
   }
