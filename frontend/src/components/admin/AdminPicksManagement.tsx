@@ -11,7 +11,8 @@ import {
   tableBodyClasses,
   tableHeaderCellClasses,
   tableHeaderCellRightClasses,
-  tableCellClasses
+  tableCellClasses,
+  buttonCancelClasses
 } from '../../styles/commonClasses';
 
 export default function AdminPicksManagement() {
