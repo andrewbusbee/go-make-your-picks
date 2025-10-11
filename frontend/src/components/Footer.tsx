@@ -27,7 +27,15 @@ export default function Footer() {
         <div className={`flex flex-col md:flex-row justify-between items-center text-sm ${bodyTextClasses}`}>
           {/* Left: App title and version (hidden on mobile) */}
           <div className="hidden md:block">
-            {appTitle} v{packageJson.version}
+            {appTitle}{' '}
+            <a 
+              href={`https://github.com/andrewbusbee/go-make-your-picks/releases/tag/v${packageJson.version}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline"
+            >
+              v{packageJson.version}
+            </a>
           </div>
           
           {/* Right: Footer message (centered on mobile, right on desktop) */}
