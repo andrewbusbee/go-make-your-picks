@@ -221,28 +221,28 @@ export default function HomePage() {
                   const thirdPlace = groupedWinners[3] || [];
 
                   return (
-                    <div className="flex justify-center items-end gap-4 mb-4">
+                    <div className="flex justify-center items-end gap-2 sm:gap-3 md:gap-4 mb-4">
                       {/* 2nd Place - Silver, Left side */}
                       {secondPlace.length > 0 && (
-                        <div className="flex flex-col items-center w-32">
-                          <span className="text-5xl mb-2">🥈</span>
-                          <div className="bg-gradient-to-b from-gray-300 to-gray-500 dark:from-gray-400 dark:to-gray-600 rounded-lg p-4 w-full text-center h-28 flex flex-col justify-center shadow-lg">
+                        <div className="flex flex-col items-center w-28 sm:w-32 md:w-36">
+                          <span className="text-4xl sm:text-5xl mb-2">🥈</span>
+                          <div className="bg-gradient-to-b from-gray-300 to-gray-500 dark:from-gray-400 dark:to-gray-600 rounded-lg p-3 sm:p-4 w-full text-center min-h-24 sm:min-h-28 md:min-h-32 flex flex-col justify-center shadow-lg">
                             {secondPlace.length === 1 ? (
                               <>
-                                <p className="font-bold text-white text-lg">
+                                <p className="font-bold text-white text-sm sm:text-base md:text-lg leading-tight break-words">
                                   {secondPlace[0].user_name}
                                 </p>
-                                <p className="text-3xl font-bold text-white mt-2">
+                                <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mt-1 sm:mt-2">
                                   {secondPlace[0].total_points}
                                 </p>
                                 <p className="text-xs text-gray-100">points</p>
                               </>
                             ) : (
                               <>
-                                <p className="font-bold text-white text-lg">
+                                <p className="font-bold text-white text-xs sm:text-sm md:text-base leading-tight break-words">
                                   {secondPlace.map((w: any) => w.user_name).join(' & ')}
                                 </p>
-                                <p className="text-lg font-bold text-white mt-2">
+                                <p className="text-sm sm:text-base md:text-lg font-bold text-white mt-1 sm:mt-2">
                                   Tie
                                 </p>
                               </>
@@ -253,25 +253,25 @@ export default function HomePage() {
 
                       {/* 1st Place - Gold, Center */}
                       {firstPlace.length > 0 && (
-                        <div className="flex flex-col items-center w-36">
-                          <span className="text-6xl mb-2">🥇</span>
-                          <div className="bg-gradient-to-b from-yellow-400 to-yellow-600 dark:from-yellow-500 dark:to-yellow-700 rounded-lg p-4 w-full text-center h-40 flex flex-col justify-center shadow-xl">
+                        <div className="flex flex-col items-center w-32 sm:w-36 md:w-40">
+                          <span className="text-5xl sm:text-6xl mb-2">🥇</span>
+                          <div className="bg-gradient-to-b from-yellow-400 to-yellow-600 dark:from-yellow-500 dark:to-yellow-700 rounded-lg p-3 sm:p-4 w-full text-center min-h-28 sm:min-h-32 md:min-h-40 flex flex-col justify-center shadow-xl">
                             {firstPlace.length === 1 ? (
                               <>
-                                <p className="font-bold text-gray-900 text-xl">
+                                <p className="font-bold text-gray-900 text-sm sm:text-lg md:text-xl leading-tight break-words">
                                   {firstPlace[0].user_name}
                                 </p>
-                                <p className="text-4xl font-bold text-gray-900 mt-2">
+                                <p className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-900 mt-1 sm:mt-2">
                                   {firstPlace[0].total_points}
                                 </p>
-                                <p className="text-sm text-gray-800">points</p>
+                                <p className="text-xs sm:text-sm text-gray-800">points</p>
                               </>
                             ) : (
                               <>
-                                <p className="font-bold text-gray-900 text-xl">
+                                <p className="font-bold text-gray-900 text-xs sm:text-base md:text-lg leading-tight break-words">
                                   {firstPlace.map((w: any) => w.user_name).join(' & ')}
                                 </p>
-                                <p className="text-2xl font-bold text-gray-900 mt-2">
+                                <p className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mt-1 sm:mt-2">
                                   Tie
                                 </p>
                               </>
@@ -282,25 +282,25 @@ export default function HomePage() {
 
                       {/* 3rd Place - Bronze, Right side */}
                       {thirdPlace.length > 0 && (
-                        <div className="flex flex-col items-center w-32">
-                          <span className="text-5xl mb-2">🥉</span>
-                          <div className="bg-gradient-to-b from-orange-400 to-orange-600 dark:from-orange-500 dark:to-orange-700 rounded-lg p-4 w-full text-center h-28 flex flex-col justify-center shadow-lg">
+                        <div className="flex flex-col items-center w-28 sm:w-32 md:w-36">
+                          <span className="text-4xl sm:text-5xl mb-2">🥉</span>
+                          <div className="bg-gradient-to-b from-orange-400 to-orange-600 dark:from-orange-500 dark:to-orange-700 rounded-lg p-3 sm:p-4 w-full text-center min-h-24 sm:min-h-28 md:min-h-32 flex flex-col justify-center shadow-lg">
                             {thirdPlace.length === 1 ? (
                               <>
-                                <p className="font-bold text-white text-lg">
+                                <p className="font-bold text-white text-sm sm:text-base md:text-lg leading-tight break-words">
                                   {thirdPlace[0].user_name}
                                 </p>
-                                <p className="text-3xl font-bold text-white mt-2">
+                                <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mt-1 sm:mt-2">
                                   {thirdPlace[0].total_points}
                                 </p>
                                 <p className="text-xs text-orange-100">points</p>
                               </>
                             ) : (
                               <>
-                                <p className="font-bold text-white text-lg">
+                                <p className="font-bold text-white text-xs sm:text-sm md:text-base leading-tight break-words">
                                   {thirdPlace.map((w: any) => w.user_name).join(' & ')}
                                 </p>
-                                <p className="text-lg font-bold text-white mt-2">
+                                <p className="text-sm sm:text-base md:text-lg font-bold text-white mt-1 sm:mt-2">
                                   Tie
                                 </p>
                               </>

@@ -194,15 +194,15 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
 
     // 7. Create picks and scores for completed sports
     const completedSportChoices = [
-      ['Celtics', 'Lakers', 'Warriors', 'Heat', 'Nuggets'], // NBA Finals
-      ['Brazil', 'Argentina', 'France', 'Germany', 'Spain'], // World Cup
-      ['Tiger Woods', 'Rory McIlroy', 'Scottie Scheffler', 'Jon Rahm', 'Viktor Hovland'], // Masters
-      ['Thunder Strike', 'Lightning Bolt', 'Storm Chaser', 'Wind Runner', 'Fire Starter'], // Kentucky Derby
-      ['Rangers', 'Lightning', 'Avalanche', 'Panthers', 'Oilers'], // Stanley Cup
-      ['Jon Jones', 'Israel Adesanya', 'Alexander Volkanovski', 'Kamaru Usman', 'Francis Ngannou'], // UFC
-      ['Novak Djokovic', 'Rafael Nadal', 'Carlos Alcaraz', 'Jannik Sinner', 'Daniil Medvedev'], // Wimbledon
-      ['USA', 'Spain', 'Australia', 'France', 'Germany'], // Olympics Basketball
-      ['Real Madrid', 'Manchester City', 'Bayern Munich', 'PSG', 'Barcelona'] // Champions League
+      ['Celtics', 'Lakers', 'Warriors', 'Heat', 'Nuggets', 'Suns', 'Bucks', 'Nets', '76ers', 'Clippers', 'Jazz', 'Trail Blazers', 'Hawks', 'Knicks', 'Bulls'], // NBA Finals
+      ['Brazil', 'Argentina', 'France', 'Germany', 'Spain', 'England', 'Italy', 'Portugal', 'Netherlands', 'Belgium', 'Croatia', 'Uruguay', 'Mexico', 'Japan', 'South Korea'], // World Cup
+      ['Tiger Woods', 'Rory McIlroy', 'Scottie Scheffler', 'Jon Rahm', 'Viktor Hovland', 'Collin Morikawa', 'Xander Schauffele', 'Justin Thomas', 'Dustin Johnson', 'Bryson DeChambeau', 'Patrick Cantlay', 'Tony Finau', 'Hideki Matsuyama', 'Cameron Smith', 'Jordan Spieth'], // Masters
+      ['Thunder Strike', 'Lightning Bolt', 'Storm Chaser', 'Wind Runner', 'Fire Starter', 'Golden Arrow', 'Silver Bullet', 'Diamond Dust', 'Crystal Clear', 'Midnight Express', 'Sunrise Surprise', 'Moonlight Magic', 'Starlight Symphony', 'Aurora Borealis', 'Cosmic Wonder'], // Kentucky Derby
+      ['Rangers', 'Lightning', 'Avalanche', 'Panthers', 'Oilers', 'Maple Leafs', 'Bruins', 'Canadiens', 'Red Wings', 'Blackhawks', 'Penguins', 'Capitals', 'Flyers', 'Devils', 'Islanders'], // Stanley Cup
+      ['Jon Jones', 'Israel Adesanya', 'Alexander Volkanovski', 'Kamaru Usman', 'Francis Ngannou', 'Conor McGregor', 'Khabib Nurmagomedov', 'Daniel Cormier', 'Stipe Miocic', 'Amanda Nunes', 'Valentina Shevchenko', 'Rose Namajunas', 'Weili Zhang', 'Holly Holm', 'Miesha Tate'], // UFC
+      ['Novak Djokovic', 'Rafael Nadal', 'Carlos Alcaraz', 'Jannik Sinner', 'Daniil Medvedev', 'Stefanos Tsitsipas', 'Alexander Zverev', 'Casper Ruud', 'Felix Auger-Aliassime', 'Taylor Fritz', 'Frances Tiafoe', 'Sebastian Korda', 'Lorenzo Musetti', 'Holger Rune', 'Ben Shelton'], // Wimbledon
+      ['USA', 'Spain', 'Australia', 'France', 'Germany', 'Canada', 'Serbia', 'Slovenia', 'Greece', 'Lithuania', 'Argentina', 'Brazil', 'Italy', 'Croatia', 'Turkey'], // Olympics Basketball
+      ['Real Madrid', 'Manchester City', 'Bayern Munich', 'PSG', 'Barcelona', 'Liverpool', 'Chelsea', 'Arsenal', 'Tottenham', 'Manchester United', 'Juventus', 'AC Milan', 'Inter Milan', 'Atletico Madrid', 'Sevilla'] // Champions League
     ];
 
     for (let sportIndex = 0; sportIndex < completedSports.length; sportIndex++) {
@@ -222,9 +222,14 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
         const pickId = pickResult.insertId;
 
         // Create pick item
+        const pickValue = choices[userIndex];
+        if (!pickValue) {
+          throw new Error(`No pick value available for user ${userIndex} in sport ${sport.name}. Check completedSportChoices array.`);
+        }
+        
         await connection.query(
           'INSERT INTO pick_items (pick_id, pick_number, pick_value) VALUES (?, ?, ?)',
-          [pickId, 1, choices[userIndex]]
+          [pickId, 1, pickValue]
         );
 
         // Create realistic scores using the current scoring system
@@ -288,10 +293,19 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
 
       // Create pick items
       const picks = multiPickChoices[i];
+      if (!picks || picks.length === 0) {
+        throw new Error(`No pick values available for user ${i} in multi-pick sport. Check multiPickChoices array.`);
+      }
+      
       for (let j = 0; j < picks.length; j++) {
+        const pickValue = picks[j];
+        if (!pickValue) {
+          throw new Error(`No pick value available for user ${i}, pick ${j} in multi-pick sport. Check multiPickChoices array.`);
+        }
+        
         await connection.query(
           'INSERT INTO pick_items (pick_id, pick_number, pick_value) VALUES (?, ?, ?)',
-          [pickId, j + 1, picks[j]]
+          [pickId, j + 1, pickValue]
         );
       }
     }
@@ -308,9 +322,14 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
       const pickId = pickResult.insertId;
 
       // Create pick item
+      const pickValue = singlePickChoices[i];
+      if (!pickValue) {
+        throw new Error(`No pick value available for user ${i} in single-pick sport. Check singlePickChoices array.`);
+      }
+      
       await connection.query(
         'INSERT INTO pick_items (pick_id, pick_number, pick_value) VALUES (?, ?, ?)',
-        [pickId, 1, singlePickChoices[i]]
+        [pickId, 1, pickValue]
       );
     }
 
