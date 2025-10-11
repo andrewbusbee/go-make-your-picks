@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../utils/api';
 import PasswordInput from '../PasswordInput';
+import { validatePasswordStrict, validatePasswordConfirmation } from '../../utils/passwordValidation';
 import {
   pageContainerClasses,
   headingClasses,
@@ -45,18 +46,17 @@ export default function ResetPassword() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters');
+    // Validate password confirmation
+    const confirmValidation = validatePasswordConfirmation(newPassword, confirmPassword);
+    if (!confirmValidation.isValid) {
+      setError(confirmValidation.errors[0]);
       return;
     }
 
-    if (newPassword.toLowerCase() === 'password') {
-      setError('Password "password" is not allowed. Please choose a more secure password.');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
+    // Validate new password strength
+    const passwordValidation = validatePasswordStrict(newPassword);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.errors[0]);
       return;
     }
 

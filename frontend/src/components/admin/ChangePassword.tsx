@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import api from '../../utils/api';
 import PasswordInput from '../PasswordInput';
+import { validatePasswordStrict, validatePasswordConfirmation } from '../../utils/passwordValidation';
 import {
   headingClasses,
   labelClasses,
@@ -27,13 +28,17 @@ export default function ChangePassword({ onSuccess, onCancel }: ChangePasswordPr
     e.preventDefault();
     setError('');
 
-    if (newPassword !== confirmPassword) {
-      setError('New passwords do not match');
+    // Validate password confirmation
+    const confirmValidation = validatePasswordConfirmation(newPassword, confirmPassword);
+    if (!confirmValidation.isValid) {
+      setError(confirmValidation.errors[0]);
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('Password must be at least 6 characters');
+    // Validate new password strength
+    const passwordValidation = validatePasswordStrict(newPassword);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.errors[0]);
       return;
     }
 

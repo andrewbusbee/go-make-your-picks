@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../utils/api';
 import PasswordInput from '../PasswordInput';
+import { validatePasswordBasic } from '../../utils/passwordValidation';
 import {
   headingClasses,
   bodyTextClasses,
@@ -73,6 +74,14 @@ export default function AdminsManagement() {
     setError('');
     setLoading(true);
 
+    // Validate password strength
+    const passwordValidation = validatePasswordBasic(password);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.errors[0]);
+      setLoading(false);
+      return;
+    }
+
     try {
       await api.post('/admin/admins', { username, email, password });
       await loadAdmins();
@@ -102,6 +111,14 @@ export default function AdminsManagement() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
+    // Validate password strength
+    const passwordValidation = validatePasswordBasic(newPassword);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.errors[0]);
+      setLoading(false);
+      return;
+    }
 
     try {
       await api.post(`/admin/admins/${selectedAdmin.id}/reset-password`, { newPassword });

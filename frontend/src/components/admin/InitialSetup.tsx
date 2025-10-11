@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import api from '../../utils/api';
 import PasswordInput from '../PasswordInput';
+import { validatePasswordStrict, validatePasswordConfirmation } from '../../utils/passwordValidation';
 import {
   bodyTextClasses,
   labelClasses,
@@ -53,28 +54,17 @@ export default function InitialSetup({ onSuccess }: InitialSetupProps) {
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters');
+    // Validate password confirmation
+    const confirmValidation = validatePasswordConfirmation(newPassword, confirmPassword);
+    if (!confirmValidation.isValid) {
+      setError(confirmValidation.errors[0]);
       return;
     }
 
-    if (!/[a-z]/.test(newPassword)) {
-      setError('Password must contain at least one lowercase letter');
-      return;
-    }
-
-    if (!/[A-Z]/.test(newPassword)) {
-      setError('Password must contain at least one uppercase letter');
-      return;
-    }
-
-    if (!/[0-9]/.test(newPassword)) {
-      setError('Password must contain at least one number');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
+    // Validate new password strength
+    const passwordValidation = validatePasswordStrict(newPassword);
+    if (!passwordValidation.isValid) {
+      setError(passwordValidation.errors[0]);
       return;
     }
 
