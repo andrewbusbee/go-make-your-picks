@@ -663,7 +663,7 @@ export default function RoundsManagement() {
                       timeZone: round.timezone,
                       dateStyle: 'short',
                       timeStyle: 'short'
-                    })}
+                    })} ({round.timezone?.replace('_', ' ')})
                   </p>
                 </div>
                 {getStatusBadge(round.status)}
@@ -882,6 +882,7 @@ export default function RoundsManagement() {
                     onChange={setLockTime}
                     className={inputClasses}
                     required
+                    timezone={timezone}
                   />
                 </div>
 
@@ -1041,6 +1042,7 @@ export default function RoundsManagement() {
                     onChange={setLockTime}
                     className={inputClasses}
                     required
+                    timezone={timezone}
                   />
                 </div>
 

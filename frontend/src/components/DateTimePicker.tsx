@@ -6,6 +6,7 @@ interface DateTimePickerProps {
   className?: string;
   required?: boolean;
   placeholder?: string;
+  timezone?: string;
 }
 
 export default function DateTimePicker({
@@ -13,7 +14,8 @@ export default function DateTimePicker({
   onChange,
   className = "",
   required = false,
-  placeholder = "Select date and time"
+  placeholder = "Select date and time",
+  timezone = 'America/New_York'
 }: DateTimePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [tempDateTime, setTempDateTime] = useState('');
@@ -106,13 +108,14 @@ export default function DateTimePicker({
     try {
       const date = new Date(value);
       return date.toLocaleString('en-US', {
+        timeZone: timezone,
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        hour12: false
-      });
+        hour12: true
+      }) + ` (${timezone.replace('_', ' ')})`;
     } catch {
       return value;
     }
