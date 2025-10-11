@@ -80,7 +80,7 @@ router.get('/:id/winners', async (req, res) => {
 
 // Create new season (admin only)
 router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
-  const { name, yearStart, yearEnd, commissioner, participantIds } = req.body;
+  const { name, yearStart, yearEnd, commissioner, isDefault, participantIds } = req.body;
 
   if (!name || !yearStart || !yearEnd) {
     return res.status(400).json({ error: 'Name, year start, and year end are required' });
@@ -101,13 +101,15 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   try {
     await connection.beginTransaction();
 
-    // New season is always active and becomes the default
-    // Unset all other defaults
-    await connection.query('UPDATE seasons SET is_default = FALSE');
+    // New season is always active
+    // If setting as default, unset all other defaults first
+    if (isDefault) {
+      await connection.query('UPDATE seasons SET is_default = FALSE');
+    }
 
     const [result] = await connection.query<ResultSetHeader>(
       'INSERT INTO seasons (name, year_start, year_end, commissioner, is_active, is_default) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, yearStart, yearEnd, commissioner || null, true, true]
+      [name, yearStart, yearEnd, commissioner || null, true, isDefault || false]
     );
 
     const seasonId = result.insertId;
@@ -139,7 +141,7 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
 // Edit season (admin only)
 router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   const seasonId = parseInt(req.params.id);
-  const { name, yearStart, yearEnd, commissioner } = req.body;
+  const { name, yearStart, yearEnd, commissioner, isDefault } = req.body;
 
   // Validate required fields
   if (!name || !yearStart || !yearEnd) {
@@ -165,27 +167,48 @@ router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) =>
     return res.status(400).json({ error: 'End year must be greater than or equal to start year' });
   }
 
+  const connection = await db.getConnection();
+
   try {
+    await connection.beginTransaction();
+
     // Check if season exists
-    const [existingSeasons] = await db.query<RowDataPacket[]>(
-      'SELECT id FROM seasons WHERE id = ? AND deleted_at IS NULL',
+    const [existingSeasons] = await connection.query<RowDataPacket[]>(
+      'SELECT id, is_active FROM seasons WHERE id = ? AND deleted_at IS NULL',
       [seasonId]
     );
 
     if (existingSeasons.length === 0) {
+      await connection.rollback();
       return res.status(404).json({ error: 'Season not found' });
     }
 
+    // If setting as default, check if season is active
+    if (isDefault && !existingSeasons[0].is_active) {
+      await connection.rollback();
+      return res.status(400).json({ error: 'Only active seasons can be set as default' });
+    }
+
+    // If setting as default, unset all other defaults first
+    if (isDefault) {
+      await connection.query('UPDATE seasons SET is_default = FALSE');
+    }
+
     // Update season
-    await db.query(
-      'UPDATE seasons SET name = ?, year_start = ?, year_end = ?, commissioner = ? WHERE id = ?',
-      [name, yearStart, yearEnd, commissioner || null, seasonId]
+    await connection.query(
+      'UPDATE seasons SET name = ?, year_start = ?, year_end = ?, commissioner = ?, is_default = ? WHERE id = ?',
+      [name, yearStart, yearEnd, commissioner || null, isDefault || false, seasonId]
     );
+
+    await connection.commit();
 
     res.json({ message: 'Season updated successfully' });
   } catch (error) {
+    await connection.rollback();
     logger.error('Edit season error', { error, seasonId });
     res.status(500).json({ error: 'Server error' });
+  } finally {
+    connection.release();
   }
 });
 

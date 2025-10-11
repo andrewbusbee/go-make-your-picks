@@ -62,6 +62,7 @@ export default function SeasonsManagement() {
   const [yearStart, setYearStart] = useState('');
   const [yearEnd, setYearEnd] = useState('');
   const [commissioner, setCommissioner] = useState('');
+  const [isDefault, setIsDefault] = useState(true);
   const [selectedParticipants, setSelectedParticipants] = useState<number[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -72,6 +73,7 @@ export default function SeasonsManagement() {
   const [editYearStart, setEditYearStart] = useState('');
   const [editYearEnd, setEditYearEnd] = useState('');
   const [editCommissioner, setEditCommissioner] = useState('');
+  const [editIsDefault, setEditIsDefault] = useState(false);
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
 
@@ -122,6 +124,7 @@ export default function SeasonsManagement() {
     setYearStart('');
     setYearEnd('');
     setCommissioner('');
+    setIsDefault(true);
     setSelectedParticipants([]);
     setError('');
     setShowModal(true);
@@ -160,6 +163,7 @@ export default function SeasonsManagement() {
         yearStart: parseInt(yearStart),
         yearEnd: parseInt(yearEnd),
         commissioner: commissioner || null,
+        isDefault,
         participantIds: selectedParticipants
       });
       
@@ -178,6 +182,7 @@ export default function SeasonsManagement() {
     setEditYearStart(season.year_start.toString());
     setEditYearEnd(season.year_end.toString());
     setEditCommissioner(season.commissioner || '');
+    setEditIsDefault(season.is_default || false);
     setEditError('');
     setShowEditModal(true);
   };
@@ -189,6 +194,7 @@ export default function SeasonsManagement() {
     setEditYearStart('');
     setEditYearEnd('');
     setEditCommissioner('');
+    setEditIsDefault(false);
     setEditError('');
   };
 
@@ -203,7 +209,8 @@ export default function SeasonsManagement() {
         name: editName,
         yearStart: parseInt(editYearStart),
         yearEnd: parseInt(editYearEnd),
-        commissioner: editCommissioner || null
+        commissioner: editCommissioner || null,
+        isDefault: editIsDefault
       });
       
       await loadSeasons();
@@ -514,7 +521,7 @@ export default function SeasonsManagement() {
 
             <div className={alertInfoClasses + " p-3 mb-4"}>
               <p className={alertInfoTextClasses + " text-xs"}>
-                💡 New season will be set as Active and Default automatically
+                💡 New season will be set as Active automatically
               </p>
             </div>
 
@@ -587,6 +594,22 @@ export default function SeasonsManagement() {
                   Appears in email signatures for all sports in this season. Leave blank for generic signature.
                 </p>
               </div>
+
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="isDefault"
+                  checked={isDefault}
+                  onChange={(e) => setIsDefault(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                />
+                <label htmlFor="isDefault" className={labelClasses + " mb-0"}>
+                  Set as Report Default
+                </label>
+              </div>
+              <p className={`${helpTextClasses} ml-7`}>
+                The report default season is shown on the main homepage. Only one season can be the default at a time.
+              </p>
 
               {/* Participants Selection */}
               <div>
@@ -738,6 +761,22 @@ export default function SeasonsManagement() {
                   Appears in email signatures for all sports in this season. Leave blank for generic signature.
                 </p>
               </div>
+
+              <div className="flex items-center space-x-3">
+                <input
+                  type="checkbox"
+                  id="editIsDefault"
+                  checked={editIsDefault}
+                  onChange={(e) => setEditIsDefault(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                />
+                <label htmlFor="editIsDefault" className={labelClasses + " mb-0"}>
+                  Set as Report Default
+                </label>
+              </div>
+              <p className={`${helpTextClasses} ml-7`}>
+                The report default season is shown on the main homepage. Only one season can be the default at a time.
+              </p>
 
               <div className="flex space-x-3 pt-4">
                 <button
