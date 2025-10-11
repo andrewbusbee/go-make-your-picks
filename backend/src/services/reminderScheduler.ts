@@ -115,11 +115,12 @@ export const sendReminderIfNotSent = async (round: any, reminderType: '48h' | '6
     }
 
     // Get users who are in this season but haven't made picks yet, excluding deactivated players
+    // Use LEFT JOIN on magic_links to include users who don't have magic links yet
     const [usersWithoutPicks] = await db.query<RowDataPacket[]>(
       `SELECT DISTINCT u.id, u.email, u.name, ml.token
        FROM users u
        JOIN season_participants sp ON u.id = sp.user_id
-       JOIN magic_links ml ON u.id = ml.user_id AND ml.round_id = ?
+       LEFT JOIN magic_links ml ON u.id = ml.user_id AND ml.round_id = ?
        LEFT JOIN picks p ON u.id = p.user_id AND p.round_id = ?
        WHERE sp.season_id = ? AND p.id IS NULL AND u.is_active = TRUE`,
       [round.id, round.id, round.season_id]
@@ -127,6 +128,40 @@ export const sendReminderIfNotSent = async (round: any, reminderType: '48h' | '6
 
     if (usersWithoutPicks.length === 0) {
       return; // Everyone has picked
+    }
+
+    // Identify users who need magic links created
+    const usersNeedingLinks = usersWithoutPicks.filter(user => !user.token);
+    
+    if (usersNeedingLinks.length > 0) {
+      logger.info(`Creating magic links for ${usersNeedingLinks.length} new participant(s)`, {
+        roundId: round.id,
+        userIds: usersNeedingLinks.map(u => u.id)
+      });
+
+      // Get round details for expires_at
+      const [roundDetails] = await db.query<RowDataPacket[]>(
+        'SELECT lock_time FROM rounds WHERE id = ?',
+        [round.id]
+      );
+      
+      const expiresAt = roundDetails[0].lock_time;
+
+      // Create magic links for users who don't have them
+      const crypto = require('crypto');
+      const magicLinkValues = usersNeedingLinks.map(user => {
+        const token = crypto.randomBytes(32).toString('hex');
+        // Store the token on the user object so we can use it below
+        user.token = token;
+        return [user.id, round.id, token, expiresAt];
+      });
+
+      await db.query(
+        'INSERT INTO magic_links (user_id, round_id, token, expires_at) VALUES ?',
+        [magicLinkValues]
+      );
+
+      logger.info(`Created ${magicLinkValues.length} magic link(s)`, { roundId: round.id });
     }
 
     const APP_URL = process.env.APP_URL || 'http://localhost:3003';
@@ -252,11 +287,12 @@ export const manualSendGenericReminder = async (roundId: number) => {
     const round = rounds[0];
 
     // Get users who are in this season but haven't made picks yet, excluding deactivated players
+    // Use LEFT JOIN on magic_links to include users who don't have magic links yet
     const [usersWithoutPicks] = await db.query<RowDataPacket[]>(
       `SELECT DISTINCT u.id, u.email, u.name, ml.token
        FROM users u
        JOIN season_participants sp ON u.id = sp.user_id
-       JOIN magic_links ml ON u.id = ml.user_id AND ml.round_id = ?
+       LEFT JOIN magic_links ml ON u.id = ml.user_id AND ml.round_id = ?
        LEFT JOIN picks p ON u.id = p.user_id AND p.round_id = ?
        WHERE sp.season_id = ? AND p.id IS NULL AND u.is_active = TRUE`,
       [round.id, round.id, round.season_id]
@@ -264,6 +300,40 @@ export const manualSendGenericReminder = async (roundId: number) => {
 
     if (usersWithoutPicks.length === 0) {
       return { sent: 0, message: 'All players have already made their picks!' };
+    }
+
+    // Identify users who need magic links created
+    const usersNeedingLinks = usersWithoutPicks.filter(user => !user.token);
+    
+    if (usersNeedingLinks.length > 0) {
+      logger.info(`Creating magic links for ${usersNeedingLinks.length} new participant(s)`, {
+        roundId: round.id,
+        userIds: usersNeedingLinks.map(u => u.id)
+      });
+
+      // Get round details for expires_at
+      const [roundDetails] = await db.query<RowDataPacket[]>(
+        'SELECT lock_time FROM rounds WHERE id = ?',
+        [round.id]
+      );
+      
+      const expiresAt = roundDetails[0].lock_time;
+
+      // Create magic links for users who don't have them
+      const crypto = require('crypto');
+      const magicLinkValues = usersNeedingLinks.map(user => {
+        const token = crypto.randomBytes(32).toString('hex');
+        // Store the token on the user object so we can use it below
+        user.token = token;
+        return [user.id, round.id, token, expiresAt];
+      });
+
+      await db.query(
+        'INSERT INTO magic_links (user_id, round_id, token, expires_at) VALUES ?',
+        [magicLinkValues]
+      );
+
+      logger.info(`Created ${magicLinkValues.length} magic link(s)`, { roundId: round.id });
     }
 
     const APP_URL = process.env.APP_URL || 'http://localhost:3003';

@@ -168,7 +168,7 @@ export default function PickPage() {
                   timeZone: pickData.round.timezone,
                   dateStyle: 'full',
                   timeStyle: 'short'
-                })}
+                })} {pickData.round.timezone}
               </p>
               <p className={`${alertWarningTextClasses} text-xs mt-1`}>
                 You can update your pick{pickType === 'multiple' && 's'} anytime before this deadline.

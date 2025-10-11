@@ -309,6 +309,9 @@ export default function AdminDashboard() {
                   <p className="text-xs text-yellow-700 dark:text-yellow-400">
                     Sample data: 15 players + 1 season + 11 sports (2 active, 9 completed) + picks & scores
                   </p>
+                  <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-1">
+                    To hide this section, set ENABLE_DEV_TOOLS: "false" in docker-compose and restart. Delete sample data first if you have seeded it.
+                  </p>
                 </div>
               </div>
               <div className="flex space-x-2">
