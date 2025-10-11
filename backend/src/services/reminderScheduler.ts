@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
-import { sendMagicLink } from './emailService';
+import { sendMagicLink, sendLockedNotification } from './emailService';
 import logger, { logSchedulerEvent } from '../utils/logger';
 
 // Check for rounds needing reminders and auto-lock expired rounds
@@ -195,7 +195,7 @@ export const sendLockedNotificationIfNotSent = async (round: any) => {
     // Send locked notification to all users in parallel
     await Promise.allSettled(
       allUsers.map(user =>
-        sendMagicLink(user.email, user.name, round.sport_name, leaderboardLink, lockedMessage)
+        sendLockedNotification(user.email, user.name, round.sport_name, leaderboardLink, lockedMessage)
           .catch(emailError => {
             logger.error(`Failed to send locked notification to ${user.email}`, { emailError });
           })
