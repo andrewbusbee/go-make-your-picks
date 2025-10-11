@@ -169,6 +169,56 @@ export class SettingsService {
   }
 
   /**
+   * Get point settings for a specific season
+   * For ended seasons: returns historical point settings from season_winners table
+   * For active seasons: returns current point settings
+   * This ensures historical data remains accurate even if point settings are changed
+   */
+  static async getPointsSettingsForSeason(seasonId: number): Promise<PointsSettings> {
+    try {
+      // Check if season is ended and has winner data with point settings
+      const [seasonData] = await db.query<RowDataPacket[]>(
+        `SELECT s.ended_at, sw.points_first_place, sw.points_second_place, 
+                sw.points_third_place, sw.points_fourth_place, sw.points_fifth_place, 
+                sw.points_sixth_plus_place
+         FROM seasons s
+         LEFT JOIN season_winners sw ON s.id = sw.season_id
+         WHERE s.id = ?
+         LIMIT 1`,
+        [seasonId]
+      );
+
+      if (seasonData.length === 0) {
+        logger.warn('Season not found, using current settings', { seasonId });
+        return await this.getPointsSettings();
+      }
+
+      const season = seasonData[0];
+
+      // If season is ended and has historical point settings, use those
+      if (season.ended_at && season.points_first_place !== null) {
+        logger.debug('Using historical point settings for ended season', { seasonId });
+        return {
+          pointsFirst: season.points_first_place,
+          pointsSecond: season.points_second_place,
+          pointsThird: season.points_third_place,
+          pointsFourth: season.points_fourth_place,
+          pointsFifth: season.points_fifth_place,
+          pointsSixthPlus: season.points_sixth_plus_place,
+        };
+      }
+
+      // For active seasons or ended seasons without historical data, use current settings
+      logger.debug('Using current point settings for active season', { seasonId });
+      return await this.getPointsSettings();
+    } catch (error) {
+      logger.error('Error loading season-specific point settings', { error, seasonId });
+      // Fall back to current settings on error
+      return await this.getPointsSettings();
+    }
+  }
+
+  /**
    * Clear all caches (call after settings are updated)
    */
   static clearCache(): void {

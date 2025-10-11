@@ -214,12 +214,19 @@ CREATE TABLE IF NOT EXISTS reminder_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Season winners table for permanent podium records
+-- Point settings are stored per season to preserve historical accuracy
 CREATE TABLE IF NOT EXISTS season_winners (
     id INT PRIMARY KEY AUTO_INCREMENT,
     season_id INT NOT NULL,
     place INT NOT NULL,
     user_id INT NOT NULL,
     total_points INT NOT NULL,
+    points_first_place INT NOT NULL DEFAULT 6,
+    points_second_place INT NOT NULL DEFAULT 5,
+    points_third_place INT NOT NULL DEFAULT 4,
+    points_fourth_place INT NOT NULL DEFAULT 3,
+    points_fifth_place INT NOT NULL DEFAULT 2,
+    points_sixth_plus_place INT NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (season_id) REFERENCES seasons(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,

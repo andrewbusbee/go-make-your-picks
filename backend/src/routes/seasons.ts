@@ -4,6 +4,7 @@ import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import logger from '../utils/logger';
 import { ScoringService } from '../services/scoringService';
+import { SettingsService } from '../services/settingsService';
 
 const router = express.Router();
 
@@ -276,6 +277,21 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
       });
     }
 
+    // Capture current point settings to preserve historical accuracy
+    const points = await SettingsService.getPointsSettings();
+    
+    logger.debug('Capturing point settings for season', { 
+      seasonId, 
+      points: {
+        first: points.pointsFirst,
+        second: points.pointsSecond,
+        third: points.pointsThird,
+        fourth: points.pointsFourth,
+        fifth: points.pointsFifth,
+        sixthPlus: points.pointsSixthPlus
+      }
+    });
+
     // Calculate final standings using centralized ScoringService
     const leaderboard = await ScoringService.calculateFinalStandings(seasonId);
 
@@ -302,11 +318,20 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
         tiedCount++;
       }
       
-      logger.debug('Inserting winner', { seasonId, place: currentRank, userId: player.user_id, totalPoints: player.total_points });
+      logger.debug('Inserting winner with point settings', { 
+        seasonId, 
+        place: currentRank, 
+        userId: player.user_id, 
+        totalPoints: player.total_points,
+        pointSettings: points
+      });
       
+      // Store winner with current point settings for historical accuracy
       await connection.query<ResultSetHeader>(
-        'INSERT INTO season_winners (season_id, place, user_id, total_points) VALUES (?, ?, ?, ?)',
-        [seasonId, currentRank, player.user_id, player.total_points]
+        `INSERT INTO season_winners 
+         (season_id, place, user_id, total_points, points_first_place, points_second_place, points_third_place, points_fourth_place, points_fifth_place, points_sixth_plus_place) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [seasonId, currentRank, player.user_id, player.total_points, points.pointsFirst, points.pointsSecond, points.pointsThird, points.pointsFourth, points.pointsFifth, points.pointsSixthPlus]
       );
     }
 

@@ -44,8 +44,8 @@ export class ScoringService {
     leaderboard: LeaderboardEntry[];
   }> {
     try {
-      // Get point values from settings
-      const points = await SettingsService.getPointsSettings();
+      // Get point values from settings (uses historical settings for ended seasons)
+      const points = await SettingsService.getPointsSettingsForSeason(seasonId);
 
       // Get all rounds for the season
       const [rounds] = await db.query<RowDataPacket[]>(
@@ -191,7 +191,7 @@ export class ScoringService {
    */
   static async calculateFinalStandings(seasonId: number): Promise<FinalStanding[]> {
     try {
-      // Get point values from settings
+      // Get current point values (season is being ended now, so use current settings)
       const points = await SettingsService.getPointsSettings();
 
       // Calculate final standings with comprehensive scoring (same as leaderboard)
@@ -240,8 +240,8 @@ export class ScoringService {
    */
   static async calculateCumulativeGraph(seasonId: number): Promise<GraphData[]> {
     try {
-      // Get point values from settings
-      const points = await SettingsService.getPointsSettings();
+      // Get point values from settings (uses historical settings for ended seasons)
+      const points = await SettingsService.getPointsSettingsForSeason(seasonId);
 
       // Get completed rounds in order
       const [rounds] = await db.query<RowDataPacket[]>(
@@ -316,8 +316,8 @@ export class ScoringService {
    */
   static async calculateUserTotalPoints(userId: number, seasonId: number): Promise<number> {
     try {
-      // Get point values from settings
-      const points = await SettingsService.getPointsSettings();
+      // Get point values from settings (uses historical settings for ended seasons)
+      const points = await SettingsService.getPointsSettingsForSeason(seasonId);
 
       const [result] = await db.query<RowDataPacket[]>(
         `SELECT 
