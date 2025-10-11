@@ -12,6 +12,7 @@ import {
   loginValidators,
   initialSetupValidators,
   changePasswordValidators,
+  changeEmailValidators,
   forgotPasswordValidators,
   resetPasswordValidators,
 } from '../validators/authValidators';
@@ -147,6 +148,52 @@ router.post('/change-password', authenticateAdmin, validateRequest(changePasswor
   }
 });
 
+// Change email (for regular email changes)
+router.post('/change-email', authenticateAdmin, validateRequest(changeEmailValidators), async (req: AuthRequest, res: Response) => {
+  const { newEmail } = req.body;
+
+  try {
+    // Check if admin exists
+    const [admins] = await db.query<RowDataPacket[]>(
+      'SELECT * FROM admins WHERE id = ?',
+      [req.adminId]
+    );
+
+    if (admins.length === 0) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    const admin = admins[0];
+
+    // Check if new email is different from current email
+    if (admin.email === newEmail) {
+      return res.status(400).json({ error: 'New email must be different from current email' });
+    }
+
+    // Check if email is already taken by another admin
+    const [existingAdmins] = await db.query<RowDataPacket[]>(
+      'SELECT id FROM admins WHERE email = ? AND id != ?',
+      [newEmail, req.adminId]
+    );
+
+    if (existingAdmins.length > 0) {
+      return res.status(400).json({ error: 'Email address is already in use by another admin' });
+    }
+
+    // Update email
+    await db.query(
+      'UPDATE admins SET email = ? WHERE id = ?',
+      [newEmail, req.adminId]
+    );
+
+    logger.info('Admin email changed successfully', { adminId: req.adminId, newEmail });
+    res.json({ message: 'Email changed successfully' });
+  } catch (error) {
+    logger.error('Change email error', { error, adminId: req.adminId });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Forgot password - send reset email (public endpoint)
 router.post('/forgot-password', passwordResetLimiter, validateRequest(forgotPasswordValidators), async (req: Request, res: Response) => {
   const { email } = req.body;
@@ -244,7 +291,7 @@ router.post('/reset-password', passwordResetLimiter, validateRequest(resetPasswo
 router.get('/me', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const [admins] = await db.query<RowDataPacket[]>(
-      'SELECT id, username, is_main_admin, must_change_password FROM admins WHERE id = ?',
+      'SELECT id, username, email, is_main_admin, must_change_password FROM admins WHERE id = ?',
       [req.adminId]
     );
 

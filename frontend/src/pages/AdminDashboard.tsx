@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
@@ -18,6 +18,7 @@ import SeasonsManagement from '../components/admin/SeasonsManagement';
 import SeasonDetail from '../components/admin/SeasonDetail';
 import AdminPicksManagement from '../components/admin/AdminPicksManagement';
 import ChangePassword from '../components/admin/ChangePassword';
+import ChangeEmail from '../components/admin/ChangeEmail';
 import InitialSetup from '../components/admin/InitialSetup';
 import GettingStarted from '../components/admin/GettingStarted';
 import Settings from '../components/admin/Settings';
@@ -27,6 +28,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
+  const [showChangeEmail, setShowChangeEmail] = useState(false);
   const [appTitle, setAppTitle] = useState('Go Make Your Picks');
   const [hasPlayers, setHasPlayers] = useState(false);
   const [hasSeasons, setHasSeasons] = useState(false);
@@ -35,6 +37,7 @@ export default function AdminDashboard() {
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => {
     // Getting Started tab - check if it's the default when system is empty
@@ -68,6 +71,23 @@ export default function AdminDashboard() {
     checkSystemStatus();
     loadConfig();
   }, []);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false);
+      }
+    };
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUserMenu]);
 
   // Refresh system status when location changes (for tab highlighting)
   useEffect(() => {
@@ -183,7 +203,7 @@ export default function AdminDashboard() {
 
             {/* User Menu & Theme Toggle */}
             <div className="flex items-center space-x-3">
-              <div className="relative">
+              <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center space-x-2 text-white hover:text-blue-100 focus:outline-none"
@@ -195,7 +215,7 @@ export default function AdminDashboard() {
                 </button>
 
                 {showUserMenu && (
-                  <div className={`${modalClasses} absolute right-0 mt-2 w-48 shadow-lg py-1 z-10`}>
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl py-1 z-50">
                     <button
                       onClick={() => {
                         setShowChangePassword(true);
@@ -206,8 +226,17 @@ export default function AdminDashboard() {
                       Change Password
                     </button>
                     <button
+                      onClick={() => {
+                        setShowChangeEmail(true);
+                        setShowUserMenu(false);
+                      }}
+                      className={`block w-full text-left px-4 py-2 text-sm ${labelClasses} hover:bg-gray-100 dark:hover:bg-gray-700`}
+                    >
+                      Change Email
+                    </button>
+                    <button
                       onClick={handleLogout}
-                      className="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      className="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 last:rounded-b-lg"
                     >
                       Logout
                     </button>
@@ -357,6 +386,22 @@ export default function AdminDashboard() {
                 checkAuth();
               }}
               onCancel={() => setShowChangePassword(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Change Email Modal */}
+      {showChangeEmail && (
+        <div className={modalBackdropClasses}>
+          <div className={`${modalClasses} max-w-md w-full`}>
+            <ChangeEmail 
+              onSuccess={() => {
+                setShowChangeEmail(false);
+                checkAuth();
+              }}
+              onCancel={() => setShowChangeEmail(false)}
+              currentEmail={adminData?.email}
             />
           </div>
         </div>

@@ -405,7 +405,7 @@ export default function AdminPicksManagement() {
                 <button
                   type="button"
                   onClick={closePickModal}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                  className={buttonCancelClasses}
                 >
                   Cancel
                 </button>
