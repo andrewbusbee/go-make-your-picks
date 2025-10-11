@@ -30,11 +30,14 @@ export default function AdminsManagement() {
   const [admins, setAdmins] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<any>(null);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [confirmEmail, setConfirmEmail] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -110,6 +113,51 @@ export default function AdminsManagement() {
     }
   };
 
+  const openChangeEmailModal = (admin: any) => {
+    setSelectedAdmin(admin);
+    setNewEmail('');
+    setConfirmEmail('');
+    setError('');
+    setShowChangeEmailModal(true);
+  };
+
+  const closeChangeEmailModal = () => {
+    setShowChangeEmailModal(false);
+    setSelectedAdmin(null);
+    setNewEmail('');
+    setConfirmEmail('');
+    setError('');
+  };
+
+  const handleChangeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    if (newEmail !== confirmEmail) {
+      setError('Email addresses do not match');
+      setLoading(false);
+      return;
+    }
+
+    if (!newEmail || !newEmail.includes('@')) {
+      setError('Please enter a valid email address');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await api.put(`/admin/admins/${selectedAdmin.id}/change-email`, { newEmail });
+      alert(`Email changed successfully for ${selectedAdmin.username}`);
+      closeChangeEmailModal();
+      await loadAdmins();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to change email');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (adminId: number) => {
     if (!confirm('Are you sure you want to delete this admin?')) {
       return;
@@ -177,6 +225,12 @@ export default function AdminsManagement() {
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   {!admin.is_main_admin && (
                     <div className="flex justify-end space-x-3">
+                      <button
+                        onClick={() => openChangeEmailModal(admin)}
+                        className={buttonLinkClasses}
+                      >
+                        Change Email
+                      </button>
                       <button
                         onClick={() => openResetModal(admin)}
                         className={buttonLinkClasses}
@@ -325,6 +379,76 @@ export default function AdminsManagement() {
                 <button
                   type="button"
                   onClick={closeResetModal}
+                  className={buttonCancelClasses}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Email Modal */}
+      {showChangeEmailModal && selectedAdmin && (
+        <div className={modalBackdropClasses}>
+          <div className={modalClasses}>
+            <h3 className={modalTitleClasses}>
+              Change Email for {selectedAdmin.username}
+            </h3>
+
+            {error && (
+              <div className={alertErrorClasses + " p-4 mb-4"}>
+                <p className={alertErrorTextClasses}>{error}</p>
+              </div>
+            )}
+
+            <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
+                <strong>Current email:</strong> {selectedAdmin.email || 'No email set'}
+              </p>
+            </div>
+
+            <form onSubmit={handleChangeEmail} className="space-y-4">
+              <div>
+                <label className={labelClasses}>
+                  New Email Address
+                </label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  className={inputClasses}
+                  placeholder="Enter new email address"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className={labelClasses}>
+                  Confirm New Email Address
+                </label>
+                <input
+                  type="email"
+                  value={confirmEmail}
+                  onChange={(e) => setConfirmEmail(e.target.value)}
+                  className={inputClasses}
+                  placeholder="Confirm new email address"
+                  required
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`${buttonPrimaryClasses} flex-1`}
+                >
+                  {loading ? 'Changing...' : 'Change Email'}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeChangeEmailModal}
                   className={buttonCancelClasses}
                 >
                   Cancel

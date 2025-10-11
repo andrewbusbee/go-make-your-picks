@@ -4,6 +4,8 @@ import { authenticateAdmin, requireMainAdmin, AuthRequest } from '../middleware/
 import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { validatePasswordBasic } from '../utils/passwordValidator';
+import { validateRequest } from '../middleware/validator';
+import { changeEmailValidators } from '../validators/authValidators';
 import logger from '../utils/logger';
 
 const router = express.Router();
@@ -12,7 +14,7 @@ const router = express.Router();
 router.get('/', authenticateAdmin, requireMainAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const [admins] = await db.query<RowDataPacket[]>(
-      'SELECT id, username, is_main_admin, created_at FROM admins ORDER BY created_at DESC'
+      'SELECT id, username, email, is_main_admin, created_at FROM admins ORDER BY created_at DESC'
     );
     res.json(admins);
   } catch (error) {
@@ -104,6 +106,71 @@ router.post('/:id/reset-password', authenticateAdmin, requireMainAdmin, async (r
     });
   } catch (error) {
     logger.error('Reset password error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Change admin email (main admin only, cannot change own email)
+router.put('/:id/change-email', authenticateAdmin, requireMainAdmin, validateRequest(changeEmailValidators), async (req: AuthRequest, res: Response) => {
+  const adminId = parseInt(req.params.id);
+  const { newEmail } = req.body;
+
+  if (adminId === req.adminId) {
+    return res.status(400).json({ error: 'Cannot change your own email. Use the change email feature in your profile instead.' });
+  }
+
+  try {
+    // Check if admin exists and is not a main admin
+    const [admins] = await db.query<RowDataPacket[]>(
+      'SELECT id, username, email, is_main_admin FROM admins WHERE id = ?',
+      [adminId]
+    );
+
+    if (admins.length === 0) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    const admin = admins[0];
+
+    if (admin.is_main_admin) {
+      return res.status(400).json({ error: 'Cannot change email for main admin accounts' });
+    }
+
+    // Check if new email is different from current email
+    if (admin.email === newEmail) {
+      return res.status(400).json({ error: 'New email must be different from current email' });
+    }
+
+    // Check if email is already taken by another admin
+    const [existingAdmins] = await db.query<RowDataPacket[]>(
+      'SELECT id FROM admins WHERE email = ? AND id != ?',
+      [newEmail, adminId]
+    );
+
+    if (existingAdmins.length > 0) {
+      return res.status(400).json({ error: 'Email address is already in use by another admin' });
+    }
+
+    // Update email
+    await db.query(
+      'UPDATE admins SET email = ? WHERE id = ?',
+      [newEmail, adminId]
+    );
+
+    logger.info('Admin email changed by main admin', { 
+      adminId: req.adminId, 
+      targetAdminId: adminId, 
+      targetUsername: admin.username,
+      newEmail 
+    });
+
+    res.json({ 
+      message: `Email changed successfully for ${admin.username}`,
+      username: admin.username,
+      newEmail
+    });
+  } catch (error) {
+    logger.error('Change admin email error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
