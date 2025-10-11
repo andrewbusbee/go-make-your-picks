@@ -322,8 +322,10 @@ export default function HomePage() {
 
             {/* Data sections */}
             <div className="space-y-8">
-              {/* Cumulative Graph */}
-              <CumulativeGraph data={graphData} />
+              {/* Cumulative Graph - Only show if there are completed rounds */}
+              {leaderboardData.rounds && leaderboardData.rounds.some((round: any) => round.status === 'completed') && (
+                <CumulativeGraph data={graphData} />
+              )}
 
               {/* Leaderboard Table */}
               <div>
