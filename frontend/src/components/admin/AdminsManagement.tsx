@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../utils/api';
+import PasswordInput from '../PasswordInput';
 import {
   headingClasses,
   bodyTextClasses,
@@ -295,12 +296,12 @@ export default function AdminsManagement() {
                 <label className={labelClasses}>
                   Password
                 </label>
-                <input
-                  type="password"
+                <PasswordInput
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={setPassword}
                   className={inputClasses}
                   required
+                  autoComplete="new-password"
                 />
                 <p className={bodyTextClasses + " mt-1 text-xs"}>
                   Minimum 6 characters
@@ -354,14 +355,14 @@ export default function AdminsManagement() {
                 <label className={labelClasses}>
                   New Password
                 </label>
-                <input
-                  type="password"
+                <PasswordInput
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  onChange={setNewPassword}
                   className={inputClasses}
                   placeholder="Enter new password"
                   required
                   minLength={6}
+                  autoComplete="new-password"
                 />
                 <p className={bodyTextClasses + " mt-1 text-xs"}>
                   Minimum 6 characters. Cannot be "password".

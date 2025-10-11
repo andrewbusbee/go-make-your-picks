@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import api from '../../utils/api';
+import PasswordInput from '../PasswordInput';
 import {
   bodyTextClasses,
   labelClasses,
@@ -183,14 +184,14 @@ export default function InitialSetup({ onSuccess }: InitialSetupProps) {
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Choose Your Password
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
+                onChange={setNewPassword}
                 placeholder="Enter a strong password"
                 className={`${inputClasses} py-3`}
                 required
                 minLength={8}
+                autoComplete="new-password"
               />
               <p className={`mt-1 ${helpTextClasses}`}>
                 ✓ At least 8 characters • Lowercase + Uppercase + Number • Avoid common passwords
@@ -202,14 +203,14 @@ export default function InitialSetup({ onSuccess }: InitialSetupProps) {
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Confirm Password
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                onChange={setConfirmPassword}
                 placeholder="Re-enter your password"
                 className={`${inputClasses} py-3`}
                 required
                 minLength={8}
+                autoComplete="new-password"
               />
             </div>
 

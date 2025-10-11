@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import api from '../../utils/api';
+import PasswordInput from '../PasswordInput';
 import {
   headingClasses,
   labelClasses,
@@ -67,12 +68,12 @@ export default function ChangePassword({ onSuccess, onCancel }: ChangePasswordPr
           <label className={labelClasses}>
             Current Password
           </label>
-          <input
-            type="password"
+          <PasswordInput
             value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
+            onChange={setCurrentPassword}
             className={inputClasses}
             required
+            autoComplete="current-password"
           />
         </div>
 
@@ -80,12 +81,12 @@ export default function ChangePassword({ onSuccess, onCancel }: ChangePasswordPr
           <label className={labelClasses}>
             New Password
           </label>
-          <input
-            type="password"
+          <PasswordInput
             value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
+            onChange={setNewPassword}
             className={inputClasses}
             required
+            autoComplete="new-password"
           />
         </div>
 
@@ -93,12 +94,12 @@ export default function ChangePassword({ onSuccess, onCancel }: ChangePasswordPr
           <label className={labelClasses}>
             Confirm New Password
           </label>
-          <input
-            type="password"
+          <PasswordInput
             value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            onChange={setConfirmPassword}
             className={inputClasses}
             required
+            autoComplete="new-password"
           />
         </div>
 

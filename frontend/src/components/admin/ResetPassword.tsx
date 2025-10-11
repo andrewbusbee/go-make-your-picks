@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../utils/api';
+import PasswordInput from '../PasswordInput';
 import {
   pageContainerClasses,
   headingClasses,
@@ -95,16 +96,15 @@ export default function ResetPassword() {
                 New Password
               </label>
               <div className="mt-1">
-                <input
+                <PasswordInput
                   id="newPassword"
                   name="newPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  required
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  onChange={setNewPassword}
                   className={inputClasses}
                   placeholder="Enter new password"
+                  autoComplete="new-password"
+                  required
                 />
               </div>
               <p className={`${helpTextClasses} mt-1`}>
@@ -117,16 +117,15 @@ export default function ResetPassword() {
                 Confirm New Password
               </label>
               <div className="mt-1">
-                <input
+                <PasswordInput
                   id="confirmPassword"
                   name="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  required
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={setConfirmPassword}
                   className={inputClasses}
                   placeholder="Confirm new password"
+                  autoComplete="new-password"
+                  required
                 />
               </div>
             </div>

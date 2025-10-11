@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../utils/api';
+import PasswordInput from '../components/PasswordInput';
 import {
   labelClasses,
   inputClasses,
@@ -89,16 +90,15 @@ export default function AdminLogin() {
                 Password
               </label>
               <div className="mt-2">
-                <input
+                <PasswordInput
                   id="password"
                   name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={setPassword}
                   className={`${inputClasses} py-3`}
                   placeholder="Enter your password"
+                  autoComplete="current-password"
+                  required
                 />
               </div>
             </div>
