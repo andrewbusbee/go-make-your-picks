@@ -3,6 +3,7 @@ import { authenticateAdmin, AuthRequest } from '../middleware/auth';
 import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import logger from '../utils/logger';
+import { ScoringService } from '../services/scoringService';
 
 const router = express.Router();
 
@@ -275,47 +276,8 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
       });
     }
 
-    // Calculate final standings using the same logic as the leaderboard
-    // Get point values from settings first
-    const [pointsSettings] = await connection.query<RowDataPacket[]>(
-      'SELECT setting_key, setting_value FROM numeric_settings WHERE setting_key IN (?, ?, ?, ?, ?, ?)',
-      ['points_first', 'points_second', 'points_third', 'points_fourth', 'points_fifth', 'points_sixth_plus']
-    );
-    
-    const pointsMap: {[key: string]: number} = {};
-    pointsSettings.forEach((setting: any) => {
-      pointsMap[setting.setting_key] = parseInt(setting.setting_value) || 1;
-    });
-    
-    const pointsFirst = pointsMap['points_first'] || 1;
-    const pointsSecond = pointsMap['points_second'] || 1;
-    const pointsThird = pointsMap['points_third'] || 1;
-    const pointsFourth = pointsMap['points_fourth'] || 1;
-    const pointsFifth = pointsMap['points_fifth'] || 1;
-    const pointsSixthPlus = pointsMap['points_sixth_plus'] || 1;
-    
-    logger.debug('Using comprehensive points', { pointsFirst, pointsSecond, pointsThird, pointsFourth, pointsFifth, pointsSixthPlus });
-
-    // Calculate final standings with comprehensive scoring (same as leaderboard)
-    const [leaderboard] = await connection.query<RowDataPacket[]>(
-      `SELECT 
-        u.id as user_id,
-        u.name,
-        SUM(COALESCE(s.first_place, 0) * ?) +
-        SUM(COALESCE(s.second_place, 0) * ?) +
-        SUM(COALESCE(s.third_place, 0) * ?) +
-        SUM(COALESCE(s.fourth_place, 0) * ?) +
-        SUM(COALESCE(s.fifth_place, 0) * ?) +
-        SUM(COALESCE(s.sixth_plus_place, 0) * ?) as total_points
-      FROM users u
-      JOIN season_participants sp ON u.id = sp.user_id
-      LEFT JOIN scores s ON u.id = s.user_id
-      LEFT JOIN rounds r ON s.round_id = r.id AND r.season_id = ?
-      WHERE sp.season_id = ?
-      GROUP BY u.id, u.name
-      ORDER BY total_points DESC`,
-      [pointsFirst, pointsSecond, pointsThird, pointsFourth, pointsFifth, pointsSixthPlus, seasonId, seasonId]
-    );
+    // Calculate final standings using centralized ScoringService
+    const leaderboard = await ScoringService.calculateFinalStandings(seasonId);
 
     logger.debug('Leaderboard results', { count: leaderboard.length, results: leaderboard });
 

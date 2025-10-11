@@ -2,6 +2,7 @@ import express, { Response } from 'express';
 import { authenticateAdmin, requireMainAdmin, AuthRequest } from '../middleware/auth';
 import db from '../config/database';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
+import { SettingsService } from '../services/settingsService';
 
 const router = express.Router();
 
@@ -31,13 +32,23 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
       seasonId = seasons[0].id;
     }
 
-    // 1. Create 5 sample users
+    // 1. Create 15 sample users
     const users = [
       { name: 'John Sample', email: 'sample1@example.com' },
       { name: 'Sarah Mitchell', email: 'sample2@example.com' },
       { name: 'Michael Chen', email: 'sample3@example.com' },
       { name: 'Emily Rodriguez', email: 'sample4@example.com' },
-      { name: 'David Thompson', email: 'sample5@example.com' }
+      { name: 'David Thompson', email: 'sample5@example.com' },
+      { name: 'Jessica Williams', email: 'sample6@example.com' },
+      { name: 'Christopher Davis', email: 'sample7@example.com' },
+      { name: 'Amanda Brown', email: 'sample8@example.com' },
+      { name: 'Matthew Wilson', email: 'sample9@example.com' },
+      { name: 'Ashley Garcia', email: 'sample10@example.com' },
+      { name: 'Daniel Martinez', email: 'sample11@example.com' },
+      { name: 'Stephanie Anderson', email: 'sample12@example.com' },
+      { name: 'Ryan Taylor', email: 'sample13@example.com' },
+      { name: 'Nicole Thomas', email: 'sample14@example.com' },
+      { name: 'Brandon Jackson', email: 'sample15@example.com' }
     ];
 
     const userIds: number[] = [];
@@ -213,30 +224,22 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
           [pickId, 1, choices[userIndex]]
         );
 
-        // Create randomized scores for variety in the leaderboard
-        // Randomly assign place finishes to create varied cumulative graphs
-        const placeOptions = [
-          { first: 2, second: 0, third: 0, fourth: 0, fifth: 0, sixth: 0 },      // 12 pts
-          { first: 1, second: 1, third: 0, fourth: 0, fifth: 0, sixth: 0 },      // 11 pts
-          { first: 1, second: 0, third: 1, fourth: 0, fifth: 0, sixth: 0 },      // 10 pts
-          { first: 1, second: 0, third: 0, fourth: 1, fifth: 0, sixth: 0 },      // 9 pts
-          { first: 1, second: 0, third: 0, fourth: 0, fifth: 1, sixth: 0 },      // 8 pts
-          { first: 1, second: 0, third: 0, fourth: 0, fifth: 0, sixth: 1 },      // 7 pts
-          { first: 0, second: 2, third: 0, fourth: 0, fifth: 0, sixth: 0 },      // 10 pts
-          { first: 0, second: 1, third: 1, fourth: 0, fifth: 0, sixth: 0 },      // 9 pts
-          { first: 0, second: 1, third: 0, fourth: 1, fifth: 0, sixth: 0 },      // 8 pts
-          { first: 0, second: 0, third: 2, fourth: 0, fifth: 0, sixth: 0 },      // 8 pts
-          { first: 0, second: 0, third: 1, fourth: 1, fifth: 0, sixth: 0 },      // 7 pts
-          { first: 0, second: 0, third: 0, fourth: 2, fifth: 0, sixth: 0 },      // 6 pts
-          { first: 0, second: 0, third: 0, fourth: 1, fifth: 1, sixth: 0 },      // 5 pts
-          { first: 0, second: 0, third: 0, fourth: 0, fifth: 2, sixth: 0 },      // 4 pts
-          { first: 0, second: 0, third: 0, fourth: 0, fifth: 1, sixth: 1 },      // 3 pts
-          { first: 0, second: 0, third: 0, fourth: 0, fifth: 0, sixth: 2 },      // 2 pts
-          { first: 0, second: 0, third: 0, fourth: 0, fifth: 0, sixth: 1 },      // 1 pt
-          { first: 0, second: 0, third: 0, fourth: 0, fifth: 0, sixth: 0 }       // 0 pts
+        // Create realistic scores using the current scoring system
+        // Get current point values to ensure consistency
+        const points = await SettingsService.getPointsSettings();
+        
+        // Realistic single-round score options (max 6 points per round)
+        const realisticPlaceOptions = [
+          { first: 1, second: 0, third: 0, fourth: 0, fifth: 0, sixth: 0 },      // 6 pts (1st place)
+          { first: 0, second: 1, third: 0, fourth: 0, fifth: 0, sixth: 0 },      // 5 pts (2nd place)
+          { first: 0, second: 0, third: 1, fourth: 0, fifth: 0, sixth: 0 },      // 4 pts (3rd place)
+          { first: 0, second: 0, third: 0, fourth: 1, fifth: 0, sixth: 0 },      // 3 pts (4th place)
+          { first: 0, second: 0, third: 0, fourth: 0, fifth: 1, sixth: 0 },      // 2 pts (5th place)
+          { first: 0, second: 0, third: 0, fourth: 0, fifth: 0, sixth: 1 },      // 1 pt (6th+ place)
+          { first: 0, second: 0, third: 0, fourth: 0, fifth: 0, sixth: 0 }       // 0 pts (no pick/wrong pick)
         ];
         
-        const randomPlace = placeOptions[Math.floor(Math.random() * placeOptions.length)];
+        const randomPlace = realisticPlaceOptions[Math.floor(Math.random() * realisticPlaceOptions.length)];
         
         await connection.query(
           'INSERT INTO scores (user_id, round_id, first_place, second_place, third_place, fourth_place, fifth_place, sixth_plus_place) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -251,10 +254,24 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
       ['UNC', 'Kentucky'],
       ['Gonzaga', 'Villanova'],
       ['Michigan', 'UCLA'],
-      ['Duke', 'UNC']
+      ['Duke', 'UNC'],
+      ['Arizona', 'Houston'],
+      ['UConn', 'Purdue'],
+      ['Tennessee', 'Alabama'],
+      ['Creighton', 'Marquette'],
+      ['Baylor', 'Texas'],
+      ['Florida', 'Auburn'],
+      ['Ohio State', 'Wisconsin'],
+      ['Syracuse', 'Louisville'],
+      ['Virginia', 'Miami'],
+      ['Oregon', 'Washington']
     ];
 
-    const singlePickChoices = ['Chiefs', '49ers', 'Ravens', 'Bills', 'Cowboys'];
+    const singlePickChoices = [
+      'Chiefs', '49ers', 'Ravens', 'Bills', 'Cowboys',
+      'Eagles', 'Packers', 'Lions', 'Dolphins', 'Jets',
+      'Steelers', 'Browns', 'Bengals', 'Colts', 'Titans'
+    ];
 
     // Multi-pick picks
     for (let i = 0; i < userIds.length; i++) {
@@ -334,13 +351,23 @@ router.post('/clear-test-data', authenticateAdmin, requireMainAdmin, async (req:
 
     // Delete users with sample emails (CASCADE will handle related data)
     await connection.query(
-      `DELETE FROM users WHERE email IN (?, ?, ?, ?, ?)`,
+      `DELETE FROM users WHERE email IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         'sample1@example.com',
         'sample2@example.com',
         'sample3@example.com',
         'sample4@example.com',
-        'sample5@example.com'
+        'sample5@example.com',
+        'sample6@example.com',
+        'sample7@example.com',
+        'sample8@example.com',
+        'sample9@example.com',
+        'sample10@example.com',
+        'sample11@example.com',
+        'sample12@example.com',
+        'sample13@example.com',
+        'sample14@example.com',
+        'sample15@example.com'
       ]
     );
 
