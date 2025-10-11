@@ -299,7 +299,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Development Tools - Only shown when ENABLE_DEV_TOOLS=true */}
-        {enableDevTools && adminData?.is_main_admin && (
+        {enableDevTools && !!adminData?.is_main_admin && (
           <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-lg">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
