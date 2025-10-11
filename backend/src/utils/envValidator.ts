@@ -11,10 +11,10 @@ interface EnvConfig {
 const productionConfig: EnvConfig = {
   required: [
     'JWT_SECRET',
-    'DB_HOST',
-    'DB_NAME',
-    'DB_USER',
-    'DB_PASSWORD',
+    'MYSQL_HOST',
+    'MYSQL_DATABASE',
+    'MYSQL_USER',
+    'MYSQL_PASSWORD',
     'SMTP_HOST',
     'SMTP_USER',
     'SMTP_PASSWORD',
@@ -22,7 +22,7 @@ const productionConfig: EnvConfig = {
     'NODE_ENV'
   ],
   optional: [
-    'DB_PORT',
+    'MYSQL_PORT',
     'PORT',
     'SMTP_PORT',
     'SMTP_SECURE',
@@ -34,13 +34,13 @@ const productionConfig: EnvConfig = {
 const developmentConfig: EnvConfig = {
   required: [
     'JWT_SECRET',
-    'DB_HOST',
-    'DB_NAME'
+    'MYSQL_HOST',
+    'MYSQL_DATABASE'
   ],
   optional: [
-    'DB_USER',
-    'DB_PASSWORD',
-    'DB_PORT',
+    'MYSQL_USER',
+    'MYSQL_PASSWORD',
+    'MYSQL_PORT',
     'PORT',
     'SMTP_HOST',
     'SMTP_USER',
@@ -117,10 +117,10 @@ function validateSpecificValues(): void {
     }
   }
   
-  // Validate DB_PORT is a number
-  const dbPort = process.env.DB_PORT;
-  if (dbPort && isNaN(parseInt(dbPort))) {
-    console.error(`\n❌ CRITICAL: DB_PORT must be a number (got: ${dbPort})\n`);
+  // Validate MYSQL_PORT is a number
+  const mysqlPort = process.env.MYSQL_PORT;
+  if (mysqlPort && isNaN(parseInt(mysqlPort))) {
+    console.error(`\n❌ CRITICAL: MYSQL_PORT must be a number (got: ${mysqlPort})\n`);
     process.exit(1);
   }
   
@@ -156,8 +156,8 @@ function validateSpecificValues(): void {
 export function printEnvironmentSummary(): void {
   console.log('📋 Environment Configuration:');
   console.log(`   Node Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`   Database Host: ${process.env.DB_HOST}`);
-  console.log(`   Database Name: ${process.env.DB_NAME}`);
+  console.log(`   Database Host: ${process.env.MYSQL_HOST}`);
+  console.log(`   Database Name: ${process.env.MYSQL_DATABASE}`);
   console.log(`   SMTP Host: ${process.env.SMTP_HOST || 'not configured'}`);
   console.log(`   App URL: ${process.env.APP_URL || 'http://localhost:3003'}`);
   console.log(`   Port: ${process.env.PORT || '3003'}`);

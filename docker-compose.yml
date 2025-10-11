@@ -1,15 +1,15 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: gomakeyourpicks-mysql
+    container_name: go-make-your-picks-mysql
     restart: always
     networks:
-      - gomakeyourpicks-network
+      - go-make-your-picks-network
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-sports_picks}
-      MYSQL_USER: ${MYSQL_USER:-picksuser}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-pickspass}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql-data:/var/lib/mysql
     # Database port - OPTIONAL: Only expose to localhost for debugging/admin tools
@@ -22,41 +22,41 @@ services:
       timeout: 20s
       retries: 10
 
-  app:
+  go-make-your-picks:
     image: ghcr.io/andrewbusbee/go-make-your-picks:0.1.0-beta.2
-    container_name: gomakeyourpicks-app
+    container_name: go-make-your-picks-app
     restart: always
     networks:
-      - gomakeyourpicks-network
+      - go-make-your-picks-network
     ports:
       - "3003:3003"
     environment:
       NODE_ENV: production
       PORT: 3003
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_NAME: ${MYSQL_DATABASE:-sports_picks}
-      DB_USER: ${MYSQL_USER:-picksuser}
-      DB_PASSWORD: ${MYSQL_PASSWORD:-pickspass}
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       # ⚠️ CRITICAL SECURITY: Generate a strong JWT secret!
       # Run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
       # Or use .env file override (recommended)
-      JWT_SECRET: ${JWT_SECRET:-CHANGE_ME_OR_APP_WILL_NOT_START_IN_PRODUCTION}
-      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
-      SMTP_PORT: ${SMTP_PORT:-587}
-      SMTP_SECURE: ${SMTP_SECURE:-false}
+      JWT_SECRET: ${JWT_SECRET}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_FROM: ${SMTP_FROM:-noreply@yourdomain.com}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Go Make Your Picks}
-      APP_URL: ${APP_URL:-http://localhost:3003}
-      ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-false}
+      SMTP_FROM: ${SMTP_FROM}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME}
+      APP_URL: ${APP_URL}
+      ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS}
     depends_on:
       mysql:
         condition: service_healthy
 
 networks:
-  gomakeyourpicks-network:
+  go-make-your-picks-network:
     driver: bridge
     internal: false  # false required for magic link functionality
 
