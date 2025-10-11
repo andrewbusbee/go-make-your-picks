@@ -17,13 +17,13 @@ services:
       # Enable development tools in local development (set to "false" for production)
       ENABLE_DEV_TOOLS: "true"
       
-      # SMTP Configuration - Required for sending magic links
+      # SMTP Configuration - Required for sending magic links. Gmail requires an app password, not your personal password
       SMTP_HOST: smtp.gmail.com
       SMTP_PORT: 587
       SMTP_SECURE: false
       SMTP_USER: your-email@gmail.com
       SMTP_PASSWORD: your-gmail-app-password
-      SMTP_FROM: noreply@gomakeyourpicks.com
+      SMTP_FROM: noreply@yourdomain.com
       SMTP_FROM_NAME: "Go Make Your Picks"
       
       # Application URL (used in magic links)
@@ -35,6 +35,6 @@ services:
       
       # Database Configuration - Use these to override defaults
       MYSQL_ROOT_PASSWORD: your-root-password
-      MYSQL_DATABASE: sports_picks
-      MYSQL_USER: picksuser
+      MYSQL_DATABASE: go_make_your_picks_db
+      MYSQL_USER: go_make_your_picks_user
       MYSQL_PASSWORD: your-secure-database-password
