@@ -5,6 +5,7 @@ import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { isValidTimezone } from '../utils/timezones';
 import logger from '../utils/logger';
 import { SettingsService } from '../services/settingsService';
+import { clearHtmlSettingsCache } from '../utils/htmlRenderer';
 
 const router = express.Router();
 
@@ -198,6 +199,9 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
 
     // Clear settings cache so new values are loaded immediately
     SettingsService.clearCache();
+    
+    // Also clear HTML renderer cache for meta tags
+    clearHtmlSettingsCache();
 
     res.json({ 
       message: 'Settings updated successfully',

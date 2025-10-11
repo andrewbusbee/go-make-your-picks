@@ -149,11 +149,23 @@ app.use('/api/admin/seed', adminSeedRoutes);
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
   const frontendPath = path.join(__dirname, '../../frontend/dist');
+  
+  // Serve static assets (JS, CSS, images, etc.)
   app.use(express.static(frontendPath));
   
-  // SPA fallback - serve index.html for all non-API routes
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(frontendPath, 'index.html'));
+  // SPA fallback - dynamically render index.html with correct meta tags
+  // This ensures social media scrapers and link previews get the right info
+  app.get('*', async (req, res) => {
+    try {
+      const { renderHtmlWithMeta } = await import('./utils/htmlRenderer');
+      const html = await renderHtmlWithMeta(frontendPath);
+      res.setHeader('Content-Type', 'text/html');
+      res.send(html);
+    } catch (error) {
+      logger.error('Error rendering HTML', { error });
+      // Fallback to static file on error
+      res.sendFile(path.join(frontendPath, 'index.html'));
+    }
   });
 }
 
