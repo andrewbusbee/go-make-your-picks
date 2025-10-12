@@ -202,7 +202,7 @@ export default function SeasonsManagement() {
     setEditYearStart(season.year_start.toString());
     setEditYearEnd(season.year_end.toString());
     setEditCommissioner(season.commissioner || '');
-    setEditIsDefault(season.is_default || false);
+    setEditIsDefault(season.is_default === 1);
     setEditError('');
     setShowEditModal(true);
   };
@@ -402,13 +402,13 @@ export default function SeasonsManagement() {
             <div
               key={season.id}
               className={`${cardClasses} p-6 hover:shadow-lg transition ${
-                season.is_default ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''
+                season.is_default === 1 ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''
               } ${!season.is_active ? 'opacity-60' : ''}`}
             >
               <div className={`${flexJustifyBetweenStartClasses} ${mb2Classes}`}>
                 <h3 className={subheadingClasses}>{season.name}</h3>
                 <div className={flexWrapGapClasses}>
-                  {season.is_default && (
+                  {season.is_default === 1 && (
                     <span className={badgePrimaryClasses}>
                       Report Default
                     </span>

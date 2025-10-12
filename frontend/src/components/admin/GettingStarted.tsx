@@ -33,7 +33,11 @@ import {
   featureCardBulletClasses,
   proTipBoxClasses,
   proTipTextClasses,
-  proTipIconClasses
+  proTipIconClasses,
+  featureCardCustomizedClasses,
+  featureCardTitleCustomizedClasses,
+  customizationBadgeClasses,
+  completionCheckmarkClasses
 } from '../../styles/commonClasses';
 
 interface GettingStartedProps {
@@ -41,10 +45,22 @@ interface GettingStartedProps {
   hasPlayers: boolean;
   hasSeasons: boolean;
   hasSports: boolean;
+  customizationState?: {
+    branding: boolean;
+    scoring: boolean;
+    reminders: boolean;
+  };
 }
 
-export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, hasSports }: GettingStartedProps) {
+export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, hasSports, customizationState }: GettingStartedProps) {
   const isSetupComplete = hasPlayers && hasSeasons && hasSports;
+  
+  // Default customization state if not provided
+  const customizations = customizationState || {
+    branding: false,
+    scoring: false,
+    reminders: false
+  };
   
   const setupSteps = [
     {
@@ -160,11 +176,19 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
 
         <div className={featureGridThreeColClasses}>
           {/* Branding Feature */}
-          <div className={featureCardClasses}>
-            <h3 className={featureCardTitleClasses}>
-              <span>🎨</span>
-              <span>App Branding</span>
-            </h3>
+          <div className={customizations.branding ? featureCardCustomizedClasses : featureCardClasses}>
+            <div className={`${flexJustifyBetweenClasses} ${mb3Classes}`}>
+              <h3 className={customizations.branding ? featureCardTitleCustomizedClasses : featureCardTitleClasses}>
+                <span>🎨</span>
+                <span>App Branding</span>
+                {customizations.branding && (
+                  <span className={completionCheckmarkClasses}>✓</span>
+                )}
+              </h3>
+              {customizations.branding && (
+                <span className={customizationBadgeClasses}>Customized</span>
+              )}
+            </div>
             <p className={featureCardSubtitleClasses}>
               Personalize the look and feel:
             </p>
@@ -189,11 +213,19 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
           </div>
 
           {/* Scoring Feature */}
-          <div className={featureCardClasses}>
-            <h3 className={featureCardTitleClasses}>
-              <span>🏅</span>
-              <span>Scoring System</span>
-            </h3>
+          <div className={customizations.scoring ? featureCardCustomizedClasses : featureCardClasses}>
+            <div className={`${flexJustifyBetweenClasses} ${mb3Classes}`}>
+              <h3 className={customizations.scoring ? featureCardTitleCustomizedClasses : featureCardTitleClasses}>
+                <span>🏅</span>
+                <span>Scoring System</span>
+                {customizations.scoring && (
+                  <span className={completionCheckmarkClasses}>✓</span>
+                )}
+              </h3>
+              {customizations.scoring && (
+                <span className={customizationBadgeClasses}>Customized</span>
+              )}
+            </div>
             <p className={featureCardSubtitleClasses}>
               Configure point values for placements:
             </p>
@@ -218,11 +250,19 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
           </div>
 
           {/* Reminders Feature */}
-          <div className={featureCardClasses}>
-            <h3 className={featureCardTitleClasses}>
-              <span>📧</span>
-              <span>Email Reminders</span>
-            </h3>
+          <div className={customizations.reminders ? featureCardCustomizedClasses : featureCardClasses}>
+            <div className={`${flexJustifyBetweenClasses} ${mb3Classes}`}>
+              <h3 className={customizations.reminders ? featureCardTitleCustomizedClasses : featureCardTitleClasses}>
+                <span>📧</span>
+                <span>Email Reminders</span>
+                {customizations.reminders && (
+                  <span className={completionCheckmarkClasses}>✓</span>
+                )}
+              </h3>
+              {customizations.reminders && (
+                <span className={customizationBadgeClasses}>Customized</span>
+              )}
+            </div>
             <p className={featureCardSubtitleClasses}>
               Control email notifications:
             </p>

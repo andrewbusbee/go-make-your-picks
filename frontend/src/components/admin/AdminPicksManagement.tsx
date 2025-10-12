@@ -79,8 +79,8 @@ export default function AdminPicksManagement() {
       // Sort seasons: default first, then active, then ended (most recent first)
       const sortedSeasons = res.data.sort((a: any, b: any) => {
         // Default season first
-        if (a.is_default && !b.is_default) return -1;
-        if (!a.is_default && b.is_default) return 1;
+        if (a.is_default === 1 && b.is_default !== 1) return -1;
+        if (a.is_default !== 1 && b.is_default === 1) return 1;
         
         // Active seasons before ended
         if (!a.ended_at && b.ended_at) return -1;
@@ -257,7 +257,7 @@ export default function AdminPicksManagement() {
               {seasons.map(season => (
                 <option key={season.id} value={season.id}>
                   {season.name}
-                  {season.is_default ? ' (Default)' : ''}
+                  {season.is_default === 1 ? ' (Default)' : ''}
                   {season.ended_at ? ' (Ended)' : ''}
                 </option>
               ))}

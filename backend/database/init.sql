@@ -87,6 +87,10 @@ CREATE TABLE IF NOT EXISTS rounds (
     email_message VARCHAR(1000) DEFAULT NULL,
     lock_time TIMESTAMP NOT NULL,
     timezone VARCHAR(100) DEFAULT 'America/New_York',
+    reminder_type ENUM('daily', 'before_lock') DEFAULT 'daily',
+    daily_reminder_time TIME DEFAULT '10:00:00',
+    first_reminder_hours INT DEFAULT 48,
+    final_reminder_hours INT DEFAULT 6,
     status ENUM('draft', 'active', 'locked', 'completed') DEFAULT 'draft',
     first_place_team VARCHAR(255),
     second_place_team VARCHAR(255),
@@ -103,7 +107,9 @@ CREATE TABLE IF NOT EXISTS rounds (
     INDEX idx_deleted (deleted_at),
     INDEX idx_season_status_deleted (season_id, status, deleted_at),
     INDEX idx_lock_time (lock_time),
-    INDEX idx_timezone (timezone)
+    INDEX idx_timezone (timezone),
+    INDEX idx_reminder_type (reminder_type),
+    INDEX idx_daily_reminder_time (daily_reminder_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Available teams for each round

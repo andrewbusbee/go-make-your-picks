@@ -36,6 +36,11 @@ export default function AdminDashboard() {
   const [hasSeasons, setHasSeasons] = useState(false);
   const [hasSports, setHasSports] = useState(false);
   const [enableDevTools, setEnableDevTools] = useState(false);
+  const [customizationState, setCustomizationState] = useState({
+    branding: false,
+    scoring: false,
+    reminders: false
+  });
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -100,6 +105,8 @@ export default function AdminDashboard() {
   // Refresh system status when location changes (for tab highlighting)
   useEffect(() => {
     checkSystemStatus();
+    // Also reload settings to update customization state when navigating
+    loadSettings();
   }, [location.pathname]);
 
   const checkSystemStatus = async () => {
@@ -123,6 +130,46 @@ export default function AdminDashboard() {
       const res = await api.get('/admin/settings');
       setAppTitle(res.data.app_title || 'Go Make Your Picks');
       setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
+      
+      // Check customization state
+      const defaultTitle = 'Go Make Your Picks';
+      const defaultTagline = 'Predict. Compete. Win.';
+      const defaultFooter = 'Built for Sports Fans';
+      const defaultTimezone = 'America/New_York';
+      const defaultPoints = {
+        first: 6,
+        second: 5,
+        third: 4,
+        fourth: 3,
+        fifth: 2,
+        sixth: 1
+      };
+      const defaultReminderType = 'daily';
+      const defaultReminderTime = '10:00:00';
+      const defaultFirstHours = 48;
+      const defaultFinalHours = 6;
+      
+      setCustomizationState({
+        branding: (
+          res.data.app_title !== defaultTitle ||
+          res.data.app_tagline !== defaultTagline ||
+          res.data.footer_message !== defaultFooter
+        ),
+        scoring: (
+          parseInt(res.data.points_first_place) !== defaultPoints.first ||
+          parseInt(res.data.points_second_place) !== defaultPoints.second ||
+          parseInt(res.data.points_third_place) !== defaultPoints.third ||
+          parseInt(res.data.points_fourth_place) !== defaultPoints.fourth ||
+          parseInt(res.data.points_fifth_place) !== defaultPoints.fifth ||
+          parseInt(res.data.points_sixth_plus_place) !== defaultPoints.sixth
+        ),
+        reminders: (
+          res.data.reminder_type !== defaultReminderType ||
+          res.data.daily_reminder_time !== defaultReminderTime ||
+          parseInt(res.data.reminder_first_hours) !== defaultFirstHours ||
+          parseInt(res.data.reminder_final_hours) !== defaultFinalHours
+        )
+      });
     } catch (error) {
       console.error('Error loading settings:', error);
     }
@@ -374,6 +421,7 @@ export default function AdminDashboard() {
               hasPlayers={hasPlayers}
               hasSeasons={hasSeasons}
               hasSports={hasSports}
+              customizationState={customizationState}
             />
           } />
           <Route path="/users" element={<UsersManagement />} />

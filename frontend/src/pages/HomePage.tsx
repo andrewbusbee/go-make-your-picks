@@ -191,7 +191,7 @@ export default function HomePage() {
                 >
                   {allSeasons.map(season => (
                     <option key={season.id} value={season.id}>
-                      {season.name} {season.is_default ? '(Default)' : ''} {season.is_active ? '' : '(Inactive)'}
+                      {season.name} {season.is_default === 1 ? '(Default)' : ''} {season.is_active ? '' : '(Inactive)'}
                     </option>
                   ))}
                 </select>

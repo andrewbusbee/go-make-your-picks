@@ -756,3 +756,23 @@ export const proTipTextClasses =
 export const proTipIconClasses = 
   "text-blue-600 dark:text-blue-400 text-lg flex-shrink-0";
 
+// ============================================================================
+// CUSTOMIZATION COMPLETION INDICATORS
+// ============================================================================
+
+// Feature card with customization completion styling
+export const featureCardCustomizedClasses = 
+  "p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border-2 border-green-200 dark:border-green-800";
+
+// Feature card title with completion checkmark
+export const featureCardTitleCustomizedClasses = 
+  "text-base font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2";
+
+// Customization completion badge
+export const customizationBadgeClasses = 
+  "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs px-2 py-1 rounded-full font-medium";
+
+// Completion checkmark
+export const completionCheckmarkClasses = 
+  "text-green-600 dark:text-green-400 text-lg";
+

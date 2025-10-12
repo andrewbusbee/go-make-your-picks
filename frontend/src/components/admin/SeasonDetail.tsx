@@ -159,7 +159,7 @@ export default function SeasonDetail() {
             <p className={bodyTextClasses}>{season.year_start} - {season.year_end}</p>
           </div>
           <div className={flexGapClasses}>
-            {season.is_default && (
+            {season.is_default === 1 && (
               <span className={badgePrimaryClasses}>
                 Report Default
               </span>
