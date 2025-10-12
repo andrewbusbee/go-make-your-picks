@@ -139,3 +139,79 @@ storybook-static/
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Parcel cache
+.parcel-cache/
+
+# Yarn
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# pnpm
+.pnpm-store/
+
+# Rush
+common/temp/
+
+# Migration scripts (temporary database migration files)
+backend/migrate_*.js
+backend/database/migration_*.sql
+
+# SSL/TLS certificates (if used for local development)
+*.pem
+*.key
+*.crt
+*.csr
+*.cert
+
+# SQLite databases (if used for testing)
+*.sqlite
+*.sqlite3
+*.db
+
+# Redis dump
+dump.rdb
+
+# PM2 logs
+.pm2/
+
+# Sentry
+.sentryclirc
+
+# Vercel
+.vercel
+
+# Docker
+docker-compose.override.local.yml
+*.dockerignore.backup
+
+# Miscellaneous
+*.pid
+*.seed
+*.pid.lock
+
+# WebStorm
+*.iml
+.idea/
+
+# VS Code workspace settings (keep general settings but ignore workspace-specific)
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+
+# Nx
+.nx/cache
+
+# MacOS Finder
+Icon?
+
+# JetBrains
+.fleet/
+
+# Temporary SQL scripts
+temp.sql
+scratch.sql
+test.sql
