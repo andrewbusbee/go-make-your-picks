@@ -44,6 +44,7 @@ import {
   textMediumClasses,
   mt1Classes,
   mb4Classes,
+  pt6Classes,
   radioGroupClasses,
   radioLabelClasses,
   radioInputClasses,
@@ -504,11 +505,13 @@ export default function AppSettings() {
                 </p>
               </div>
             </div>
+          </div>
 
             <hr className={dividerClasses} />
 
             {/* Reminder Settings */}
-            <h3 className={subheadingClasses}>Reminder Email Settings</h3>
+            <div className={pt6Classes}>
+              <h3 className={subheadingClasses}>Reminder Email Settings</h3>
             <p className={`${bodyTextClasses} ${mt1Classes} ${mb4Classes}`}>
               These settings control how and when reminder emails are sent to users who have not made their picks.
               Only one reminder type can be active at a time.
@@ -627,7 +630,7 @@ export default function AppSettings() {
                 </div>
               </div>
             </div>
-          </div>
+            </div>
 
           <div className={flexSpaceXPtClasses}>
             <button
