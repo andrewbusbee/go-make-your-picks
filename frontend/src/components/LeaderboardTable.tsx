@@ -57,6 +57,14 @@ export default function LeaderboardTable({ rounds, leaderboard }: LeaderboardTab
     }
   }, []);
 
+  // Check if all players have 0 points (no sports completed yet)
+  const allPlayersHaveZeroPoints = leaderboard.every(entry => entry.totalPoints === 0);
+
+  // Sort alphabetically if all players have 0 points, otherwise use current order (ranked)
+  const sortedLeaderboard = allPlayersHaveZeroPoints 
+    ? [...leaderboard].sort((a, b) => a.userName.localeCompare(b.userName))
+    : leaderboard;
+
   const isRoundVisible = (round: Round) => {
     return round.status === 'locked' || round.status === 'completed';
   };
@@ -88,10 +96,14 @@ export default function LeaderboardTable({ rounds, leaderboard }: LeaderboardTab
             </tr>
           </thead>
           <tbody className={tableBodyClasses}>
-            {leaderboard.map((entry) => (
+            {sortedLeaderboard.map((entry) => (
               <tr key={entry.userId} className={tableRowHoverClasses}>
                 <td className={`${tableCellClasses} sticky left-0 z-10 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium py-2 w-40 min-w-40`}>
-                  <span className="text-gray-500 dark:text-gray-400">#{entry.rank}</span> {entry.userName}
+                  {!allPlayersHaveZeroPoints && (
+                    <span className="text-gray-500 dark:text-gray-400">#{entry.rank}</span>
+                  )}
+                  {!allPlayersHaveZeroPoints && ' '}
+                  {entry.userName}
                 </td>
                 {rounds.map((round) => {
                   const pick = entry.picks[round.id];
