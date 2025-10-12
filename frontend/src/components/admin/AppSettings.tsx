@@ -70,7 +70,7 @@ export default function AppSettings() {
   const [pointsFourthPlace, setPointsFourthPlace] = useState(3);
   const [pointsFifthPlace, setPointsFifthPlace] = useState(2);
   const [pointsSixthPlusPlace, setPointsSixthPlusPlace] = useState(1);
-  const [reminderType, setReminderType] = useState<'daily' | 'before_lock' | 'none'>('none');
+  const [reminderType, setReminderType] = useState<'daily' | 'before_lock' | 'none'>('daily');
   const [dailyReminderTime, setDailyReminderTime] = useState('10:00');
   const [reminderFirstHours, setReminderFirstHours] = useState(48);
   const [reminderFinalHours, setReminderFinalHours] = useState(6);
@@ -106,7 +106,7 @@ export default function AppSettings() {
       setPointsFourthPlace(parseInt(res.data.points_fourth_place) || 3);
       setPointsFifthPlace(parseInt(res.data.points_fifth_place) || 2);
       setPointsSixthPlusPlace(parseInt(res.data.points_sixth_plus_place) || 1);
-      setReminderType(res.data.reminder_type || 'none');
+      setReminderType(res.data.reminder_type || 'daily');
       setDailyReminderTime(res.data.daily_reminder_time || '10:00:00');
       setReminderFirstHours(parseInt(res.data.reminder_first_hours) || 48);
       setReminderFinalHours(parseInt(res.data.reminder_final_hours) || 6);
