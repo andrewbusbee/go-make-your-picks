@@ -9,7 +9,9 @@ import {
   buttonPrimaryClasses,
   buttonCancelClasses,
   alertErrorClasses,
-  alertErrorTextClasses
+  alertErrorTextClasses,
+  formSectionClasses,
+  flexSpaceXPtClasses
 } from '../../styles/commonClasses';
 
 interface ChangePasswordProps {
@@ -68,7 +70,7 @@ export default function ChangePassword({ onSuccess, onCancel }: ChangePasswordPr
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className={formSectionClasses}>
         <div>
           <label className={labelClasses}>
             Current Password
@@ -108,7 +110,7 @@ export default function ChangePassword({ onSuccess, onCancel }: ChangePasswordPr
           />
         </div>
 
-        <div className="flex space-x-3 pt-4">
+        <div className={flexSpaceXPtClasses}>
           <button
             type="submit"
             disabled={loading}

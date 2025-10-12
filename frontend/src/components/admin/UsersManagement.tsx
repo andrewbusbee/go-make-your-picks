@@ -29,7 +29,13 @@ import {
   badgeDangerClasses,
   buttonLinkSuccessClasses,
   buttonLinkWarningClasses,
-  cardClasses
+  cardClasses,
+  flexJustifyBetweenClasses,
+  mb6Classes,
+  flexColumnGapClasses,
+  flexSpaceXPtClasses,
+  formSectionClasses,
+  flexCenterClasses
 } from '../../styles/commonClasses';
 
 export default function UsersManagement() {
@@ -177,7 +183,7 @@ export default function UsersManagement() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className={`${flexJustifyBetweenClasses} ${mb6Classes}`}>
         <h2 className={headingClasses}>Players</h2>
         <button
           onClick={() => openModal()}
@@ -221,8 +227,8 @@ export default function UsersManagement() {
                     user.email
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-center">
-                  <div className="flex flex-col items-center gap-1">
+                <td className={`${tableCellClasses} text-center`}>
+                  <div className={`${flexColumnGapClasses} items-center`}>
                     {!user.is_active && (
                       <span className={badgeDangerClasses}>
                         Inactive
@@ -241,7 +247,7 @@ export default function UsersManagement() {
                 <td className={tableCellSecondaryClasses}>
                   {new Date(user.created_at).toLocaleDateString()}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td className={`${tableCellClasses} text-right`}>
                   <button
                     onClick={() => openModal(user)}
                     className={buttonLinkEditClasses + " mr-4"}
@@ -291,7 +297,7 @@ export default function UsersManagement() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className={formSectionClasses}>
               <div>
                 <label className={labelClasses}>
                   Name
@@ -320,7 +326,7 @@ export default function UsersManagement() {
               </div>
 
               <div>
-                <label className="flex items-start">
+                <label className={flexCenterClasses}>
                   <input
                     type="checkbox"
                     checked={noEmail}
@@ -346,7 +352,7 @@ export default function UsersManagement() {
                 )}
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className={flexSpaceXPtClasses}>
                 <button
                   type="submit"
                   disabled={loading}

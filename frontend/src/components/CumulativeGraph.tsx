@@ -1,5 +1,16 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { cardClasses, bodyTextClasses, subheadingClasses } from '../styles/commonClasses';
+import { 
+  cardClasses, 
+  bodyTextClasses, 
+  subheadingClasses,
+  flexWrapGapClasses,
+  flexItemsGap1Classes,
+  textSmallClasses,
+  textMediumClasses,
+  mb4Classes,
+  overflowXAutoClasses,
+  overflowYAutoClasses
+} from '../styles/commonClasses';
 import { useState, useRef, useEffect } from 'react';
 
 interface GraphData {
@@ -32,17 +43,17 @@ function HorizontalLegend({ data }: { data: GraphData[] }) {
   if (!data || data.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap justify-center gap-4 mb-4 px-2">
+    <div className={`${flexWrapGapClasses} justify-center ${mb4Classes} px-2`}>
       {data.map((user, index) => {
         const color = COLORS[index % COLORS.length];
         return (
-          <div key={user.userId} className="flex items-center gap-2">
+          <div key={user.userId} className={flexItemsGap1Classes}>
             <div 
               className="w-3 h-3 rounded-full flex-shrink-0"
               style={{ backgroundColor: color }}
             />
             <span 
-              className="text-sm font-medium whitespace-nowrap"
+              className={`${textSmallClasses} ${textMediumClasses} whitespace-nowrap`}
               style={{ color }}
             >
               {user.userName}
@@ -243,7 +254,7 @@ export default function CumulativeGraph({ data }: CumulativeGraphProps) {
       <div className="relative">
         <div 
           ref={scrollContainerRef}
-          className="overflow-x-auto overflow-y-visible h-[300px] sm:h-80 md:h-96"
+          className={`${overflowXAutoClasses} ${overflowYAutoClasses} h-[300px] sm:h-80 md:h-96`}
           style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
         >
           <div className="min-w-[800px] sm:min-w-[600px] h-full">

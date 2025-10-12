@@ -24,7 +24,19 @@ import {
   selectClasses,
   buttonCancelClasses,
   badgePrimaryClasses,
-  badgeSuccessClasses
+  badgeSuccessClasses,
+  loadingCenterClasses,
+  loadingTextClasses,
+  textRedClasses,
+  mb6Classes,
+  buttonLinkEditClasses,
+  flexCenterClasses,
+  flexJustifyBetweenStartClasses,
+  flexGapClasses,
+  flexSpaceXClasses,
+  iconLargeClasses,
+  badgeDangerClasses,
+  mb4Classes
 } from '../../styles/commonClasses';
 
 export default function SeasonDetail() {
@@ -114,26 +126,26 @@ export default function SeasonDetail() {
 
   if (loading) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">Loading...</p>
+      <div className={loadingCenterClasses}>
+        <p className={loadingTextClasses}>Loading...</p>
       </div>
     );
   }
 
   if (!season) {
     return (
-      <div className="text-center py-8">
-        <p className="text-red-600">Season not found</p>
+      <div className={loadingCenterClasses}>
+        <p className={textRedClasses}>Season not found</p>
       </div>
     );
   }
 
   return (
     <div>
-      <div className="mb-6">
+      <div className={mb6Classes}>
         <button
           onClick={() => navigate('/admin/seasons')}
-          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 text-sm font-medium mb-4 flex items-center"
+          className={`${buttonLinkEditClasses} ${mb4Classes} ${flexCenterClasses}`}
         >
           <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -141,12 +153,12 @@ export default function SeasonDetail() {
           Back to Seasons
         </button>
         
-        <div className="flex justify-between items-start">
+        <div className={flexJustifyBetweenStartClasses}>
           <div>
             <h2 className={headingClasses}>{season.name}</h2>
             <p className={bodyTextClasses}>{season.year_start} - {season.year_end}</p>
           </div>
-          <div className="flex gap-2">
+          <div className={flexGapClasses}>
             {season.is_default && (
               <span className={badgePrimaryClasses}>
                 Report Default
@@ -167,7 +179,7 @@ export default function SeasonDetail() {
             Participants ({participants.length})
           </h3>
           {availableUsers.length > 0 && (
-            <div className="flex space-x-2">
+            <div className={flexSpaceXClasses}>
               <button
                 onClick={() => setShowAddModal(true)}
                 className={buttonPrimaryClasses + " text-sm flex items-center"}
@@ -192,7 +204,7 @@ export default function SeasonDetail() {
 
         {participants.length === 0 ? (
           <div className={`p-8 text-center ${bodyTextClasses}`}>
-            <svg className="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className={`${iconLargeClasses} mx-auto text-gray-400 dark:text-gray-500`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
             <p>No participants yet. Add family members who want to play.</p>
@@ -229,11 +241,11 @@ export default function SeasonDetail() {
                   </td>
                   <td className={tableCellSecondaryClasses}>
                     {!participant.is_active ? (
-                      <span className="bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 text-xs font-medium px-2.5 py-0.5 rounded">
+                      <span className={badgeDangerClasses}>
                         Inactive
                       </span>
                     ) : (
-                      <span className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs font-medium px-2.5 py-0.5 rounded">
+                      <span className={badgeSuccessClasses}>
                         Active
                       </span>
                     )}
@@ -241,7 +253,7 @@ export default function SeasonDetail() {
                   <td className={tableCellSecondaryClasses}>
                     {new Date(participant.added_at).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className={`${tableCellClasses} text-right`}>
                     <button
                       onClick={() => handleRemoveParticipant(participant.id)}
                       className={buttonLinkDangerClasses}
@@ -266,7 +278,7 @@ export default function SeasonDetail() {
               <p className={bodyTextClasses + " mb-4"}>All users are already participants in this season.</p>
             ) : (
               <>
-                <div className="mb-4">
+                <div className={mb4Classes}>
                   <label className={labelClasses}>
                     Select Family Member
                   </label>
@@ -284,7 +296,7 @@ export default function SeasonDetail() {
                   </select>
                 </div>
 
-                <div className="flex space-x-3">
+                <div className={flexSpaceXClasses}>
                   <button
                     onClick={handleAddParticipant}
                     disabled={!selectedUserId}

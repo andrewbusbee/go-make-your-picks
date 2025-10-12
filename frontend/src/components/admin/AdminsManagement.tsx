@@ -25,7 +25,16 @@ import {
   tableCellSecondaryClasses,
   badgePrimaryClasses,
   badgePurpleClasses,
-  cardClasses
+  cardClasses,
+  flexJustifyBetweenClasses,
+  mb6Classes,
+  flexSpaceXPtClasses,
+  formSectionClasses,
+  alertWarningClasses,
+  alertWarningTextClasses,
+  flexSpaceXClasses,
+  grayInfoBoxClasses,
+  grayInfoTextClasses
 } from '../../styles/commonClasses';
 
 export default function AdminsManagement() {
@@ -192,7 +201,7 @@ export default function AdminsManagement() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className={`${flexJustifyBetweenClasses} ${mb6Classes}`}>
         <h2 className={headingClasses}>Admin Accounts</h2>
         <button
           onClick={openModal}
@@ -240,9 +249,9 @@ export default function AdminsManagement() {
                 <td className={tableCellSecondaryClasses}>
                   {new Date(admin.created_at).toLocaleDateString()}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td className={`${tableCellClasses} text-right`}>
                   {!admin.is_main_admin && (
-                    <div className="flex justify-end space-x-3">
+                    <div className={`${flexSpaceXClasses} justify-end`}>
                       <button
                         onClick={() => openChangeEmailModal(admin)}
                         className={buttonLinkClasses}
@@ -282,7 +291,7 @@ export default function AdminsManagement() {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className={formSectionClasses}>
               <div>
                 <label className={labelClasses}>
                   Username
@@ -325,7 +334,7 @@ export default function AdminsManagement() {
                 </p>
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className={flexSpaceXPtClasses}>
                 <button
                   type="submit"
                   disabled={loading}
@@ -360,8 +369,8 @@ export default function AdminsManagement() {
               </div>
             )}
 
-            <div className="bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 dark:border-yellow-500 p-4 mb-4">
-              <p className="text-sm text-yellow-800 dark:text-yellow-300">
+            <div className={alertWarningClasses}>
+              <p className={alertWarningTextClasses}>
                 <strong>Warning:</strong> This will immediately change the admin's password. 
                 Make sure to communicate the new password to them securely.
               </p>
@@ -386,7 +395,7 @@ export default function AdminsManagement() {
                 </p>
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className={flexSpaceXPtClasses}>
                 <button
                   type="submit"
                   disabled={loading}
@@ -421,13 +430,13 @@ export default function AdminsManagement() {
               </div>
             )}
 
-            <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
-              <p className="text-sm text-gray-600 dark:text-gray-300">
+            <div className={grayInfoBoxClasses}>
+              <p className={grayInfoTextClasses}>
                 <strong>Current email:</strong> {selectedAdmin.email || 'No email set'}
               </p>
             </div>
 
-            <form onSubmit={handleChangeEmail} className="space-y-4">
+            <form onSubmit={handleChangeEmail} className={formSectionClasses}>
               <div>
                 <label className={labelClasses}>
                   New Email Address
@@ -456,7 +465,7 @@ export default function AdminsManagement() {
                 />
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className={flexSpaceXPtClasses}>
                 <button
                   type="submit"
                   disabled={loading}

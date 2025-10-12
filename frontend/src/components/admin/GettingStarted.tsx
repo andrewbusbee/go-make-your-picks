@@ -7,7 +7,19 @@ import {
   buttonSuccessClasses,
   badgeSuccessClasses,
   alertInfoClasses,
-  alertInfoTextClasses
+  alertInfoTextClasses,
+  formSectionLargeClasses,
+  textCenterClasses,
+  gridThreeColClasses,
+  flexJustifyBetweenClasses,
+  mb3Classes,
+  flexItemsStartClasses,
+  gridThreeColMdClasses,
+  formSectionClasses,
+  flexGapClasses,
+  flexCenterClasses,
+  mb2Classes,
+  mt1Classes
 } from '../../styles/commonClasses';
 
 interface GettingStartedProps {
@@ -101,9 +113,9 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
   ];
 
   return (
-    <div className="space-y-8">
+    <div className={formSectionLargeClasses}>
       {/* Header */}
-      <div className="text-center">
+      <div className={textCenterClasses}>
         <h1 className={`${headingClasses} text-4xl mb-4`}>🏆 Getting Started</h1>
         <p className={`${bodyTextClasses} text-lg max-w-3xl mx-auto`}>
           Welcome to Go Make Your Picks! Follow these steps to set up your sports picks competition.
@@ -118,14 +130,14 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
           {isSetupComplete && <span className={`${badgeSuccessClasses} text-xs`}>Complete!</span>}
         </h2>
         
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className={gridThreeColClasses}>
           {setupSteps.map((step) => (
             <div key={step.id} className={`p-4 rounded-lg border-2 flex flex-col ${
               step.completed 
                 ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' 
                 : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
             }`}>
-              <div className="flex items-center justify-between mb-3">
+              <div className={`${flexJustifyBetweenClasses} ${mb3Classes}`}>
                 <h3 className={`${subheadingClasses} text-lg flex items-center gap-2`}>
                   {step.title}
                   {step.completed && (
@@ -141,8 +153,8 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
               
               <ul className={`${bodyTextClasses} text-sm mb-4 space-y-1 flex-grow`}>
                 {step.details.map((detail, index) => (
-                  <li key={index} className="flex items-start gap-2">
-                    <span className="text-gray-400 dark:text-gray-500 mt-1">•</span>
+                  <li key={index} className={`${flexItemsStartClasses} gap-2`}>
+                    <span className={`text-gray-400 dark:text-gray-500 ${mt1Classes}`}>•</span>
                     <span>{detail}</span>
                   </li>
                 ))}
@@ -162,10 +174,10 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
       {/* Features Overview */}
       <div className={`${cardClasses} p-6`}>
         <h2 className={`${subheadingClasses} mb-4`}>Key Features</h2>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className={gridThreeColMdClasses}>
           {features.map((feature, index) => (
             <div key={index} className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <div className="flex items-center gap-3 mb-2">
+              <div className={`${flexCenterClasses} gap-3 ${mb2Classes}`}>
                 <span className="text-2xl">{feature.icon}</span>
                 <h3 className={`${subheadingClasses} text-lg`}>{feature.title}</h3>
               </div>
@@ -179,8 +191,8 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
       <div className={`${cardClasses} p-6`}>
         <h2 className={`${subheadingClasses} mb-4`}>Typical Workflow</h2>
         
-        <div className="space-y-4">
-          <div className="flex gap-4">
+        <div className={formSectionClasses}>
+          <div className={flexGapClasses}>
             <div className="flex-shrink-0 w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
               <span className="text-blue-600 dark:text-blue-400 font-bold text-sm">1</span>
             </div>
@@ -193,7 +205,7 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
             </div>
           </div>
           
-          <div className="flex gap-4">
+          <div className={flexGapClasses}>
             <div className="flex-shrink-0 w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
               <span className="text-green-600 dark:text-green-400 font-bold text-sm">2</span>
             </div>
@@ -206,7 +218,7 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
             </div>
           </div>
           
-          <div className="flex gap-4">
+          <div className={flexGapClasses}>
             <div className="flex-shrink-0 w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
               <span className="text-purple-600 dark:text-purple-400 font-bold text-sm">3</span>
             </div>

@@ -26,7 +26,27 @@ import {
   badgeGrayClasses,
   badgePurpleClasses,
   helpTextClasses,
-  dividerClasses
+  dividerClasses,
+  leaderboardSectionClasses,
+  leaderboardHeaderClasses,
+  leaderboardListClasses,
+  leaderboardItemClasses,
+  leaderboardRankClasses,
+  leaderboardScoreClasses,
+  leaderboardNameContainerClasses,
+  gridThreeColClasses,
+  flexJustifyBetweenClasses,
+  flexJustifyBetweenStartClasses,
+  flexWrapGapClasses,
+  flexItemsGapClasses,
+  flexSpaceXPtClasses,
+  mb2Classes,
+  mb4Classes,
+  mb6Classes,
+  pt6Classes,
+  checkboxLabelClasses,
+  interactiveListItemClasses,
+  flexSpaceXClasses
 } from '../../styles/commonClasses';
 
 // Helper function to decode JWT token
@@ -359,7 +379,7 @@ export default function SeasonsManagement() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className={`${flexJustifyBetweenClasses} ${mb6Classes}`}>
         <div>
           <h2 className={headingClasses}>Seasons</h2>
           <p className={bodyTextClasses + " mt-1"}>
@@ -377,7 +397,7 @@ export default function SeasonsManagement() {
       {/* Active & Default Seasons Section */}
       <div className="mb-8">
         <h3 className={subheadingClasses + " mb-4"}>Active & Default Seasons</h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className={gridThreeColClasses}>
           {activeSeasons.map((season) => (
             <div
               key={season.id}
@@ -385,9 +405,9 @@ export default function SeasonsManagement() {
                 season.is_default ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''
               } ${!season.is_active ? 'opacity-60' : ''}`}
             >
-              <div className="flex justify-between items-start mb-2">
+              <div className={`${flexJustifyBetweenStartClasses} ${mb2Classes}`}>
                 <h3 className={subheadingClasses}>{season.name}</h3>
-                <div className="flex flex-wrap gap-2">
+                <div className={flexWrapGapClasses}>
                   {season.is_default && (
                     <span className={badgePrimaryClasses}>
                       Report Default
@@ -410,20 +430,20 @@ export default function SeasonsManagement() {
               
               {/* Leaderboard for active seasons */}
               {season.leaderboard && season.leaderboard.length > 0 && (
-                <div className="mb-4 border-t border-gray-200 dark:border-gray-700 pt-3">
-                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <div className={leaderboardSectionClasses}>
+                  <p className={leaderboardHeaderClasses}>
                     📊 Leaderboard ({season.leaderboard.length} participants):
                   </p>
-                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                  <div className={leaderboardListClasses}>
                     {season.leaderboard.map((entry: any) => (
-                      <div key={entry.userId} className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-500 dark:text-gray-500 w-6">
+                      <div key={entry.userId} className={leaderboardItemClasses}>
+                        <div className={leaderboardNameContainerClasses}>
+                          <span className={leaderboardRankClasses}>
                             {entry.rank}.
                           </span>
                           <span>{entry.name}</span>
                         </div>
-                        <span className="font-semibold text-blue-600 dark:text-blue-400">
+                        <span className={leaderboardScoreClasses}>
                           {entry.totalPoints} pts
                         </span>
                       </div>
@@ -433,7 +453,7 @@ export default function SeasonsManagement() {
               )}
               
               {/* First Row of Buttons */}
-              <div className="flex flex-wrap gap-2 mb-2">
+              <div className={`${flexWrapGapClasses} ${mb2Classes}`}>
                 <button
                   onClick={() => navigate(`/admin/seasons/${season.id}`)}
                   className={`flex-1 min-w-[140px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonPrimaryClasses}`}
@@ -490,7 +510,7 @@ export default function SeasonsManagement() {
                 key={season.id}
                 className={`${cardClasses} p-6 hover:shadow-lg transition opacity-75`}
               >
-                <div className="flex justify-between items-start mb-2">
+                <div className={`${flexJustifyBetweenStartClasses} ${mb2Classes}`}>
                   <h3 className={subheadingClasses}>{season.name}</h3>
                   <span className={badgePurpleClasses}>
                     🏆 Ended
@@ -523,7 +543,7 @@ export default function SeasonsManagement() {
                 </div>
 
                 {/* Second Row of Buttons */}
-                <div className="flex flex-wrap gap-2">
+                <div className={flexWrapGapClasses}>
                   <button
                     onClick={() => openDeleteModal(season)}
                     className={`flex-1 min-w-[120px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonDangerClasses}`}
@@ -619,7 +639,7 @@ export default function SeasonsManagement() {
                 </p>
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className={flexItemsGapClasses}>
                 <input
                   type="checkbox"
                   id="isDefault"
@@ -660,7 +680,7 @@ export default function SeasonsManagement() {
                       {allUsers.map((user) => (
                         <label
                           key={user.id}
-                          className="flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                          className={interactiveListItemClasses}
                         >
                           <input
                             type="checkbox"
@@ -680,7 +700,7 @@ export default function SeasonsManagement() {
                 )}
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className={flexSpaceXPtClasses}>
                 <button
                   type="submit"
                   disabled={loading}
@@ -705,7 +725,7 @@ export default function SeasonsManagement() {
       {showEditModal && editingSeason && (
         <div className={modalBackdropClasses}>
           <div className={modalClasses}>
-            <div className="flex justify-between items-center mb-4">
+            <div className={`${flexJustifyBetweenClasses} ${mb4Classes}`}>
               <h3 className={modalTitleClasses}>Edit Season</h3>
               <button
                 onClick={closeEditModal}
@@ -786,7 +806,7 @@ export default function SeasonsManagement() {
                 </p>
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className={flexItemsGapClasses}>
                 <input
                   type="checkbox"
                   id="editIsDefault"
@@ -802,7 +822,7 @@ export default function SeasonsManagement() {
                 The report default season is shown on the main homepage. Only one season can be the default at a time.
               </p>
 
-              <div className="flex space-x-3 pt-4">
+              <div className={flexSpaceXPtClasses}>
                 <button
                   type="submit"
                   disabled={editLoading}
@@ -852,7 +872,7 @@ export default function SeasonsManagement() {
                 />
               </div>
 
-              <label className="flex items-center gap-3 cursor-pointer">
+              <label className={checkboxLabelClasses}>
                 <input
                   type="checkbox"
                   checked={deleteCheckbox}
@@ -865,7 +885,7 @@ export default function SeasonsManagement() {
               </label>
             </div>
 
-            <div className="flex space-x-3 pt-6">
+              <div className={`${flexSpaceXClasses} ${pt6Classes}`}>
               <button
                 onClick={handleSoftDelete}
                 disabled={deleteConfirmText !== seasonToDelete.name || !deleteCheckbox}
@@ -919,7 +939,7 @@ export default function SeasonsManagement() {
                 />
               </div>
 
-              <label className="flex items-center gap-3 cursor-pointer">
+              <label className={checkboxLabelClasses}>
                 <input
                   type="checkbox"
                   checked={permanentDeleteCheckbox}
@@ -932,7 +952,7 @@ export default function SeasonsManagement() {
               </label>
             </div>
 
-            <div className="flex space-x-3 pt-6">
+              <div className={`${flexSpaceXClasses} ${pt6Classes}`}>
               <button
                 onClick={handlePermanentDelete}
                 disabled={deletePermanentConfirm !== 'PERMANENT DELETE' || !permanentDeleteCheckbox}
@@ -977,7 +997,7 @@ export default function SeasonsManagement() {
                   </p>
                 </div>
                 
-                <div className="flex flex-wrap gap-2">
+                <div className={flexWrapGapClasses}>
                   <button
                     onClick={() => handleRestore(season.id)}
                     className={`flex-1 min-w-[100px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonSuccessClasses}`}

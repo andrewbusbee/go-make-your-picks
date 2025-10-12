@@ -12,7 +12,25 @@ import {
   tableHeaderCellClasses,
   tableHeaderCellRightClasses,
   tableCellClasses,
-  buttonCancelClasses
+  buttonCancelClasses,
+  formGridTwoColClasses,
+  tableClasses,
+  tableHeadClasses,
+  modalOverlayGrayClasses,
+  modalClasses,
+  alertErrorClasses,
+  alertErrorTextClasses,
+  formSectionClasses,
+  inputClasses,
+  buttonLinkEditClasses,
+  textMediumClasses,
+  textCapitalizeClasses,
+  textRedClasses,
+  textGrayItalicClasses,
+  mlSpacingClasses,
+  spacingYClasses,
+  infoBoxClasses,
+  textBlueInfoClasses
 } from '../../styles/commonClasses';
 
 export default function AdminPicksManagement() {
@@ -225,7 +243,7 @@ export default function AdminPicksManagement() {
 
       {/* Season and Sport Selectors */}
       <div className={cardClasses + " mb-6"}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className={formGridTwoColClasses}>
           <div>
             <label className={labelClasses}>
               Season
@@ -275,15 +293,15 @@ export default function AdminPicksManagement() {
               {roundDetails.sport_name} Picks
             </h3>
             <p className={`${bodyTextClasses} mt-1`}>
-              Status: <span className="font-medium capitalize">{roundDetails.status}</span>
+              Status: <span className={`${textMediumClasses} ${textCapitalizeClasses}`}>{roundDetails.status}</span>
               {roundDetails.status === 'completed' && (
-                <span className="text-red-600 dark:text-red-400 ml-2">(Completed rounds cannot be edited)</span>
+                <span className={`${textRedClasses} ${mlSpacingClasses}`}>(Completed rounds cannot be edited)</span>
               )}
             </p>
           </div>
 
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-700">
+          <table className={tableClasses}>
+            <thead className={tableHeadClasses}>
               <tr>
                 <th className={tableHeaderCellClasses}>
                   Participant
@@ -313,14 +331,14 @@ export default function AdminPicksManagement() {
                         ))}
                       </span>
                     ) : (
-                      <span className="text-gray-400 dark:text-gray-500 italic">No pick</span>
+                      <span className={textGrayItalicClasses}>No pick</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className={`${tableCellClasses} text-right`}>
                     {roundDetails.status !== 'completed' && (
                       <button
                         onClick={() => openPickModal(pickData, pickData.pick)}
-                        className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-300"
+                        className={buttonLinkEditClasses}
                       >
                         {pickData.pick ? 'Edit' : 'Add'} Pick
                       </button>
@@ -339,30 +357,30 @@ export default function AdminPicksManagement() {
 
       {/* Pick Modal */}
       {showPickModal && editingUser && roundDetails && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6">
+        <div className={modalOverlayGrayClasses}>
+          <div className={modalClasses}>
             <h3 className={`${subheadingClasses} mb-4`}>
               Enter Pick for {editingUser.userName}
             </h3>
 
             {error && (
-              <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
-                <p className="text-sm text-red-700">{error}</p>
+              <div className={alertErrorClasses}>
+                <p className={alertErrorTextClasses}>{error}</p>
               </div>
             )}
 
-            <form onSubmit={handleSubmitPick} className="space-y-4">
+            <form onSubmit={handleSubmitPick} className={formSectionClasses}>
               {roundDetails.pick_type === 'single' ? (
                 /* Single Pick Type */
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className={labelClasses}>
                     Champion Pick *
                   </label>
                   {roundDetails.teams && roundDetails.teams.length > 0 ? (
                     <select
                       value={championPick}
                       onChange={(e) => setChampionPick(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className={inputClasses}
                       required
                     >
                       <option value="">Select a team...</option>
@@ -378,23 +396,23 @@ export default function AdminPicksManagement() {
                       value={championPick}
                       onChange={(e) => setChampionPick(e.target.value)}
                       placeholder="Enter champion pick"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      className={inputClasses}
                       required
                     />
                   )}
                 </div>
               ) : (
                 /* Multiple Pick Type */
-                <div className="space-y-3">
-                  <div className="bg-blue-50 p-3 rounded-md mb-3">
-                    <p className="text-xs text-blue-900">
+                <div className={spacingYClasses}>
+                  <div className={infoBoxClasses}>
+                    <p className={textBlueInfoClasses}>
                       <strong>Multiple Picks:</strong> Enter up to {roundDetails.num_write_in_picks} picks for this round.
                     </p>
                   </div>
                   
                   {writeInPicks.map((pick, index) => (
                     <div key={index}>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className={labelClasses}>
                         Pick {index + 1} {index === 0 && '*'}
                       </label>
                       <input
@@ -406,7 +424,7 @@ export default function AdminPicksManagement() {
                           setWriteInPicks(newPicks);
                         }}
                         placeholder={`Enter pick ${index + 1}`}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                        className={inputClasses}
                         required={index === 0}
                       />
                     </div>

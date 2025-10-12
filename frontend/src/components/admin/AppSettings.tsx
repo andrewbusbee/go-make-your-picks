@@ -17,7 +17,32 @@ import {
   helpTextClasses,
   dividerClasses,
   subheadingClasses,
-  cardClasses
+  cardClasses,
+  loadingCenterClasses,
+  loadingTextClasses,
+  mb6Classes,
+  flexItemsStartClasses,
+  svgIconBlueClasses,
+  svgIconGreenClasses,
+  svgIconRedClasses,
+  svgIconYellowClasses,
+  previewBoxGradientClasses,
+  previewHeaderClasses,
+  iconMediumClasses,
+  flexItemsGapClasses,
+  previewTitleClasses,
+  previewTextClasses,
+  formSectionLargeClasses,
+  gridTwoColLgClasses,
+  gridThreeColMdClasses,
+  gridTwoColMdClasses,
+  warningBoxYellowClasses,
+  warningTextYellowClasses,
+  warningTextYellowSecondaryClasses,
+  flexSpaceXPtClasses,
+  textSmallClasses,
+  textMediumClasses,
+  mt1Classes
 } from '../../styles/commonClasses';
 
 export default function AppSettings() {
@@ -194,26 +219,26 @@ export default function AppSettings() {
 
   if (loadingSettings) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">Loading settings...</p>
+      <div className={loadingCenterClasses}>
+        <p className={loadingTextClasses}>Loading settings...</p>
       </div>
     );
   }
 
   return (
     <div>
-      <div className="mb-6">
+      <div className={mb6Classes}>
         <h2 className={headingClasses + " mb-2"}>App Customization</h2>
       </div>
 
       <div className={`${cardClasses} shadow-md`}>
         {/* Info Box */}
         <div className={alertInfoClasses + " p-4 mb-6"}>
-          <div className="flex items-start">
-            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+          <div className={flexItemsStartClasses}>
+            <svg className={svgIconBlueClasses} fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
-            <div className="text-sm">
+            <div className={textSmallClasses}>
               <p className={alertInfoTextClasses + " font-medium mb-1"}>Customize Your App</p>
               <p className={alertInfoTextClasses}>
                 These settings control the branding throughout the app, including the website header, footer, and email templates. 
@@ -226,8 +251,8 @@ export default function AppSettings() {
         {/* Success Message */}
         {success && (
           <div className={alertSuccessClasses + " p-4 mb-6"}>
-            <div className="flex items-start">
-              <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <div className={flexItemsStartClasses}>
+              <svg className={svgIconGreenClasses} fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
               <p className={alertSuccessTextClasses + " text-sm"}>{success}</p>
@@ -238,8 +263,8 @@ export default function AppSettings() {
         {/* Error Message */}
         {error && (
           <div className={alertErrorClasses + " p-4 mb-6"}>
-            <div className="flex items-start">
-              <svg className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <div className={flexItemsStartClasses}>
+              <svg className={svgIconRedClasses} fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
               <p className={alertErrorTextClasses + " text-sm"}>{error}</p>
@@ -248,21 +273,21 @@ export default function AppSettings() {
         )}
 
         {/* Preview */}
-        <div className="mb-6 p-6 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg text-white">
-          <h3 className="text-sm font-semibold text-blue-200 mb-3">Preview</h3>
-          <div className="flex items-center space-x-3">
-            <span className="text-4xl">🏆</span>
+        <div className={previewBoxGradientClasses}>
+          <h3 className={previewHeaderClasses}>Preview</h3>
+          <div className={flexItemsGapClasses}>
+            <span className={iconMediumClasses}>🏆</span>
             <div>
-              <h1 className="text-2xl font-bold">{appTitle || 'Go Make Your Picks'}</h1>
-              <p className="text-sm text-blue-100">{appTagline || 'Predict. Compete. Win.'}</p>
+              <h1 className={previewTitleClasses}>{appTitle || 'Go Make Your Picks'}</h1>
+              <p className={previewTextClasses}>{appTagline || 'Predict. Compete. Win.'}</p>
             </div>
           </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className={formSectionLargeClasses}>
           {/* Basic Settings - 2 column grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className={gridTwoColLgClasses}>
             <div>
               <label htmlFor="appTitle" className={labelClasses}>
                 App Title
@@ -344,7 +369,7 @@ export default function AppSettings() {
               Customize point values for each placement. Changes apply to all rounds instantly.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className={gridThreeColMdClasses}>
               <div>
                 <label htmlFor="pointsFirstPlace" className={labelClasses}>
                   Champion (1st Place)
@@ -464,7 +489,7 @@ export default function AppSettings() {
 
             {/* Reminder Settings */}
             <h3 className={subheadingClasses}>Reminder Email Settings</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className={gridTwoColMdClasses}>
               <div>
                 <label htmlFor="reminderFirstHours" className={labelClasses}>
                   First Reminder (hours before lock time)
@@ -504,14 +529,14 @@ export default function AppSettings() {
               </div>
             </div>
 
-            <div className="mt-4 bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 dark:border-yellow-500 p-4">
-              <div className="flex items-start">
-                <svg className="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <div className={warningBoxYellowClasses}>
+              <div className={flexItemsStartClasses}>
+                <svg className={svgIconYellowClasses} fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
-                <div className="text-sm">
-                  <p className="text-yellow-900 dark:text-yellow-200 font-medium">Dynamic Scoring</p>
-                  <p className="text-yellow-700 dark:text-yellow-300 mt-1">
+                <div className={textSmallClasses}>
+                  <p className={`${warningTextYellowClasses} ${textMediumClasses}`}>Dynamic Scoring</p>
+                  <p className={`${warningTextYellowSecondaryClasses} ${mt1Classes}`}>
                     Changing these values will <strong>instantly update all leaderboard scores</strong> without needing to recalculate past rounds. 
                     Maximum points per round: {pointsFirstPlace} (1st) + {pointsSecondPlace} (2nd) + ... = up to {pointsFirstPlace} points for the winner.
                   </p>
@@ -520,7 +545,7 @@ export default function AppSettings() {
             </div>
           </div>
 
-          <div className="flex space-x-3 pt-4">
+          <div className={flexSpaceXPtClasses}>
             <button
               type="submit"
               disabled={loading || !hasChanges}

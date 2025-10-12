@@ -8,7 +8,14 @@ import {
   tableCellClasses,
   tableCellSecondaryClasses,
   badgeSuccessClasses,
-  badgeGrayClasses
+  badgeGrayClasses,
+  overflowXAutoClasses,
+  tableRowHoverClasses,
+  textGrayItalicClasses,
+  flexCenterClasses,
+  textSmallClasses,
+  textCenterClasses,
+  textXsGrayNormalClasses
 } from '../styles/commonClasses';
 
 interface Round {
@@ -56,7 +63,7 @@ export default function LeaderboardTable({ rounds, leaderboard }: LeaderboardTab
 
   return (
     <div className={`${cardClasses} shadow-lg overflow-hidden`}>
-      <div ref={scrollContainerRef} className="overflow-x-auto">
+      <div ref={scrollContainerRef} className={overflowXAutoClasses}>
         <table className={tableClasses}>
           <thead className={tableHeadClasses}>
             <tr>
@@ -65,10 +72,10 @@ export default function LeaderboardTable({ rounds, leaderboard }: LeaderboardTab
               </th>
               {rounds.map((round) => (
                 <th key={round.id} className={`${tableHeaderCellClasses} whitespace-nowrap w-28 md:w-32 lg:w-36`}>
-                  <div className="text-center">
+                  <div className={textCenterClasses}>
                     <div>{round.sport_name}</div>
                     {round.first_place_team && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                      <div className={textXsGrayNormalClasses}>
                         ({round.first_place_team})
                       </div>
                     )}
@@ -82,7 +89,7 @@ export default function LeaderboardTable({ rounds, leaderboard }: LeaderboardTab
           </thead>
           <tbody className={tableBodyClasses}>
             {leaderboard.map((entry) => (
-              <tr key={entry.userId} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+              <tr key={entry.userId} className={tableRowHoverClasses}>
                 <td className={`${tableCellClasses} sticky left-0 z-10 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium py-2 w-40 min-w-40`}>
                   <span className="text-gray-500 dark:text-gray-400">#{entry.rank}</span> {entry.userName}
                 </td>
@@ -94,8 +101,8 @@ export default function LeaderboardTable({ rounds, leaderboard }: LeaderboardTab
                   return (
                     <td key={round.id} className={`${tableCellSecondaryClasses} py-2 w-28 md:w-32 lg:w-36 text-center`}>
                       {visible && pick ? (
-                        <div className="flex items-center justify-center gap-2">
-                          <div className="font-medium text-sm">
+                        <div className={`${flexCenterClasses} justify-center gap-2`}>
+                          <div className={`font-medium ${textSmallClasses}`}>
                             {pick.pickItems && pick.pickItems.length > 0 ? (
                               pick.pickItems.map((item: any, i: number) => (
                                 <span key={i}>
@@ -104,7 +111,7 @@ export default function LeaderboardTable({ rounds, leaderboard }: LeaderboardTab
                                 </span>
                               ))
                             ) : (
-                              <span className="text-gray-400 dark:text-gray-500 italic">No pick</span>
+                              <span className={textGrayItalicClasses}>No pick</span>
                             )}
                           </div>
                           {score && (
@@ -114,9 +121,9 @@ export default function LeaderboardTable({ rounds, leaderboard }: LeaderboardTab
                           )}
                         </div>
                       ) : visible && !pick ? (
-                        <span className="text-gray-400 dark:text-gray-500 italic text-sm">No pick</span>
+                        <span className={`${textGrayItalicClasses} ${textSmallClasses}`}>No pick</span>
                       ) : (
-                        <span className="text-gray-400 dark:text-gray-500 text-sm">-</span>
+                        <span className={`text-gray-400 dark:text-gray-500 ${textSmallClasses}`}>-</span>
                       )}
                     </td>
                   );

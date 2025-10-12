@@ -7,7 +7,11 @@ import {
   buttonPrimaryClasses,
   buttonCancelClasses,
   alertErrorClasses,
-  alertErrorTextClasses
+  alertErrorTextClasses,
+  grayInfoBoxClasses,
+  grayInfoTextClasses,
+  formSectionClasses,
+  flexSpaceXPtClasses
 } from '../../styles/commonClasses';
 
 interface ChangeEmailProps {
@@ -61,8 +65,8 @@ export default function ChangeEmail({ onSuccess, onCancel, currentEmail }: Chang
       <h2 className={`${headingClasses} mb-4`}>Change Email</h2>
       
       {currentEmail && (
-        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-md">
-          <p className="text-sm text-gray-600 dark:text-gray-300">
+        <div className={grayInfoBoxClasses}>
+          <p className={grayInfoTextClasses}>
             <strong>Current email:</strong> {currentEmail}
           </p>
         </div>
@@ -74,7 +78,7 @@ export default function ChangeEmail({ onSuccess, onCancel, currentEmail }: Chang
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className={formSectionClasses}>
         <div>
           <label className={labelClasses}>
             New Email Address
@@ -103,7 +107,7 @@ export default function ChangeEmail({ onSuccess, onCancel, currentEmail }: Chang
           />
         </div>
 
-        <div className="flex space-x-3 pt-4">
+        <div className={flexSpaceXPtClasses}>
           <button
             type="submit"
             disabled={loading}

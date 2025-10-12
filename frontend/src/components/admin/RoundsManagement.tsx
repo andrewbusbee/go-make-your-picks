@@ -7,8 +7,6 @@ import {
   subheadingClasses,
   bodyTextClasses,
   buttonPrimaryClasses,
-  buttonSuccessClasses,
-  buttonWarningClasses,
   buttonCancelClasses,
   cardClasses,
   inputClasses,
@@ -27,7 +25,39 @@ import {
   tableHeaderCellClasses,
   tableHeaderCellCenterClasses,
   tableCellClasses,
-  dividerClasses
+  dividerClasses,
+  participantSectionClasses,
+  participantHeaderClasses,
+  participantListClasses,
+  participantItemClasses,
+  participantCheckmarkClasses,
+  formSectionClasses,
+  radioGroupClasses,
+  radioLabelClasses,
+  radioInputClasses,
+  radioTextClasses,
+  gridTwoColClasses,
+  flexColumnGapClasses,
+  flexGapClasses,
+  flexJustifyBetweenStartClasses,
+  flexWrapGapClasses,
+  flexSpaceXPtClasses,
+  responsiveFlexHeaderClasses,
+  mb2Classes,
+  mb3Classes,
+  mt4Classes,
+  iconLargeClasses,
+  modalOverlayClasses,
+  labelInlineClasses,
+  buttonSmallPrimaryClasses,
+  buttonSmallSuccessClasses,
+  buttonSmallWarningClasses,
+  buttonSmallSecondaryClasses,
+  buttonSmallPurpleClasses,
+  buttonSmallYellowClasses,
+  buttonSmallDangerLinkClasses,
+  flexItemsGap1Classes,
+  formGridTwoColClasses
 } from '../../styles/commonClasses';
 
 // Helper function to decode JWT token
@@ -657,7 +687,7 @@ export default function RoundsManagement() {
 
   return (
     <div>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+      <div className={responsiveFlexHeaderClasses}>
         <div>
           <h2 className={headingClasses}>Sports</h2>
           <p className={bodyTextClasses + " mt-1"}>
@@ -665,9 +695,9 @@ export default function RoundsManagement() {
           </p>
         </div>
         
-        <div className="flex gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+        <div className={flexGapClasses}>
+          <div className={flexColumnGapClasses}>
+            <label className={labelInlineClasses}>
               Season
             </label>
             <select
@@ -708,8 +738,8 @@ export default function RoundsManagement() {
 
       {!currentSeason ? (
         <div className={`${cardClasses} shadow-md text-center p-8`}>
-          <div className="text-4xl mb-4">🏆</div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Season Selected</h3>
+          <div className={iconLargeClasses}>🏆</div>
+          <h3 className={`${subheadingClasses} ${mb2Classes}`}>No Season Selected</h3>
           <p className={bodyTextClasses}>
             {seasons.length === 0 
               ? "Please create a season first in the Seasons tab."
@@ -722,10 +752,10 @@ export default function RoundsManagement() {
           <p className={bodyTextClasses}>No sports yet for this season. Create your first sport to get started!</p>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className={gridTwoColClasses}>
           {rounds.map((round) => (
             <div key={round.id} className={`${cardClasses} shadow-md`}>
-              <div className="flex justify-between items-start mb-3">
+              <div className={`${flexJustifyBetweenStartClasses} ${mb3Classes}`}>
                 <div>
                   <h3 className={subheadingClasses}>{round.sport_name}</h3>
                   <p className={bodyTextClasses}>
@@ -741,15 +771,15 @@ export default function RoundsManagement() {
 
               {/* Participants list for draft and active rounds */}
               {(round.status === 'draft' || round.status === 'active') && round.participants && (
-                <div className="mb-3 border-t border-gray-200 dark:border-gray-700 pt-3">
-                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                <div className={participantSectionClasses}>
+                  <p className={participantHeaderClasses}>
                     👥 Participants {round.status === 'active' ? `(${round.pickedCount}/${round.totalParticipants} picked)` : `(${round.totalParticipants} players)`}:
                   </p>
-                  <div className="space-y-1">
+                  <div className={participantListClasses}>
                     {round.participants.map((participant: any) => (
-                      <div key={participant.id} className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                      <div key={participant.id} className={participantItemClasses}>
                         {round.status === 'active' && (
-                          <span className="mr-2">
+                          <span className={participantCheckmarkClasses}>
                             {participant.hasPicked ? '✅' : '❌'}
                           </span>
                         )}
@@ -776,18 +806,18 @@ export default function RoundsManagement() {
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-2 mt-4">
+              <div className={`${flexWrapGapClasses} ${mt4Classes}`}>
                 {round.status === 'draft' && (
                   <>
                     <button
                       onClick={() => openEditModal(round)}
-                      className={`text-sm px-3 py-1 rounded ${buttonPrimaryClasses}`}
+                      className={buttonSmallPrimaryClasses}
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleActivateRound(round.id)}
-                      className={`text-sm px-3 py-1 rounded ${buttonSuccessClasses}`}
+                      className={buttonSmallSuccessClasses}
                     >
                       Activate & Send Links
                     </button>
@@ -798,20 +828,20 @@ export default function RoundsManagement() {
                   <>
                     <button
                       onClick={() => openEditModal(round)}
-                      className={`text-sm px-3 py-1 rounded ${buttonPrimaryClasses}`}
+                      className={buttonSmallPrimaryClasses}
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => handleLockRound(round.id)}
-                      className={`text-sm px-3 py-1 rounded ${buttonWarningClasses}`}
+                      className={buttonSmallWarningClasses}
                       title="Manually lock this sport and send notifications"
                     >
                       🔒 Lock Now
                     </button>
                     <button
                       onClick={() => handleSendReminder(round.id)}
-                      className="text-sm bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700"
+                      className={buttonSmallPurpleClasses}
                       title="Send reminder to users who haven't picked"
                     >
                       📧 Remind
@@ -823,13 +853,13 @@ export default function RoundsManagement() {
                   <>
                     <button
                       onClick={() => openEditModal(round)}
-                      className="text-sm bg-gray-600 text-white px-3 py-1 rounded hover:bg-gray-700"
+                      className={buttonSmallSecondaryClasses}
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => openCompleteModal(round)}
-                      className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                      className={buttonSmallPrimaryClasses}
                     >
                       Complete & Score Sport
                     </button>
@@ -839,7 +869,7 @@ export default function RoundsManagement() {
                 {round.status === 'completed' && (
                   <button
                     onClick={() => handleUnlockRound(round.id)}
-                    className="text-sm bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700 flex items-center gap-1"
+                    className={`${buttonSmallYellowClasses} ${flexItemsGap1Classes}`}
                     title="Unlock round for editing"
                   >
                     🔓 Unlock
@@ -849,7 +879,7 @@ export default function RoundsManagement() {
                 {round.status === 'draft' && (
                   <button
                     onClick={() => openDeleteModal(round)}
-                    className="text-sm text-red-600 hover:text-red-800"
+                    className={buttonSmallDangerLinkClasses}
                   >
                     Delete
                   </button>
@@ -862,7 +892,7 @@ export default function RoundsManagement() {
 
       {/* Create Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+        <div className={modalOverlayClasses}>
           <div className={`${cardClasses} rounded-lg max-w-2xl w-full my-2 sm:my-8 max-h-[95vh] overflow-y-auto`}>
             <h3 className={`${subheadingClasses} mb-4`}>
               Add New Sport
@@ -874,7 +904,7 @@ export default function RoundsManagement() {
               </div>
             )}
 
-            <form onSubmit={handleCreateSubmit} className="space-y-4">
+            <form onSubmit={handleCreateSubmit} className={formSectionClasses}>
               {/* Sport Name */}
               <div>
                 <label className={labelClasses}>
@@ -988,7 +1018,7 @@ export default function RoundsManagement() {
               </div>
 
               {/* Lock Date & Time */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={formGridTwoColClasses}>
                 <div>
                   <label className={labelClasses}>
                     Lock Date & Time
@@ -1018,7 +1048,7 @@ export default function RoundsManagement() {
               </div>
 
               {/* Reminder Settings */}
-              <div className="space-y-4">
+              <div className={formSectionClasses}>
                 <h3 className={`${subheadingClasses} mb-2`}>Reminder Settings</h3>
                 
                 {/* Reminder Type Selection */}
@@ -1026,28 +1056,28 @@ export default function RoundsManagement() {
                   <label className={labelClasses}>
                     Reminder Type
                   </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center">
+                  <div className={radioGroupClasses}>
+                    <label className={radioLabelClasses}>
                       <input
                         type="radio"
                         name="reminderType"
                         value="daily"
                         checked={reminderType === 'daily'}
                         onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock')}
-                        className="mr-2"
+                        className={radioInputClasses}
                       />
-                      <span className="text-sm">Send reminder every day</span>
+                      <span className={radioTextClasses}>Send reminder every day</span>
                     </label>
-                    <label className="flex items-center">
+                    <label className={radioLabelClasses}>
                       <input
                         type="radio"
                         name="reminderType"
                         value="before_lock"
                         checked={reminderType === 'before_lock'}
                         onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock')}
-                        className="mr-2"
+                        className={radioInputClasses}
                       />
-                      <span className="text-sm">Send reminders before lock time</span>
+                      <span className={radioTextClasses}>Send reminders before lock time</span>
                     </label>
                   </div>
                 </div>
@@ -1073,7 +1103,7 @@ export default function RoundsManagement() {
 
                 {/* Before Lock Reminder Settings */}
                 {reminderType === 'before_lock' && (
-                  <div className="space-y-4">
+                  <div className={formSectionClasses}>
                     <div>
                       <label className={labelClasses}>
                         First reminder (hours before lock)
@@ -1106,7 +1136,7 @@ export default function RoundsManagement() {
                 )}
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className={flexSpaceXPtClasses}>
                 <button
                   type="submit"
                   disabled={loading}
@@ -1129,7 +1159,7 @@ export default function RoundsManagement() {
 
       {/* Edit Modal */}
       {showEditModal && editingRound && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+        <div className={modalOverlayClasses}>
           <div className={`${cardClasses} max-w-2xl w-full my-2 sm:my-8 max-h-[95vh] overflow-y-auto`}>
             <h3 className={`${subheadingClasses} mb-4`}>Edit Sport</h3>
 
@@ -1148,7 +1178,7 @@ export default function RoundsManagement() {
               </div>
             )}
 
-            <form onSubmit={handleEditSubmit} className="space-y-4">
+            <form onSubmit={handleEditSubmit} className={formSectionClasses}>
               {/* Sport Name */}
               <div>
                 <label className={labelClasses}>
@@ -1262,7 +1292,7 @@ export default function RoundsManagement() {
               </div>
 
               {/* Lock Date & Time */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={formGridTwoColClasses}>
                 <div>
                   <label className={labelClasses}>
                     Lock Date & Time
@@ -1347,7 +1377,7 @@ export default function RoundsManagement() {
 
                 {/* Before Lock Reminder Settings */}
                 {reminderType === 'before_lock' && (
-                  <div className="space-y-4">
+                  <div className={formSectionClasses}>
                     <div>
                       <label className={labelClasses}>
                         First reminder (hours before lock)
@@ -1380,7 +1410,7 @@ export default function RoundsManagement() {
                 )}
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className={flexSpaceXPtClasses}>
                 <button
                   type="submit"
                   disabled={loading}
@@ -1403,7 +1433,7 @@ export default function RoundsManagement() {
 
       {/* Complete Modal */}
       {showCompleteModal && selectedRound && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+        <div className={modalOverlayClasses}>
           <div className={`${cardClasses} max-w-4xl w-full my-2 sm:my-8 max-h-[95vh] overflow-y-auto`}>
             <h3 className={`${headingClasses} mb-6`}>
               Complete & Score {selectedRound.sport_name}
@@ -1779,7 +1809,7 @@ export default function RoundsManagement() {
                 )}
               </div>
 
-              <div className="flex space-x-3 pt-4">
+              <div className={flexSpaceXPtClasses}>
                 <button
                   type="submit"
                   disabled={loading}

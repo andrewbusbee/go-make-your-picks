@@ -39,6 +39,9 @@ export const checkboxClasses =
 export const labelClasses = 
   "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2";
 
+export const labelInlineClasses = 
+  "text-sm font-medium text-gray-700 dark:text-gray-300";
+
 export const headingClasses = 
   "text-2xl font-bold text-gray-900 dark:text-white";
 
@@ -267,4 +270,407 @@ export const pageContainerClasses =
 
 export const sectionTitleClasses = 
   "text-lg font-semibold text-gray-900 dark:text-white mb-4";
+
+// ============================================================================
+// PARTICIPANT & LEADERBOARD LISTS
+// ============================================================================
+
+export const participantSectionClasses = 
+  "mb-3 border-t border-gray-200 dark:border-gray-700 pt-3";
+
+export const participantHeaderClasses = 
+  "text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2";
+
+export const participantListClasses = 
+  "space-y-1";
+
+export const participantItemClasses = 
+  "flex items-center text-sm text-gray-600 dark:text-gray-400";
+
+export const participantCheckmarkClasses = 
+  "mr-2";
+
+export const leaderboardSectionClasses = 
+  "mb-4 border-t border-gray-200 dark:border-gray-700 pt-3";
+
+export const leaderboardHeaderClasses = 
+  "text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2";
+
+export const leaderboardListClasses = 
+  "space-y-1 max-h-48 overflow-y-auto";
+
+export const leaderboardItemClasses = 
+  "flex items-center justify-between text-sm text-gray-600 dark:text-gray-400";
+
+export const leaderboardRankClasses = 
+  "font-medium text-gray-500 dark:text-gray-500 w-6";
+
+export const leaderboardScoreClasses = 
+  "font-semibold text-blue-600 dark:text-blue-400";
+
+export const leaderboardNameContainerClasses = 
+  "flex items-center gap-2";
+
+// ============================================================================
+// FORM SECTIONS & SPACING
+// ============================================================================
+
+export const formSectionClasses = 
+  "space-y-4";
+
+export const formSectionSpacingSmallClasses = 
+  "space-y-2";
+
+export const formSectionSpacingLargeClasses = 
+  "space-y-6";
+
+export const formGridTwoColClasses = 
+  "grid grid-cols-1 md:grid-cols-2 gap-4";
+
+// ============================================================================
+// RADIO & CHECKBOX GROUPS
+// ============================================================================
+
+export const radioGroupClasses = 
+  "space-y-2";
+
+export const radioLabelClasses = 
+  "flex items-center";
+
+export const radioInputClasses = 
+  "mr-2";
+
+export const radioTextClasses = 
+  "text-sm";
+
+// ============================================================================
+// LAYOUT UTILITIES
+// ============================================================================
+
+export const flexCenterClasses = 
+  "flex items-center";
+
+export const flexBetweenClasses = 
+  "flex items-center justify-between";
+
+export const flexWrapGapClasses = 
+  "flex flex-wrap gap-2";
+
+export const gridTwoColClasses = 
+  "grid gap-4 md:grid-cols-2";
+
+export const gridThreeColClasses = 
+  "grid gap-4 md:grid-cols-2 lg:grid-cols-3";
+
+export const flexColumnClasses = 
+  "flex flex-col";
+
+export const flexColumnGapClasses = 
+  "flex flex-col gap-1";
+
+export const flexRowClasses = 
+  "flex";
+
+export const flexGapClasses = 
+  "flex gap-3";
+
+export const flexJustifyBetweenClasses = 
+  "flex justify-between items-center";
+
+export const flexJustifyBetweenStartClasses = 
+  "flex justify-between items-start";
+
+export const flexSpaceXClasses = 
+  "flex space-x-3";
+
+export const flexSpaceXPtClasses = 
+  "flex space-x-3 pt-4";
+
+export const flexItemsGapClasses = 
+  "flex items-center space-x-3";
+
+export const flexItemsGap1Classes = 
+  "flex items-center gap-1";
+
+// ============================================================================
+// SPACING UTILITIES
+// ============================================================================
+
+export const mb2Classes = "mb-2";
+export const mb3Classes = "mb-3";
+export const mb4Classes = "mb-4";
+export const mb6Classes = "mb-6";
+export const mt1Classes = "mt-1";
+export const mt4Classes = "mt-4";
+export const pt3Classes = "pt-3";
+export const pt4Classes = "pt-4";
+export const pt6Classes = "pt-6";
+
+// ============================================================================
+// RESPONSIVE LAYOUTS
+// ============================================================================
+
+export const responsiveFlexHeaderClasses = 
+  "flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4";
+
+// ============================================================================
+// BUTTON SIZE VARIANTS
+// ============================================================================
+
+export const buttonSmallClasses = 
+  "text-sm px-3 py-1 rounded";
+
+export const buttonSmallPrimaryClasses = 
+  "text-sm px-3 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition font-semibold disabled:opacity-50";
+
+export const buttonSmallSuccessClasses = 
+  "text-sm px-3 py-1 rounded bg-green-600 text-white hover:bg-green-700 transition font-semibold disabled:opacity-50";
+
+export const buttonSmallWarningClasses = 
+  "text-sm px-3 py-1 rounded bg-orange-600 text-white hover:bg-orange-700 transition font-semibold disabled:opacity-50";
+
+export const buttonSmallSecondaryClasses = 
+  "text-sm px-3 py-1 rounded bg-gray-600 text-white hover:bg-gray-700 transition font-semibold disabled:opacity-50";
+
+export const buttonSmallPurpleClasses = 
+  "text-sm px-3 py-1 rounded bg-purple-600 text-white hover:bg-purple-700 transition font-semibold disabled:opacity-50";
+
+export const buttonSmallYellowClasses = 
+  "text-sm px-3 py-1 rounded bg-yellow-600 text-white hover:bg-yellow-700 transition font-semibold disabled:opacity-50";
+
+export const buttonSmallDangerLinkClasses = 
+  "text-sm text-red-600 hover:text-red-800 font-medium";
+
+export const buttonXSmallClasses = 
+  "text-xs py-2 px-3 rounded-md transition font-medium";
+
+// ============================================================================
+// MODAL & OVERLAY
+// ============================================================================
+
+export const modalOverlayClasses = 
+  "fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto";
+
+export const modalContentLargeClasses = 
+  "max-w-4xl w-full my-2 sm:my-8 max-h-[95vh] overflow-y-auto";
+
+export const modalContentMediumClasses = 
+  "max-w-2xl w-full my-2 sm:my-8 max-h-[95vh] overflow-y-auto";
+
+// ============================================================================
+// HOVER & INTERACTIVE STATES
+// ============================================================================
+
+export const hoverCardClasses = 
+  "hover:shadow-lg transition";
+
+export const interactiveListItemClasses = 
+  "flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-700 last:border-b-0";
+
+// ============================================================================
+// ICON & EMOJI CONTAINERS
+// ============================================================================
+
+export const iconLargeClasses = 
+  "text-4xl mb-4";
+
+export const checkboxLabelClasses = 
+  "flex items-center gap-3 cursor-pointer";
+
+// ============================================================================
+// UTILITY TEXT CLASSES
+// ============================================================================
+
+export const textMediumClasses = 
+  "font-medium";
+
+export const textCapitalizeClasses = 
+  "capitalize";
+
+export const textRedClasses = 
+  "text-red-600 dark:text-red-400";
+
+export const textGrayItalicClasses = 
+  "text-gray-400 dark:text-gray-500 italic";
+
+export const textBlueInfoClasses = 
+  "text-xs text-blue-900 dark:text-blue-100";
+
+export const textSmallClasses = 
+  "text-sm";
+
+export const textCenterClasses = 
+  "text-center";
+
+export const textXsGrayClasses = 
+  "text-xs text-gray-500 dark:text-gray-400";
+
+export const textXsGrayNormalClasses = 
+  "text-xs text-gray-500 dark:text-gray-400 font-normal";
+
+// ============================================================================
+// SPACING WITH COLORS
+// ============================================================================
+
+export const mlSpacingClasses = 
+  "ml-2";
+
+export const infoBoxClasses = 
+  "bg-blue-50 dark:bg-blue-900/30 p-3 rounded-md mb-3";
+
+export const grayInfoBoxClasses = 
+  "mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-md";
+
+export const grayInfoTextClasses = 
+  "text-sm text-gray-600 dark:text-gray-300";
+
+export const spacingYClasses = 
+  "space-y-3";
+
+// ============================================================================
+// MODAL VARIANTS
+// ============================================================================
+
+export const modalOverlayGrayClasses = 
+  "fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4";
+
+// ============================================================================
+// CONTAINER & PAGE LAYOUT
+// ============================================================================
+
+export const containerClasses = 
+  "container mx-auto px-4 py-8";
+
+export const containerCenterClasses = 
+  "container mx-auto px-4 py-8 text-center";
+
+// ============================================================================
+// LOADING & EMPTY STATES
+// ============================================================================
+
+export const loadingCenterClasses = 
+  "text-center py-8";
+
+export const loadingTextClasses = 
+  "text-gray-500 dark:text-gray-400";
+
+// ============================================================================
+// GRID VARIANTS
+// ============================================================================
+
+export const gridTwoColLgClasses = 
+  "grid grid-cols-1 lg:grid-cols-2 gap-6";
+
+export const gridTwoColMdClasses = 
+  "grid grid-cols-1 md:grid-cols-2 gap-6";
+
+export const gridThreeColMdClasses = 
+  "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4";
+
+export const gridFourColClasses = 
+  "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4";
+
+// ============================================================================
+// FORM SPACING VARIANTS
+// ============================================================================
+
+export const formSectionLargeClasses = 
+  "space-y-6";
+
+// ============================================================================
+// FLEX VARIANTS
+// ============================================================================
+
+export const flexItemsStartClasses = 
+  "flex items-start";
+
+export const flexColCenterClasses = 
+  "flex flex-col items-center";
+
+export const flexColCenterGapClasses = 
+  "flex flex-col items-center gap-1";
+
+export const flexJustifyCenterClasses = 
+  "flex justify-center items-end gap-2 sm:gap-3 md:gap-4";
+
+// ============================================================================
+// OVERFLOW & SCROLLING
+// ============================================================================
+
+export const overflowXAutoClasses = 
+  "overflow-x-auto";
+
+export const overflowYAutoClasses = 
+  "overflow-y-auto";
+
+// ============================================================================
+// SVG & ICON UTILITIES
+// ============================================================================
+
+export const svgIconSmallClasses = 
+  "w-5 h-5 mt-0.5 mr-3 flex-shrink-0";
+
+export const svgIconBlueClasses = 
+  "w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0";
+
+export const svgIconGreenClasses = 
+  "w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 mr-3 flex-shrink-0";
+
+export const svgIconRedClasses = 
+  "w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0";
+
+export const svgIconYellowClasses = 
+  "w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3 flex-shrink-0";
+
+export const iconMediumClasses = 
+  "text-4xl";
+
+export const iconXLargeClasses = 
+  "text-8xl";
+
+export const iconFiveXLClasses = 
+  "text-5xl";
+
+// ============================================================================
+// TABLE ROW STATES
+// ============================================================================
+
+export const tableRowHoverClasses = 
+  "hover:bg-gray-50 dark:hover:bg-gray-700";
+
+// ============================================================================
+// PREVIEW & GRADIENT BOXES
+// ============================================================================
+
+export const previewBoxGradientClasses = 
+  "mb-6 p-6 bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-700 dark:to-purple-700 rounded-lg text-white";
+
+export const previewHeaderClasses = 
+  "text-sm font-semibold text-blue-200 dark:text-blue-300 mb-3";
+
+export const previewTitleClasses = 
+  "text-2xl font-bold";
+
+export const previewTextClasses = 
+  "text-sm text-blue-100 dark:text-blue-200";
+
+// ============================================================================
+// WARNING BOX VARIANTS
+// ============================================================================
+
+export const warningBoxYellowClasses = 
+  "mt-4 bg-yellow-50 dark:bg-yellow-900/30 border-l-4 border-yellow-400 dark:border-yellow-500 p-4";
+
+export const warningTextYellowClasses = 
+  "text-yellow-900 dark:text-yellow-200";
+
+export const warningTextYellowSecondaryClasses = 
+  "text-yellow-700 dark:text-yellow-300";
+
+// ============================================================================
+// SPACING ADDITIONS
+// ============================================================================
+
+export const mt2Classes = "mt-2";
+export const mt3Classes = "mt-3";
 
