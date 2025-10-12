@@ -408,6 +408,30 @@ export default function SeasonsManagement() {
                 {season.year_start} - {season.year_end}
               </p>
               
+              {/* Leaderboard for active seasons */}
+              {season.leaderboard && season.leaderboard.length > 0 && (
+                <div className="mb-4 border-t border-gray-200 dark:border-gray-700 pt-3">
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    📊 Leaderboard ({season.leaderboard.length} participants):
+                  </p>
+                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                    {season.leaderboard.map((entry: any) => (
+                      <div key={entry.userId} className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-500 dark:text-gray-500 w-6">
+                            {entry.rank}.
+                          </span>
+                          <span>{entry.name}</span>
+                        </div>
+                        <span className="font-semibold text-blue-600 dark:text-blue-400">
+                          {entry.totalPoints} pts
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               {/* First Row of Buttons */}
               <div className="flex flex-wrap gap-2 mb-2">
                 <button

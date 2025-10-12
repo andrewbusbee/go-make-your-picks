@@ -739,6 +739,27 @@ export default function RoundsManagement() {
                 {getStatusBadge(round.status)}
               </div>
 
+              {/* Participants list for draft and active rounds */}
+              {(round.status === 'draft' || round.status === 'active') && round.participants && (
+                <div className="mb-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    👥 Participants {round.status === 'active' ? `(${round.pickedCount}/${round.totalParticipants} picked)` : `(${round.totalParticipants} players)`}:
+                  </p>
+                  <div className="space-y-1">
+                    {round.participants.map((participant: any) => (
+                      <div key={participant.id} className="flex items-center text-sm text-gray-600 dark:text-gray-400">
+                        {round.status === 'active' && (
+                          <span className="mr-2">
+                            {participant.hasPicked ? '✅' : '❌'}
+                          </span>
+                        )}
+                        <span>{participant.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {round.first_place_team && (
                 <div className={`${alertSuccessClasses} mb-3`}>
                   <p className={`${alertSuccessTextClasses} font-medium`}>

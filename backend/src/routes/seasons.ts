@@ -34,7 +34,39 @@ router.get('/', async (req, res) => {
     const [seasons] = await db.query<RowDataPacket[]>(
       'SELECT * FROM seasons WHERE deleted_at IS NULL ORDER BY year_start DESC'
     );
-    res.json(seasons);
+    
+    // For each active season (not ended), add leaderboard data
+    const seasonsWithLeaderboard = await Promise.all(seasons.map(async (season) => {
+      if (!season.ended_at) {
+        // Active season - calculate leaderboard
+        try {
+          const leaderboard = await ScoringService.calculateLeaderboard(season.id);
+          
+          // Sort by total points descending
+          const sortedLeaderboard = leaderboard.leaderboard
+            .sort((a: any, b: any) => b.totalPoints - a.totalPoints)
+            .map((entry: any, index: number) => ({
+              rank: index + 1,
+              userId: entry.userId,
+              name: entry.name,
+              totalPoints: entry.totalPoints
+            }));
+          
+          return {
+            ...season,
+            leaderboard: sortedLeaderboard
+          };
+        } catch (error) {
+          logger.error('Error calculating leaderboard for season', { seasonId: season.id, error });
+          return season;
+        }
+      }
+      
+      // Ended season - don't include leaderboard
+      return season;
+    }));
+    
+    res.json(seasonsWithLeaderboard);
   } catch (error) {
     logger.error('Get seasons error', { error });
     res.status(500).json({ error: 'Server error' });

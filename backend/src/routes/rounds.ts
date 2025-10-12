@@ -163,7 +163,57 @@ router.get('/season/:seasonId', async (req, res) => {
       'SELECT * FROM rounds WHERE season_id = ? AND deleted_at IS NULL ORDER BY created_at DESC',
       [seasonId]
     );
-    res.json(rounds);
+    
+    // For each round, if it's draft or active, add participant data
+    const roundsWithParticipants = await Promise.all(rounds.map(async (round) => {
+      if (round.status === 'draft' || round.status === 'active') {
+        // Get participants for this season
+        const [participants] = await db.query<RowDataPacket[]>(
+          `SELECT u.id, u.name, u.email
+           FROM users u
+           JOIN season_participants sp ON u.id = sp.user_id
+           WHERE sp.season_id = ? AND u.is_active = TRUE
+           ORDER BY u.name ASC`,
+          [seasonId]
+        );
+        
+        // If round is active, check who has picked
+        if (round.status === 'active') {
+          const [picks] = await db.query<RowDataPacket[]>(
+            'SELECT user_id FROM picks WHERE round_id = ?',
+            [round.id]
+          );
+          const userIdsWithPicks = new Set(picks.map(p => p.user_id));
+          
+          const participantsWithPickStatus = participants.map(p => ({
+            id: p.id,
+            name: p.name,
+            hasPicked: userIdsWithPicks.has(p.id)
+          }));
+          
+          const pickedCount = participantsWithPickStatus.filter(p => p.hasPicked).length;
+          
+          return {
+            ...round,
+            participants: participantsWithPickStatus,
+            pickedCount,
+            totalParticipants: participants.length
+          };
+        } else {
+          // Draft - just return participant names
+          return {
+            ...round,
+            participants: participants.map(p => ({ id: p.id, name: p.name })),
+            totalParticipants: participants.length
+          };
+        }
+      }
+      
+      // For locked/completed rounds, don't include participants
+      return round;
+    }));
+    
+    res.json(roundsWithParticipants);
   } catch (error) {
     logger.error('Get rounds error', { error, seasonId });
     res.status(500).json({ error: 'Server error' });
