@@ -6,6 +6,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { validationResult, ValidationChain } from 'express-validator';
 import logger from '../utils/logger';
+import { MAX_JSON_PAYLOAD_SIZE } from '../config/constants';
 
 /**
  * Middleware to check validation results
@@ -66,5 +67,37 @@ export const validateRequest = (validations: ValidationChain[]) => {
     
     next();
   };
+};
+
+/**
+ * Middleware to validate request body size
+ * Provides explicit error message for oversized payloads
+ * Works in conjunction with express.json({ limit }) for defense in depth
+ */
+export const validateBodySize = (req: Request, res: Response, next: NextFunction) => {
+  const contentLength = req.headers['content-length'];
+  
+  if (contentLength) {
+    const sizeInBytes = parseInt(contentLength);
+    const maxSizeInBytes = 1048576; // 1MB (matches MAX_JSON_PAYLOAD_SIZE)
+    
+    if (sizeInBytes > maxSizeInBytes) {
+      logger.warn('Request body too large', {
+        url: req.url,
+        method: req.method,
+        size: `${(sizeInBytes / 1048576).toFixed(2)}MB`,
+        maxSize: '1MB',
+        ip: req.ip
+      });
+      
+      return res.status(413).json({
+        error: 'Request body too large',
+        maxSize: '1MB',
+        yourSize: `${(sizeInBytes / 1048576).toFixed(2)}MB`
+      });
+    }
+  }
+  
+  next();
 };
 

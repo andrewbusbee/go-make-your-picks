@@ -67,16 +67,17 @@ const level = () => {
 };
 
 // Custom format for console output (human-readable)
-const consoleFormat = printf(({ level, message, timestamp, ...metadata }) => {
+const consoleFormat = printf(({ level, message, timestamp, stack, ...metadata }) => {
   let msg = `${timestamp} [${level}] : ${message}`;
   
   // Add metadata if present
   if (Object.keys(metadata).length > 0) {
-    // Filter out error stack trace for cleaner output
-    const { stack, ...rest } = metadata;
-    if (Object.keys(rest).length > 0) {
-      msg += ` ${JSON.stringify(rest)}`;
-    }
+    msg += ` ${JSON.stringify(metadata)}`;
+  }
+  
+  // Show stack traces in development for easier debugging
+  if (stack && process.env.NODE_ENV !== 'production') {
+    msg += `\n${stack}`;
   }
   
   return msg;

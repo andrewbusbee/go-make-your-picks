@@ -7,6 +7,7 @@ import { ScoringService } from '../services/scoringService';
 import { SettingsService } from '../services/settingsService';
 import { withTransaction } from '../utils/transactionWrapper';
 import { MIN_VALID_YEAR, MAX_VALID_YEAR } from '../config/constants';
+import { QueryCacheService } from '../services/queryCacheService';
 
 const router = express.Router();
 
@@ -31,55 +32,66 @@ const validateSeasonYears = (yearStart: number, yearEnd: number): string | null 
 };
 
 // Get all seasons (public) - excludes deleted
+// Cached for 30 seconds since seasons don't change frequently
 router.get('/', async (req, res) => {
   try {
-    const [seasons] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM seasons WHERE deleted_at IS NULL ORDER BY year_start DESC'
-    );
+    const cacheKey = QueryCacheService.generateKey('seasons:all');
     
-    // Optimize: Calculate leaderboards in parallel (if needed) instead of sequentially
-    // Only calculate for active seasons (not ended)
-    const activeSeasons = seasons.filter(s => !s.ended_at);
-    
-    // Batch calculate all leaderboards in parallel
-    const leaderboardPromises = activeSeasons.map(season =>
-      ScoringService.calculateLeaderboard(season.id)
-        .then(leaderboard => ({
-          seasonId: season.id,
-          leaderboard: leaderboard.leaderboard
-            .sort((a: any, b: any) => b.totalPoints - a.totalPoints)
-            .map((entry: any, index: number) => ({
-              rank: index + 1,
-              userId: entry.userId,
-              name: entry.userName,
-              totalPoints: entry.totalPoints
+    const result = await QueryCacheService.cached(
+      cacheKey,
+      async () => {
+        const [seasons] = await db.query<RowDataPacket[]>(
+          'SELECT * FROM seasons WHERE deleted_at IS NULL ORDER BY year_start DESC'
+        );
+        
+        // Optimize: Calculate leaderboards in parallel (if needed) instead of sequentially
+        // Only calculate for active seasons (not ended)
+        const activeSeasons = seasons.filter(s => !s.ended_at);
+        
+        // Batch calculate all leaderboards in parallel
+        const leaderboardPromises = activeSeasons.map(season =>
+          ScoringService.calculateLeaderboard(season.id)
+            .then(leaderboard => ({
+              seasonId: season.id,
+              leaderboard: leaderboard.leaderboard
+                .sort((a: any, b: any) => b.totalPoints - a.totalPoints)
+                .map((entry: any, index: number) => ({
+                  rank: index + 1,
+                  userId: entry.userId,
+                  name: entry.userName,
+                  totalPoints: entry.totalPoints
+                }))
             }))
-        }))
-        .catch(error => {
-          logger.error('Error calculating leaderboard for season', { seasonId: season.id, error });
-          return { seasonId: season.id, leaderboard: null };
-        })
+            .catch(error => {
+              logger.error('Error calculating leaderboard for season', { seasonId: season.id, error });
+              return { seasonId: season.id, leaderboard: null };
+            })
+        );
+        
+        const leaderboardResults = await Promise.all(leaderboardPromises);
+        
+        // Build leaderboard lookup map
+        const leaderboardMap = new Map(
+          leaderboardResults.map(result => [result.seasonId, result.leaderboard])
+        );
+        
+        // Attach leaderboards to seasons with O(1) lookup
+        const seasonsWithLeaderboard = seasons.map(season => {
+          if (!season.ended_at && leaderboardMap.has(season.id)) {
+            const leaderboard = leaderboardMap.get(season.id);
+            if (leaderboard) {
+              return { ...season, leaderboard };
+            }
+          }
+          return season;
+        });
+        
+        return seasonsWithLeaderboard;
+      },
+      30000 // 30 second cache for public seasons list
     );
     
-    const leaderboardResults = await Promise.all(leaderboardPromises);
-    
-    // Build leaderboard lookup map
-    const leaderboardMap = new Map(
-      leaderboardResults.map(result => [result.seasonId, result.leaderboard])
-    );
-    
-    // Attach leaderboards to seasons with O(1) lookup
-    const seasonsWithLeaderboard = seasons.map(season => {
-      if (!season.ended_at && leaderboardMap.has(season.id)) {
-        const leaderboard = leaderboardMap.get(season.id);
-        if (leaderboard) {
-          return { ...season, leaderboard };
-        }
-      }
-      return season;
-    });
-    
-    res.json(seasonsWithLeaderboard);
+    res.json(result);
   } catch (error) {
     logger.error('Get seasons error', { error });
     res.status(500).json({ error: 'Server error' });
@@ -194,6 +206,9 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
       return seasonId;
     });
 
+    // Invalidate seasons cache after creation
+    QueryCacheService.invalidatePattern('seasons:');
+    
     res.status(201).json({
       message: 'Season created successfully',
       id: seasonId
@@ -259,6 +274,9 @@ router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) =>
       );
     });
 
+    // Invalidate seasons cache after update
+    QueryCacheService.invalidatePattern('seasons:');
+    
     res.json({ message: 'Season updated successfully' });
   } catch (error: any) {
     logger.error('Edit season error', { error, seasonId });
@@ -300,6 +318,9 @@ router.put('/:id/set-default', authenticateAdmin, async (req: AuthRequest, res: 
       await connection.query('UPDATE seasons SET is_default = TRUE WHERE id = ?', [seasonId]);
     });
 
+    // Invalidate seasons cache after default change
+    QueryCacheService.invalidatePattern('seasons:');
+    
     res.json({ message: 'Default season updated successfully' });
   } catch (error: any) {
     logger.error('Set default season error', { error });
@@ -343,6 +364,9 @@ router.put('/:id/toggle-active', authenticateAdmin, async (req: AuthRequest, res
       return { currentlyActive };
     });
 
+    // Invalidate seasons cache after toggle
+    QueryCacheService.invalidatePattern('seasons:');
+    
     res.json({ 
       message: `Season ${result.currentlyActive ? 'deactivated' : 'activated'} successfully`,
       isActive: !result.currentlyActive
@@ -485,6 +509,9 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
       return storedWinners;
     });
 
+    // Invalidate seasons cache after ending
+    QueryCacheService.invalidatePattern('seasons:');
+    
     res.json({ 
       message: 'Season ended successfully',
       winners: storedWinners
@@ -544,6 +571,9 @@ router.post('/:id/reopen', authenticateAdmin, async (req: AuthRequest, res: Resp
       );
     });
 
+    // Invalidate seasons cache after reopen
+    QueryCacheService.invalidatePattern('seasons:');
+    
     res.json({ message: 'Season reopened successfully' });
   } catch (error: any) {
     logger.error('Reopen season error', { error, seasonId });
@@ -579,6 +609,9 @@ router.post('/:id/soft-delete', authenticateAdmin, async (req: AuthRequest, res:
       [seasonId]
     );
 
+    // Invalidate seasons cache after soft delete
+    QueryCacheService.invalidatePattern('seasons:');
+    
     res.json({ message: 'Season deleted successfully (can be restored)' });
   } catch (error) {
     logger.error('Soft delete season error', { error, seasonId });
@@ -607,6 +640,9 @@ router.post('/:id/restore', authenticateAdmin, async (req: AuthRequest, res: Res
       [seasonId]
     );
 
+    // Invalidate seasons cache after restore
+    QueryCacheService.invalidatePattern('seasons:');
+    
     res.json({ message: 'Season restored successfully' });
   } catch (error) {
     logger.error('Restore season error', { error, seasonId });
@@ -643,6 +679,9 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
     // Permanently delete (CASCADE will handle all related data)
     await db.query('DELETE FROM seasons WHERE id = ?', [seasonId]);
 
+    // Invalidate seasons cache after permanent delete
+    QueryCacheService.invalidatePattern('seasons:');
+    
     res.json({ message: 'Season permanently deleted' });
   } catch (error) {
     logger.error('Permanent delete season error', { error, seasonId });

@@ -25,6 +25,7 @@ import { verifySmtpConnection } from './services/emailService';
 import { runStartupValidation } from './utils/startupValidation';
 import logger from './utils/logger';
 import { requestLogger } from './middleware/requestLogger';
+import { validateBodySize } from './middleware/validator';
 import packageJson from '../package.json';
 import { DEFAULT_PORT, PUBLIC_RATE_LIMIT_WINDOW_MS, PUBLIC_RATE_LIMIT_MAX, MAX_JSON_PAYLOAD_SIZE } from './config/constants';
 
@@ -98,6 +99,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json({ limit: MAX_JSON_PAYLOAD_SIZE })); // Limit payload size for security
+app.use(validateBodySize); // Explicit validation with clear error messages
 
 // Rate limiter for public endpoints
 const publicLimiter = rateLimit({
