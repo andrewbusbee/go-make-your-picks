@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import api from '../../utils/api';
 import {
   headingClasses,
   labelClasses,
   inputClasses,
+  selectClasses,
   helpTextClasses,
   buttonPrimaryClasses,
   cardClasses,
@@ -14,14 +15,40 @@ import {
   alertErrorClasses,
   alertErrorTextClasses,
   codeClasses,
-  dividerClasses
+  dividerClasses,
+  loadingTextClasses
 } from '../../styles/commonClasses';
 
+interface Admin {
+  id: number;
+  username: string;
+  email: string;
+}
+
 export default function TestEmail() {
-  const [email, setEmail] = useState('');
+  const [selectedAdminId, setSelectedAdminId] = useState<number | ''>('');
+  const [admins, setAdmins] = useState<Admin[]>([]);
+  const [loadingAdmins, setLoadingAdmins] = useState(true);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+
+  // Load admins on component mount
+  useEffect(() => {
+    const loadAdmins = async () => {
+      try {
+        const response = await api.get('/admin/admins');
+        setAdmins(response.data);
+      } catch (err) {
+        console.error('Failed to load admins:', err);
+        setError('Failed to load admin list. Please refresh the page.');
+      } finally {
+        setLoadingAdmins(false);
+      }
+    };
+
+    loadAdmins();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,10 +56,17 @@ export default function TestEmail() {
     setSuccess('');
     setLoading(true);
 
+    if (!selectedAdminId) {
+      setError('Please select an admin to send the test email to.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await api.post('/admin/test-email', { email });
+      const selectedAdmin = admins.find(admin => admin.id === selectedAdminId);
+      const response = await api.post('/admin/test-email', { email: selectedAdmin?.email });
       setSuccess(`Test email sent successfully to ${response.data.sentTo}! Check your inbox.`);
-      setEmail(''); // Clear the input
+      setSelectedAdminId(''); // Clear the selection
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to send test email. Check your SMTP configuration.');
       if (err.response?.data?.details) {
@@ -98,26 +132,37 @@ export default function TestEmail() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className={labelClasses}>
-              Test Email Address
+            <label htmlFor="admin-select" className={labelClasses}>
+              Send Test Email To
             </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your-email@example.com"
-              className={inputClasses}
-              required
-            />
+            {loadingAdmins ? (
+              <div className={loadingTextClasses}>
+                Loading admin list...
+              </div>
+            ) : (
+              <select
+                id="admin-select"
+                value={selectedAdminId}
+                onChange={(e) => setSelectedAdminId(e.target.value ? Number(e.target.value) : '')}
+                className={selectClasses}
+                required
+              >
+                <option value="">Select an admin...</option>
+                {admins.map((admin) => (
+                  <option key={admin.id} value={admin.id}>
+                    {admin.username} ({admin.email})
+                  </option>
+                ))}
+              </select>
+            )}
             <p className={helpTextClasses + " mt-1"}>
-              Enter any email address you have access to. We recommend using your own.
+              Select an admin to send the test email to their registered email address.
             </p>
           </div>
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || loadingAdmins || !selectedAdminId}
             className={"w-full py-3 flex items-center justify-center " + buttonPrimaryClasses}
           >
             {loading ? (
