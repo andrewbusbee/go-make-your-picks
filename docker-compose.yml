@@ -23,7 +23,7 @@ services:
       retries: 10
 
   go-make-your-picks:
-    image: ghcr.io/andrewbusbee/go-make-your-picks:0.1.0-beta.2
+    image: ghcr.io/andrewbusbee/go-make-your-picks:0.1.0-beta.3
     container_name: go-make-your-picks-app
     restart: always
     networks:

@@ -645,7 +645,10 @@ export default function AppSettings() {
                   <div className={textSmallClasses}>
                     <p className={`${warningTextYellowClasses} ${textMediumClasses}`}>Dynamic Scoring</p>
                     <p className={`${warningTextYellowSecondaryClasses} ${mt1Classes}`}>
-                      Changing these values will <strong>instantly update all leaderboard scores</strong> without needing to recalculate past rounds. 
+                      Changing these values will <strong>retroactively recalculate scores for all active seasons</strong>. 
+                      Ended seasons preserve their original point values and are not affected.
+                    </p>
+                    <p className={`${warningTextYellowSecondaryClasses} ${mt1Classes}`}>
                       Maximum points per round: {pointsFirstPlace} (1st) + {pointsSecondPlace} (2nd) + ... = up to {pointsFirstPlace} points for the winner.
                     </p>
                   </div>

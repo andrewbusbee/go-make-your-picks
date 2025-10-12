@@ -15,19 +15,10 @@ import logger, { redactEmail } from '../utils/logger';
 
 const router = express.Router();
 
-// Helper function to get user performance data and leaderboard for completion email
-const getUserPerformanceData = async (roundId: number, userId: number) => {
+// Helper function to prepare shared data for all completion emails (calculated once)
+const prepareCompletionEmailData = async (roundId: number, seasonId: number) => {
   try {
-    // Get user's pick for this round
-    const [userPicks] = await db.query<RowDataPacket[]>(
-      `SELECT p.*, pi.pick_value 
-       FROM picks p 
-       LEFT JOIN pick_items pi ON p.id = pi.pick_id 
-       WHERE p.round_id = ? AND p.user_id = ?`,
-      [roundId, userId]
-    );
-
-    // Get final results for this round
+    // Get round data with final results
     const [roundData] = await db.query<RowDataPacket[]>(
       `SELECT sport_name, first_place_team, second_place_team, third_place_team, fourth_place_team, fifth_place_team 
        FROM rounds WHERE id = ?`,
@@ -43,57 +34,42 @@ const getUserPerformanceData = async (roundId: number, userId: number) => {
       { place: 5, team: round.fifth_place_team }
     ].filter(result => result.team);
 
-    // Get points settings for dynamic calculation
+    // Get points settings once for all calculations
     const pointsSettings = await SettingsService.getPointsSettings();
 
-    // Calculate user's points for this round
-    let userPoints = 0;
-    let userPick = 'No pick';
-    
-    if (userPicks.length > 0) {
-      const userPickValue = userPicks[0].pick_value?.toLowerCase();
-      if (userPickValue) {
-        userPick = userPicks[0].pick_value;
-        
-        // Check against final results
-        if (round.first_place_team && userPickValue === round.first_place_team.toLowerCase()) {
-          userPoints = pointsSettings.pointsFirst;
-        } else if (round.second_place_team && userPickValue === round.second_place_team.toLowerCase()) {
-          userPoints = pointsSettings.pointsSecond;
-        } else if (round.third_place_team && userPickValue === round.third_place_team.toLowerCase()) {
-          userPoints = pointsSettings.pointsThird;
-        } else if (round.fourth_place_team && userPickValue === round.fourth_place_team.toLowerCase()) {
-          userPoints = pointsSettings.pointsFourth;
-        } else if (round.fifth_place_team && userPickValue === round.fifth_place_team.toLowerCase()) {
-          userPoints = pointsSettings.pointsFifth;
-        } else {
-          userPoints = pointsSettings.pointsSixthPlus;
-        }
-      }
-    }
-
-    // Get current season leaderboard (top 5) with dynamic points calculation
-    const [seasonId] = await db.query<RowDataPacket[]>(
-      'SELECT season_id FROM rounds WHERE id = ?',
+    // Get all picks for this round (single query for all users)
+    const [allPicks] = await db.query<RowDataPacket[]>(
+      `SELECT p.user_id, pi.pick_value 
+       FROM picks p 
+       LEFT JOIN pick_items pi ON p.id = pi.pick_id 
+       WHERE p.round_id = ?`,
       [roundId]
     );
+
+    // Build user picks map for O(1) lookup
+    const userPicksMap = new Map<number, string>();
+    allPicks.forEach(pick => {
+      if (pick.pick_value) {
+        userPicksMap.set(pick.user_id, pick.pick_value);
+      }
+    });
 
     // Get all completed rounds for this season
     const [completedRounds] = await db.query<RowDataPacket[]>(
       'SELECT id FROM rounds WHERE season_id = ? AND status = ?',
-      [seasonId[0].season_id, 'completed']
+      [seasonId, 'completed']
     );
 
     const completedRoundIds = completedRounds.map(r => r.id);
 
-    // Get leaderboard data with dynamic points calculation
+    // Get leaderboard data for all participants (single query)
     const [leaderboardData] = await db.query<RowDataPacket[]>(
       `SELECT u.name, u.id, s.round_id, s.first_place, s.second_place, s.third_place, s.fourth_place, s.fifth_place, s.sixth_plus_place
        FROM users u
        LEFT JOIN scores s ON u.id = s.user_id AND s.round_id IN (${completedRoundIds.map(() => '?').join(',')})
        JOIN season_participants sp ON u.id = sp.user_id AND sp.season_id = ?
        WHERE u.is_active = TRUE`,
-      [...completedRoundIds, seasonId[0].season_id]
+      [...completedRoundIds, seasonId]
     );
 
     // Calculate total points for each user
@@ -118,27 +94,80 @@ const getUserPerformanceData = async (roundId: number, userId: number) => {
       }
     });
 
-    // Sort by total points and take top 5
-    const formattedLeaderboard = Array.from(userTotals.values())
-      .sort((a, b) => b.points - a.points)
-      .slice(0, 5)
-      .map(entry => ({
-        name: entry.name,
-        points: entry.points,
-        isCurrentUser: entry.name === leaderboardData.find(d => d.id === userId)?.name
-      }));
+    // Sort by total points for leaderboard
+    const sortedLeaderboard = Array.from(userTotals.entries())
+      .sort((a, b) => b[1].points - a[1].points)
+      .map(([userId, data]) => ({ userId, ...data }));
 
     return {
-      userPick,
-      userPoints,
+      round,
       finalResults,
-      leaderboard: formattedLeaderboard,
+      pointsSettings,
+      userPicksMap,
+      sortedLeaderboard,
       sportName: round.sport_name
     };
   } catch (error) {
-    logger.error('Error getting user performance data', { error, roundId, userId });
+    logger.error('Error preparing completion email data', { error, roundId, seasonId });
     throw error;
   }
+};
+
+// Helper function to calculate user-specific performance data from shared data
+const calculateUserPerformanceData = (
+  userId: number,
+  sharedData: {
+    round: any;
+    finalResults: any[];
+    pointsSettings: any;
+    userPicksMap: Map<number, string>;
+    sortedLeaderboard: any[];
+    sportName: string;
+  }
+) => {
+  const { round, finalResults, pointsSettings, userPicksMap, sortedLeaderboard, sportName } = sharedData;
+  
+  // Get user's pick
+  const userPickValue = userPicksMap.get(userId);
+  let userPoints = 0;
+  let userPick = 'No pick';
+  
+  if (userPickValue) {
+    userPick = userPickValue;
+    const lowerPickValue = userPickValue.toLowerCase();
+    
+    // Calculate points based on placement
+    if (round.first_place_team && lowerPickValue === round.first_place_team.toLowerCase()) {
+      userPoints = pointsSettings.pointsFirst;
+    } else if (round.second_place_team && lowerPickValue === round.second_place_team.toLowerCase()) {
+      userPoints = pointsSettings.pointsSecond;
+    } else if (round.third_place_team && lowerPickValue === round.third_place_team.toLowerCase()) {
+      userPoints = pointsSettings.pointsThird;
+    } else if (round.fourth_place_team && lowerPickValue === round.fourth_place_team.toLowerCase()) {
+      userPoints = pointsSettings.pointsFourth;
+    } else if (round.fifth_place_team && lowerPickValue === round.fifth_place_team.toLowerCase()) {
+      userPoints = pointsSettings.pointsFifth;
+    } else {
+      userPoints = pointsSettings.pointsSixthPlus;
+    }
+  }
+
+  // Format top 5 leaderboard with current user highlighted
+  const formattedLeaderboard = sortedLeaderboard
+    .slice(0, 5)
+    .map(entry => ({
+      name: entry.name,
+      points: entry.points,
+      isCurrentUser: entry.userId === userId
+    }));
+
+  return {
+    userPick,
+    userPoints,
+    finalResults,
+    leaderboard: formattedLeaderboard,
+    sportName
+  };
 };
 
 // Get all rounds (admin only) - for checking system status
@@ -703,7 +732,7 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
 
     await connection.commit();
 
-    // Send completion emails to all participants
+    // Send completion emails to all participants (batched for performance)
     try {
       logger.info('Starting completion email process', { roundId });
       
@@ -725,8 +754,7 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
 
       logger.info('Found participants for completion email', { 
         roundId, 
-        participantCount: participants.length,
-        participants: participants.map(p => ({ id: p.id, name: p.name, email: p.email }))
+        participantCount: participants.length
       });
 
       const APP_URL = process.env.APP_URL || 'http://localhost:3003';
@@ -739,58 +767,68 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
       );
       const roundCommissioner = roundData[0]?.commissioner || null;
 
-      // Send completion emails to all participants in parallel
-      const emailResults = await Promise.allSettled(
-        participants.map(async (participant) => {
-          try {
-            logger.info('Getting performance data for participant', { 
-              roundId, 
-              participantId: participant.id, 
-              participantName: participant.name 
-            });
-            
-            const performanceData = await getUserPerformanceData(roundId, participant.id);
-            
-            logger.info('Got performance data for participant', { 
-              roundId, 
-              participantId: participant.id,
-              performanceData: {
-                sportName: performanceData.sportName,
-                userPick: performanceData.userPick,
-                userPoints: performanceData.userPoints,
-                finalResultsCount: performanceData.finalResults.length,
-                leaderboardCount: performanceData.leaderboard.length
-              }
-            });
-            
-            await sendSportCompletionEmail(
-              participant.email,
-              participant.name,
-              performanceData.sportName,
-              performanceData.userPick,
-              performanceData.userPoints,
-              performanceData.finalResults,
-              performanceData.leaderboard,
-              leaderboardLink,
-              roundCommissioner
-            );
-            
-            logger.info('Successfully sent completion email', { 
-              roundId, 
-              participantId: participant.id, 
-              participantEmail: participant.email 
-            });
-          } catch (emailError) {
-            logger.error(`Failed to send completion email`, { 
-              emailRedacted: redactEmail(participant.email), 
-              emailError, 
-              roundId, 
-              participantId: participant.id 
-            });
-            throw emailError;
-          }
-        })
-      );
+      // Prepare shared data once (reduces 500+ queries to ~5 queries)
+      const sharedData = await prepareCompletionEmailData(roundId, seasonId[0].season_id);
+      
+      logger.info('Prepared shared completion email data', { 
+        roundId, 
+        participantCount: participants.length 
+      });
+
+      // Send emails in batches to prevent overwhelming SMTP server and database
+      const BATCH_SIZE = 10;
+      const emailResults: PromiseSettledResult<void>[] = [];
+      
+      for (let i = 0; i < participants.length; i += BATCH_SIZE) {
+        const batch = participants.slice(i, i + BATCH_SIZE);
+        
+        logger.info(`Processing email batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(participants.length / BATCH_SIZE)}`, {
+          roundId,
+          batchSize: batch.length,
+          startIndex: i
+        });
+
+        const batchResults = await Promise.allSettled(
+          batch.map(async (participant) => {
+            try {
+              // Calculate user-specific data from shared data (no DB queries)
+              const performanceData = calculateUserPerformanceData(participant.id, sharedData);
+              
+              await sendSportCompletionEmail(
+                participant.email,
+                participant.name,
+                performanceData.sportName,
+                performanceData.userPick,
+                performanceData.userPoints,
+                performanceData.finalResults,
+                performanceData.leaderboard,
+                leaderboardLink,
+                roundCommissioner
+              );
+              
+              logger.debug('Successfully sent completion email', { 
+                roundId, 
+                participantId: participant.id 
+              });
+            } catch (emailError) {
+              logger.error(`Failed to send completion email`, { 
+                emailRedacted: redactEmail(participant.email), 
+                emailError, 
+                roundId, 
+                participantId: participant.id 
+              });
+              throw emailError;
+            }
+          })
+        );
+
+        emailResults.push(...batchResults);
+        
+        // Small delay between batches to avoid SMTP rate limiting
+        if (i + BATCH_SIZE < participants.length) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+      }
 
       // Log results
       const successful = emailResults.filter(result => result.status === 'fulfilled').length;
@@ -800,13 +838,7 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
         roundId, 
         totalParticipants: participants.length,
         successful,
-        failed,
-        results: emailResults.map((result, index) => ({
-          participantId: participants[index].id,
-          participantName: participants[index].name,
-          status: result.status,
-          error: result.status === 'rejected' ? result.reason?.message : null
-        }))
+        failed
       });
     } catch (emailError) {
       // Don't fail the round completion if emails fail
