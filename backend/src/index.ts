@@ -26,6 +26,7 @@ import { runStartupValidation } from './utils/startupValidation';
 import logger from './utils/logger';
 import { requestLogger } from './middleware/requestLogger';
 import packageJson from '../package.json';
+import { DEFAULT_PORT, PUBLIC_RATE_LIMIT_WINDOW_MS, PUBLIC_RATE_LIMIT_MAX, MAX_JSON_PAYLOAD_SIZE } from './config/constants';
 
 // Load environment variables first
 dotenv.config();
@@ -38,7 +39,7 @@ printEnvironmentSummary();
 runStartupValidation();
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '3003');
+const PORT = parseInt(process.env.PORT || String(DEFAULT_PORT));
 
 // Trust proxy - Important when behind reverse proxy (Nginx, Apache, load balancer)
 // This allows Express to correctly read X-Forwarded-* headers
@@ -96,12 +97,12 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json({ limit: '1mb' })); // Limit payload size for security
+app.use(express.json({ limit: MAX_JSON_PAYLOAD_SIZE })); // Limit payload size for security
 
 // Rate limiter for public endpoints
 const publicLimiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 100, // 100 requests per minute per IP
+  windowMs: PUBLIC_RATE_LIMIT_WINDOW_MS,
+  max: PUBLIC_RATE_LIMIT_MAX,
   message: { error: 'Too many requests, please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,

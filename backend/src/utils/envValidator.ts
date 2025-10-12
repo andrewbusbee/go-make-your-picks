@@ -138,8 +138,16 @@ function validateSpecificValues(): void {
     if (process.env.NODE_ENV === 'production') {
       process.exit(1);
     } else {
-      console.warn('   ⚠️  WARNING: This may cause issues with magic links\n');
+      console.warn('   ⚠️  WARNING: Invalid APP_URL format. Setting default for development...');
+      process.env.APP_URL = 'http://localhost:3003';
+      console.warn(`   Using: ${process.env.APP_URL}\n`);
     }
+  }
+  
+  // Set default APP_URL for development if not provided
+  if (!appUrl && process.env.NODE_ENV !== 'production') {
+    process.env.APP_URL = 'http://localhost:3003';
+    console.log(`   Using default APP_URL for development: ${process.env.APP_URL}`);
   }
   
   // Validate SMTP_PORT is a number

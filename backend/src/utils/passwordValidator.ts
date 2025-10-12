@@ -62,9 +62,10 @@ export function validatePassword(password: string, minLength: number = 8): Passw
     errors.push('Password is too common or weak. Please choose a more secure password.');
   }
 
-  // Check for sequential characters (e.g., 123, abc)
-  if (/(?:012|123|234|345|456|567|678|789|890|abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i.test(password)) {
-    errors.push('Password should not contain sequential characters');
+  // Check for 4+ sequential characters (e.g., 1234, abcd) - more lenient than 3
+  // This avoids false positives for passwords like "Abc123!@#$def456"
+  if (/(?:0123|1234|2345|3456|4567|5678|6789|abcd|bcde|cdef|defg|efgh|fghi|ghij|hijk|ijkl|jklm|klmn|lmno|mnop|nopq|opqr|pqrs|qrst|rstu|stuv|tuvw|uvwx|vwxy|wxyz)/i.test(password)) {
+    errors.push('Password should not contain 4 or more sequential characters');
   }
 
   // Check for repeated characters (e.g., aaa, 111)

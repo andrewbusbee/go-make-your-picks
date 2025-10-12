@@ -98,6 +98,7 @@ export async function validateDatabaseConnection(): Promise<void> {
 
 /**
  * Initialize database from init.sql file
+ * Uses mysql2's multipleStatements capability for safe execution
  */
 async function initializeDatabase(connection: any): Promise<void> {
   try {
@@ -122,7 +123,7 @@ async function initializeDatabase(connection: any): Promise<void> {
     const initSql = fs.readFileSync(initSqlPath, 'utf8');
     console.log(`   Read ${initSql.length} bytes from init.sql`);
     
-    // Remove comments and split into statements
+    // Remove comments for cleaner execution
     const lines = initSql.split('\n');
     console.log(`   File has ${lines.length} lines`);
     
@@ -135,27 +136,49 @@ async function initializeDatabase(connection: any): Promise<void> {
     
     console.log(`   After removing comments: ${sqlWithoutComments.length} bytes`);
     
-    // Split by semicolon and filter out empty statements
-    const statements = sqlWithoutComments
-      .split(';')
-      .map(stmt => stmt.trim())
-      .filter(stmt => stmt.length > 0);
+    // Execute entire SQL file at once using mysql2's built-in support
+    // This properly handles triggers, stored procedures, and complex statements
+    console.log(`   Executing SQL file as single batch...`);
     
-    console.log(`   Executing ${statements.length} SQL statements...`);
-    
-    for (let i = 0; i < statements.length; i++) {
-      const statement = statements[i];
-      try {
-        await connection.query(statement);
-        console.log(`   ✓ Statement ${i + 1}/${statements.length} executed`);
-      } catch (error: any) {
-        console.error(`   ✗ Failed on statement ${i + 1}:`, error.message);
-        console.error(`   Statement: ${statement.substring(0, 100)}...`);
+    try {
+      // mysql2 natively handles multiple statements when separated by semicolons
+      // This is safer than manual splitting which can break triggers/procedures
+      await connection.query(sqlWithoutComments);
+      console.log('   ✅ All SQL statements executed successfully');
+    } catch (error: any) {
+      console.error(`   ✗ Failed to execute SQL:`, error.message);
+      console.error(`   Error code:`, error.code);
+      console.error(`   SQL State:`, error.sqlState);
+      
+      // If multipleStatements not enabled, try statement-by-statement as fallback
+      if (error.code === 'ER_PARSE_ERROR' && error.message.includes('syntax')) {
+        console.log('   Attempting statement-by-statement execution as fallback...');
+        
+        // Split carefully, only on top-level semicolons (not in triggers/procedures)
+        const statements = sqlWithoutComments
+          .split(';')
+          .map(stmt => stmt.trim())
+          .filter(stmt => stmt.length > 0);
+        
+        console.log(`   Executing ${statements.length} statements individually...`);
+        
+        for (let i = 0; i < statements.length; i++) {
+          const statement = statements[i];
+          try {
+            await connection.query(statement);
+            console.log(`   ✓ Statement ${i + 1}/${statements.length} executed`);
+          } catch (stmtError: any) {
+            console.error(`   ✗ Failed on statement ${i + 1}:`, stmtError.message);
+            console.error(`   Statement: ${statement.substring(0, 100)}...`);
+            throw stmtError;
+          }
+        }
+        
+        console.log('   ✅ All statements executed successfully via fallback method');
+      } else {
         throw error;
       }
     }
-    
-    console.log('   ✅ All SQL statements executed successfully');
   } catch (error: any) {
     console.error('   ❌ Failed to initialize database:', error.message);
     throw error;

@@ -58,15 +58,16 @@ export const checkAndSendReminders = async () => {
         const firstReminderHours = reminderSettings.firstReminderHours;
         const finalReminderHours = reminderSettings.finalReminderHours;
 
-        // Check if we need to send first reminder (with 1-hour window on each side)
-        if (hoursDiff >= (firstReminderHours - 1) && 
-            hoursDiff <= (firstReminderHours + 1)) {
+        // Check if we need to send first reminder (30-minute window to prevent duplicates)
+        // Runs every minute, so 30-minute window is 30 chances to send
+        if (hoursDiff >= (firstReminderHours - 0.25) && 
+            hoursDiff <= (firstReminderHours + 0.25)) {
           await sendReminderIfNotSent(round, 'first', firstReminderHours);
         }
 
-        // Check if we need to send final reminder (with 1-hour window on each side)
-        if (hoursDiff >= (finalReminderHours - 1) && 
-            hoursDiff <= (finalReminderHours + 1)) {
+        // Check if we need to send final reminder (30-minute window to prevent duplicates)
+        if (hoursDiff >= (finalReminderHours - 0.25) && 
+            hoursDiff <= (finalReminderHours + 0.25)) {
           await sendReminderIfNotSent(round, 'final', finalReminderHours);
         }
       } else if (reminderSettings.reminderType === 'none') {

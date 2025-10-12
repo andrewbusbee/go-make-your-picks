@@ -6,13 +6,14 @@ import logger from '../utils/logger';
 import { ScoringService } from '../services/scoringService';
 import { SettingsService } from '../services/settingsService';
 import { withTransaction } from '../utils/transactionWrapper';
+import { MIN_VALID_YEAR, MAX_VALID_YEAR } from '../config/constants';
 
 const router = express.Router();
 
 // Validation function for season years
 const validateSeasonYears = (yearStart: number, yearEnd: number): string | null => {
-  const MIN_YEAR = 1990;
-  const MAX_YEAR = 2100;
+  const MIN_YEAR = MIN_VALID_YEAR;
+  const MAX_YEAR = MAX_VALID_YEAR;
 
   if (yearStart < MIN_YEAR || yearStart > MAX_YEAR) {
     return `Start year must be between ${MIN_YEAR} and ${MAX_YEAR}`;

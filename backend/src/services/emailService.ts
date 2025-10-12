@@ -44,21 +44,55 @@ const transporter = nodemailer.createTransport({
  * Sends an email with automatic retry logic
  * Retries on network errors and temporary SMTP issues
  * Does not retry on authentication errors or invalid recipients
+ * Logs all retry attempts for debugging
  */
 async function sendEmailWithRetry(
   mailOptions: any, 
   context: string
 ): Promise<void> {
+  let attemptNumber = 0;
+  const maxAttempts = EMAIL_RETRY_ATTEMPTS + 1; // +1 for initial attempt
+  
+  logger.debug(`${context} - Starting email send`, { 
+    to: redactEmail(mailOptions.to),
+    subject: mailOptions.subject,
+    maxAttempts 
+  });
+
   await retry(
     async (bail) => {
+      attemptNumber++;
+      
       try {
+        logger.debug(`${context} - Attempt ${attemptNumber}/${maxAttempts}`, {
+          to: redactEmail(mailOptions.to)
+        });
+        
         await transporter.sendMail(mailOptions);
+        
+        logger.info(`${context} - Email sent successfully`, {
+          to: redactEmail(mailOptions.to),
+          attempts: attemptNumber
+        });
       } catch (error: any) {
+        logger.warn(`${context} - Attempt ${attemptNumber} failed`, {
+          error: error.message,
+          code: error.code,
+          responseCode: error.responseCode,
+          to: redactEmail(mailOptions.to)
+        });
+        
         // Don't retry on authentication errors or invalid recipient
         if (error.code === 'EAUTH' || error.code === 'EMESSAGE' || error.responseCode === 550) {
+          logger.error(`${context} - Non-retryable error, aborting`, {
+            error: error.message,
+            code: error.code,
+            to: redactEmail(mailOptions.to)
+          });
           bail(error);
           return;
         }
+        
         // Retry on network errors, timeouts, and temporary SMTP errors
         throw error;
       }
@@ -69,8 +103,9 @@ async function sendEmailWithRetry(
       minTimeout: EMAIL_RETRY_MIN_TIMEOUT,
       maxTimeout: EMAIL_RETRY_MAX_TIMEOUT,
       onRetry: (error: unknown, attempt) => {
-        logger.warn(`${context} attempt ${attempt} failed, retrying...`, { 
-          error: error instanceof Error ? error.message : String(error)
+        logger.warn(`${context} - Retry ${attempt}/${EMAIL_RETRY_ATTEMPTS} after failure`, { 
+          error: error instanceof Error ? error.message : String(error),
+          nextAttemptIn: `${EMAIL_RETRY_MIN_TIMEOUT * Math.pow(EMAIL_RETRY_FACTOR, attempt - 1)}ms`
         });
       }
     }

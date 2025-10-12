@@ -25,10 +25,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Global response interceptor to handle 401 errors
+// Global response interceptor to handle errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Log all errors for debugging
+    console.error('API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      message: error.message,
+      data: error.response?.data
+    });
+
     // Handle 401 Unauthorized errors
     if (error.response?.status === 401) {
       const isAuthEndpoint = error.config?.url?.includes('/auth/');
@@ -47,6 +56,38 @@ api.interceptors.response.use(
         }
       }
     }
+    
+    // Handle timeout errors
+    else if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+      console.error('Request timeout - server may be overloaded or unreachable');
+      // Enhance error message for components
+      error.userMessage = 'Request timeout. Please check your connection and try again.';
+    }
+    
+    // Handle network errors
+    else if (!error.response) {
+      console.error('Network error - unable to reach server');
+      error.userMessage = 'Unable to connect to server. Please check your internet connection.';
+    }
+    
+    // Handle 5xx server errors
+    else if (error.response?.status >= 500) {
+      console.error('Server error:', error.response.status, error.response.data);
+      error.userMessage = 'Server error occurred. Please try again later.';
+    }
+    
+    // Handle 403 Forbidden errors
+    else if (error.response?.status === 403) {
+      console.error('Forbidden - insufficient permissions');
+      error.userMessage = error.response.data?.error || 'You do not have permission to perform this action.';
+    }
+    
+    // Handle 404 Not Found errors
+    else if (error.response?.status === 404) {
+      console.error('Resource not found');
+      error.userMessage = error.response.data?.error || 'Resource not found.';
+    }
+    
     return Promise.reject(error);
   }
 );

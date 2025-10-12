@@ -81,6 +81,7 @@ export function clearHtmlSettingsCache() {
 
 /**
  * Escape HTML special characters to prevent XSS
+ * Includes backtick and forward slash for comprehensive protection
  */
 function escapeHtml(text: string): string {
   const map: { [key: string]: string } = {
@@ -88,9 +89,11 @@ function escapeHtml(text: string): string {
     '<': '&lt;',
     '>': '&gt;',
     '"': '&quot;',
-    "'": '&#039;'
+    "'": '&#x27;',
+    '`': '&#x60;',
+    '/': '&#x2F;'
   };
-  return text.replace(/[&<>"']/g, (m) => map[m]);
+  return text.replace(/[&<>"'`\/]/g, (m) => map[m]);
 }
 
 /**
