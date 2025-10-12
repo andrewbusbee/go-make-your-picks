@@ -776,3 +776,23 @@ export const customizationBadgeClasses =
 export const completionCheckmarkClasses = 
   "text-green-600 dark:text-green-400 text-lg";
 
+// ============================================================================
+// SPORTS MANAGEMENT SECTION STYLING
+// ============================================================================
+
+// Section container with divider
+export const sectionWithDividerClasses = 
+  "mt-12 pt-8 border-t-2 border-gray-200 dark:border-gray-700";
+
+// Completed sports section header
+export const completedSectionHeaderClasses = 
+  "text-lg font-semibold text-gray-900 dark:text-white mb-4";
+
+// Completed sports card styling
+export const completedSportsCardClasses = 
+  "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 opacity-75";
+
+// Active sports section header  
+export const activeSectionHeaderClasses = 
+  "text-lg font-semibold text-gray-900 dark:text-white mb-4";
+

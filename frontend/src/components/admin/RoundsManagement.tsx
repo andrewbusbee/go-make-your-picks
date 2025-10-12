@@ -53,7 +53,11 @@ import {
   buttonSmallYellowClasses,
   buttonSmallDangerLinkClasses,
   flexItemsGap1Classes,
-  formGridTwoColClasses
+  formGridTwoColClasses,
+  sectionWithDividerClasses,
+  completedSectionHeaderClasses,
+  completedSportsCardClasses,
+  activeSectionHeaderClasses
 } from '../../styles/commonClasses';
 
 // Helper function to decode JWT token
@@ -725,9 +729,17 @@ export default function RoundsManagement() {
           <p className={bodyTextClasses}>No sports yet for this season. Create your first sport to get started!</p>
         </div>
       ) : (
-        <div className={gridTwoColClasses}>
-          {rounds.map((round) => (
-            <div key={round.id} className={`${cardClasses} shadow-md`}>
+        <>
+          {/* Active Sports Section */}
+          {(() => {
+            const activeRounds = rounds.filter(round => round.status !== 'completed');
+            if (activeRounds.length > 0) {
+              return (
+                <div className="mb-8">
+                  <h3 className={activeSectionHeaderClasses}>Active Sports</h3>
+                  <div className={gridTwoColClasses}>
+                    {activeRounds.map((round) => (
+                      <div key={round.id} className={`${cardClasses} shadow-md`}>
               <div className={`${flexJustifyBetweenStartClasses} ${mb3Classes}`}>
                 <div>
                   <h3 className={subheadingClasses}>{round.sport_name}</h3>
@@ -859,8 +871,72 @@ export default function RoundsManagement() {
                 )}
               </div>
             </div>
-          ))}
-        </div>
+                      ))}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+          {/* Completed Sports Section */}
+          {(() => {
+            const completedRounds = rounds.filter(round => round.status === 'completed');
+            if (completedRounds.length > 0) {
+              return (
+                <div className={sectionWithDividerClasses}>
+                  <h3 className={completedSectionHeaderClasses}>🏆 Completed Sports</h3>
+                  <div className={gridTwoColClasses}>
+                    {completedRounds.map((round) => (
+                      <div key={round.id} className={completedSportsCardClasses}>
+                        <div className={`${flexJustifyBetweenStartClasses} ${mb3Classes}`}>
+                          <div>
+                            <h3 className={subheadingClasses}>{round.sport_name}</h3>
+                            <p className={bodyTextClasses}>
+                              Lock: {new Date(round.lock_time).toLocaleString('en-US', {
+                                timeZone: round.timezone,
+                                dateStyle: 'short',
+                                timeStyle: 'short'
+                              })} ({round.timezone?.replace('_', ' ')})
+                            </p>
+                          </div>
+                          {getStatusBadge(round.status)}
+                        </div>
+
+                        {round.first_place_team && (
+                          <div className={`${alertSuccessClasses} mb-3`}>
+                            <p className={`${alertSuccessTextClasses} font-medium`}>
+                              🏆 Champion: {round.first_place_team}
+                            </p>
+                            {(round.second_place_team || round.third_place_team || round.fourth_place_team || round.fifth_place_team) && (
+                              <p className={`${alertSuccessTextClasses} mt-1 text-xs`}>
+                                {round.second_place_team && `🥈 2nd: ${round.second_place_team}`}
+                                {round.third_place_team && ` | 🥉 3rd: ${round.third_place_team}`}
+                                {round.fourth_place_team && ` | 4th: ${round.fourth_place_team}`}
+                                {round.fifth_place_team && ` | 5th: ${round.fifth_place_team}`}
+                              </p>
+                            )}
+                          </div>
+                        )}
+
+                        <div className={`${flexWrapGapClasses} ${mt4Classes}`}>
+                          <button
+                            onClick={() => handleUnlockRound(round.id)}
+                            className={`${buttonSmallYellowClasses} ${flexItemsGap1Classes}`}
+                            title="Unlock round for editing"
+                          >
+                            🔓 Unlock
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+        </>
       )}
 
       {/* Create Modal */}
