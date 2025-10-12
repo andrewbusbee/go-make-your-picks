@@ -32,10 +32,6 @@ import {
   participantItemClasses,
   participantCheckmarkClasses,
   formSectionClasses,
-  radioGroupClasses,
-  radioLabelClasses,
-  radioInputClasses,
-  radioTextClasses,
   gridTwoColClasses,
   flexColumnGapClasses,
   flexGapClasses,
@@ -103,11 +99,6 @@ export default function RoundsManagement() {
   const [timezone, setTimezone] = useState('America/New_York');
   const [teamsInput, setTeamsInput] = useState('');
   
-  // Reminder settings
-  const [reminderType, setReminderType] = useState<'daily' | 'before_lock'>('daily');
-  const [dailyReminderTime, setDailyReminderTime] = useState('10:00');
-  const [firstReminderHours, setFirstReminderHours] = useState(48);
-  const [finalReminderHours, setFinalReminderHours] = useState(6);
   
   // Complete form
   const [firstPlaceTeam, setFirstPlaceTeam] = useState('');
@@ -233,10 +224,6 @@ export default function RoundsManagement() {
     setLockTime('');
     setTimezone(defaultTimezone); // Use default timezone from settings
     setTeamsInput('');
-    setReminderType('daily');
-    setDailyReminderTime('10:00');
-    setFirstReminderHours(48);
-    setFinalReminderHours(6);
     setError('');
     setEditingRound(null);
     setShowCreateModal(true);
@@ -269,12 +256,6 @@ export default function RoundsManagement() {
       setLockTime(localDateTime);
       
       setTimezone(roundData.timezone);
-      
-      // Set reminder settings
-      setReminderType(roundData.reminder_type || 'daily');
-      setDailyReminderTime(roundData.daily_reminder_time || '10:00:00');
-      setFirstReminderHours(roundData.first_reminder_hours || 48);
-      setFinalReminderHours(roundData.final_reminder_hours || 6);
       
       // Convert teams array to text
       const teamsText = roundData.teams?.map((t: any) => t.team_name).join('\n') || '';
@@ -322,11 +303,7 @@ export default function RoundsManagement() {
         emailMessage,
         lockTime: lockTimeISO,
         timezone,
-        teams: pickType === 'single' ? teams : [],
-        reminderType,
-        dailyReminderTime: reminderType === 'daily' ? dailyReminderTime + ':00' : undefined,
-        firstReminderHours: reminderType === 'before_lock' ? firstReminderHours : undefined,
-        finalReminderHours: reminderType === 'before_lock' ? finalReminderHours : undefined
+        teams: pickType === 'single' ? teams : []
       };
 
       // Only include numWriteInPicks if pick type is multiple
@@ -362,11 +339,7 @@ export default function RoundsManagement() {
         pickType,
         emailMessage,
         lockTime: lockTimeISO,
-        timezone,
-        reminderType,
-        dailyReminderTime: reminderType === 'daily' ? dailyReminderTime + ':00' : undefined,
-        firstReminderHours: reminderType === 'before_lock' ? firstReminderHours : undefined,
-        finalReminderHours: reminderType === 'before_lock' ? finalReminderHours : undefined
+        timezone
       };
 
       // Only include numWriteInPicks if pick type is multiple
@@ -1047,94 +1020,6 @@ export default function RoundsManagement() {
                 </div>
               </div>
 
-              {/* Reminder Settings */}
-              <div className={formSectionClasses}>
-                <h3 className={`${subheadingClasses} mb-2`}>Reminder Settings</h3>
-                
-                {/* Reminder Type Selection */}
-                <div>
-                  <label className={labelClasses}>
-                    Reminder Type
-                  </label>
-                  <div className={radioGroupClasses}>
-                    <label className={radioLabelClasses}>
-                      <input
-                        type="radio"
-                        name="reminderType"
-                        value="daily"
-                        checked={reminderType === 'daily'}
-                        onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock')}
-                        className={radioInputClasses}
-                      />
-                      <span className={radioTextClasses}>Send reminder every day</span>
-                    </label>
-                    <label className={radioLabelClasses}>
-                      <input
-                        type="radio"
-                        name="reminderType"
-                        value="before_lock"
-                        checked={reminderType === 'before_lock'}
-                        onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock')}
-                        className={radioInputClasses}
-                      />
-                      <span className={radioTextClasses}>Send reminders before lock time</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Daily Reminder Settings */}
-                {reminderType === 'daily' && (
-                  <div>
-                    <label className={labelClasses}>
-                      Time of day to send
-                    </label>
-                    <input
-                      type="time"
-                      value={dailyReminderTime}
-                      onChange={(e) => setDailyReminderTime(e.target.value)}
-                      className={inputClasses}
-                      required
-                    />
-                    <p className={`mt-1 text-xs ${helpTextClasses}`}>
-                      Daily reminders will be sent at this time in the round's timezone
-                    </p>
-                  </div>
-                )}
-
-                {/* Before Lock Reminder Settings */}
-                {reminderType === 'before_lock' && (
-                  <div className={formSectionClasses}>
-                    <div>
-                      <label className={labelClasses}>
-                        First reminder (hours before lock)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="168"
-                        value={firstReminderHours}
-                        onChange={(e) => setFirstReminderHours(parseInt(e.target.value) || 48)}
-                        className={inputClasses}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClasses}>
-                        Final reminder (hours before lock)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="48"
-                        value={finalReminderHours}
-                        onChange={(e) => setFinalReminderHours(parseInt(e.target.value) || 6)}
-                        className={inputClasses}
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
 
               <div className={flexSpaceXPtClasses}>
                 <button
@@ -1321,94 +1206,6 @@ export default function RoundsManagement() {
                 </div>
               </div>
 
-              {/* Reminder Settings */}
-              <div className="space-y-4">
-                <h3 className={`${subheadingClasses} mb-2`}>Reminder Settings</h3>
-                
-                {/* Reminder Type Selection */}
-                <div>
-                  <label className={labelClasses}>
-                    Reminder Type
-                  </label>
-                  <div className="space-y-2">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="reminderTypeEdit"
-                        value="daily"
-                        checked={reminderType === 'daily'}
-                        onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock')}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">Send reminder every day</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="reminderTypeEdit"
-                        value="before_lock"
-                        checked={reminderType === 'before_lock'}
-                        onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock')}
-                        className="mr-2"
-                      />
-                      <span className="text-sm">Send reminders before lock time</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Daily Reminder Settings */}
-                {reminderType === 'daily' && (
-                  <div>
-                    <label className={labelClasses}>
-                      Time of day to send
-                    </label>
-                    <input
-                      type="time"
-                      value={dailyReminderTime}
-                      onChange={(e) => setDailyReminderTime(e.target.value)}
-                      className={inputClasses}
-                      required
-                    />
-                    <p className={`mt-1 text-xs ${helpTextClasses}`}>
-                      Daily reminders will be sent at this time in the round's timezone
-                    </p>
-                  </div>
-                )}
-
-                {/* Before Lock Reminder Settings */}
-                {reminderType === 'before_lock' && (
-                  <div className={formSectionClasses}>
-                    <div>
-                      <label className={labelClasses}>
-                        First reminder (hours before lock)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="168"
-                        value={firstReminderHours}
-                        onChange={(e) => setFirstReminderHours(parseInt(e.target.value) || 48)}
-                        className={inputClasses}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className={labelClasses}>
-                        Final reminder (hours before lock)
-                      </label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="48"
-                        value={finalReminderHours}
-                        onChange={(e) => setFinalReminderHours(parseInt(e.target.value) || 6)}
-                        className={inputClasses}
-                        required
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
 
               <div className={flexSpaceXPtClasses}>
                 <button

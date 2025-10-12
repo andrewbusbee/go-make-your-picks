@@ -48,7 +48,7 @@ router.get('/', async (req, res) => {
             .map((entry: any, index: number) => ({
               rank: index + 1,
               userId: entry.userId,
-              name: entry.name,
+              name: entry.userName,
               totalPoints: entry.totalPoints
             }));
           

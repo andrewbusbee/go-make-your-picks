@@ -42,7 +42,11 @@ import {
   flexSpaceXPtClasses,
   textSmallClasses,
   textMediumClasses,
-  mt1Classes
+  mt1Classes,
+  radioGroupClasses,
+  radioLabelClasses,
+  radioInputClasses,
+  radioTextClasses
 } from '../../styles/commonClasses';
 
 export default function AppSettings() {
@@ -56,6 +60,8 @@ export default function AppSettings() {
   const [pointsFourthPlace, setPointsFourthPlace] = useState(3);
   const [pointsFifthPlace, setPointsFifthPlace] = useState(2);
   const [pointsSixthPlusPlace, setPointsSixthPlusPlace] = useState(1);
+  const [reminderType, setReminderType] = useState<'daily' | 'before_lock'>('before_lock');
+  const [dailyReminderTime, setDailyReminderTime] = useState('10:00');
   const [reminderFirstHours, setReminderFirstHours] = useState(48);
   const [reminderFinalHours, setReminderFinalHours] = useState(6);
   const [originalTitle, setOriginalTitle] = useState('');
@@ -90,6 +96,8 @@ export default function AppSettings() {
       setPointsFourthPlace(parseInt(res.data.points_fourth_place) || 3);
       setPointsFifthPlace(parseInt(res.data.points_fifth_place) || 2);
       setPointsSixthPlusPlace(parseInt(res.data.points_sixth_plus_place) || 1);
+      setReminderType(res.data.reminder_type || 'before_lock');
+      setDailyReminderTime(res.data.daily_reminder_time || '10:00:00');
       setReminderFirstHours(parseInt(res.data.reminder_first_hours) || 48);
       setReminderFinalHours(parseInt(res.data.reminder_final_hours) || 6);
       
@@ -133,20 +141,29 @@ export default function AppSettings() {
       }
     }
 
-    // Validate reminder hours
-    if (reminderFirstHours < 2 || reminderFirstHours > 168) {
-      setError('First reminder hours must be between 2 and 168');
-      return;
-    }
+    // Validate reminder settings based on type
+    if (reminderType === 'daily') {
+      // Validate daily reminder time format
+      if (!dailyReminderTime || !dailyReminderTime.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+        setError('Daily reminder time must be in HH:MM format');
+        return;
+      }
+    } else if (reminderType === 'before_lock') {
+      // Validate reminder hours
+      if (reminderFirstHours < 2 || reminderFirstHours > 168) {
+        setError('First reminder hours must be between 2 and 168');
+        return;
+      }
 
-    if (reminderFinalHours < 1 || reminderFinalHours > 48) {
-      setError('Final reminder hours must be between 1 and 48');
-      return;
-    }
+      if (reminderFinalHours < 1 || reminderFinalHours > 48) {
+        setError('Final reminder hours must be between 1 and 48');
+        return;
+      }
 
-    if (reminderFirstHours <= reminderFinalHours) {
-      setError('First reminder must be more hours before lock time than final reminder');
-      return;
+      if (reminderFirstHours <= reminderFinalHours) {
+        setError('First reminder must be more hours before lock time than final reminder');
+        return;
+      }
     }
 
     setLoading(true);
@@ -163,8 +180,10 @@ export default function AppSettings() {
         pointsFourthPlace,
         pointsFifthPlace,
         pointsSixthPlusPlace,
-        reminderFirstHours,
-        reminderFinalHours
+        reminderType,
+        dailyReminderTime: reminderType === 'daily' ? dailyReminderTime + ':00' : undefined,
+        reminderFirstHours: reminderType === 'before_lock' ? reminderFirstHours : undefined,
+        reminderFinalHours: reminderType === 'before_lock' ? reminderFinalHours : undefined
       });
       
       setSuccess('Settings updated successfully! Leaderboard scores will update automatically. Refresh the page to see the new scores.');
@@ -489,45 +508,107 @@ export default function AppSettings() {
 
             {/* Reminder Settings */}
             <h3 className={subheadingClasses}>Reminder Email Settings</h3>
-            <div className={gridTwoColMdClasses}>
-              <div>
-                <label htmlFor="reminderFirstHours" className={labelClasses}>
-                  First Reminder (hours before lock time)
+            <p className={`${bodyTextClasses} ${mt1Classes} mb-4`}>
+              These settings control how and when reminder emails are sent to users who have not made their picks.
+              Only one reminder type can be active at a time.
+            </p>
+            
+            {/* Reminder Type Selection */}
+            <div className="mb-4">
+              <label className={labelClasses}>
+                Reminder Type
+              </label>
+              <div className={radioGroupClasses}>
+                <label className={radioLabelClasses}>
+                  <input
+                    type="radio"
+                    name="reminderType"
+                    value="daily"
+                    checked={reminderType === 'daily'}
+                    onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock')}
+                    className={radioInputClasses}
+                  />
+                  <span className={radioTextClasses}>Send reminder every day</span>
                 </label>
-                <input
-                  type="number"
-                  id="reminderFirstHours"
-                  value={reminderFirstHours}
-                  onChange={(e) => setReminderFirstHours(parseInt(e.target.value) || 0)}
-                  min="2"
-                  max="168"
-                  className={inputClasses}
-                  required
-                />
-                <p className={`mt-1 ${helpTextClasses}`}>
-                  Default: 48 hours. Users receive first reminder this many hours before picks lock (2-168 hours, max 1 week)
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="reminderFinalHours" className={labelClasses}>
-                  Final Reminder (hours before lock time)
+                <label className={radioLabelClasses}>
+                  <input
+                    type="radio"
+                    name="reminderType"
+                    value="before_lock"
+                    checked={reminderType === 'before_lock'}
+                    onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock')}
+                    className={radioInputClasses}
+                  />
+                  <span className={radioTextClasses}>Send reminders before lock time</span>
                 </label>
-                <input
-                  type="number"
-                  id="reminderFinalHours"
-                  value={reminderFinalHours}
-                  onChange={(e) => setReminderFinalHours(parseInt(e.target.value) || 0)}
-                  min="1"
-                  max="48"
-                  className={inputClasses}
-                  required
-                />
-                <p className={`mt-1 ${helpTextClasses}`}>
-                  Default: 6 hours. Users receive final reminder this many hours before picks lock (1-48 hours)
-                </p>
               </div>
             </div>
+
+            {/* Daily Reminder Settings */}
+            {reminderType === 'daily' && (
+              <div className="mb-4">
+                <label htmlFor="dailyReminderTime" className={labelClasses}>
+                  Time of day to send
+                </label>
+                <input
+                  type="time"
+                  id="dailyReminderTime"
+                  value={dailyReminderTime}
+                  onChange={(e) => setDailyReminderTime(e.target.value)}
+                  className={inputClasses}
+                  required
+                />
+                <p className={`mt-1 ${helpTextClasses}`}>
+                  Daily reminders will be sent at this time in each round's timezone
+                </p>
+                <p className={`${helpTextClasses}`}>
+                  Default: 10:00 AM. Reminders start immediately when a round is activated.
+                </p>
+              </div>
+            )}
+
+            {/* Before Lock Reminder Settings */}
+            {reminderType === 'before_lock' && (
+              <div className={gridTwoColMdClasses}>
+                <div>
+                  <label htmlFor="reminderFirstHours" className={labelClasses}>
+                    First Reminder (hours before lock time)
+                  </label>
+                  <input
+                    type="number"
+                    id="reminderFirstHours"
+                    value={reminderFirstHours}
+                    onChange={(e) => setReminderFirstHours(parseInt(e.target.value) || 0)}
+                    min="2"
+                    max="168"
+                    className={inputClasses}
+                    required
+                  />
+                  <p className={`mt-1 ${helpTextClasses}`}>
+                    Default: 48 hours. Users receive first reminder this many hours before picks lock (2-168 hours)
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="reminderFinalHours" className={labelClasses}>
+                    Final Reminder (hours before lock time)
+                  </label>
+                  <input
+                    type="number"
+                    id="reminderFinalHours"
+                    value={reminderFinalHours}
+                    onChange={(e) => setReminderFinalHours(parseInt(e.target.value) || 0)}
+                    min="1"
+                    max="48"
+                    className={inputClasses}
+                    required
+                  />
+                  <p className={`mt-1 ${helpTextClasses}`}>
+                    Default: 6 hours. Users receive final reminder this many hours before picks lock (1-48 hours)
+                  </p>
+                </div>
+              </div>
+            )}
 
             <div className={warningBoxYellowClasses}>
               <div className={flexItemsStartClasses}>

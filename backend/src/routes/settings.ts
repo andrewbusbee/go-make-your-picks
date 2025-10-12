@@ -32,6 +32,8 @@ router.get('/', async (req, res) => {
       points_fourth_place: 3,
       points_fifth_place: 2,
       points_sixth_plus_place: 1,
+      reminder_type: 'before_lock',
+      daily_reminder_time: '10:00:00',
       reminder_first_hours: 48,
       reminder_final_hours: 6
     };
@@ -64,6 +66,8 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     pointsFourthPlace,
     pointsFifthPlace,
     pointsSixthPlusPlace,
+    reminderType,
+    dailyReminderTime,
     reminderFirstHours,
     reminderFinalHours
   } = req.body;
@@ -122,6 +126,20 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     }
   }
 
+  // Validate reminder type if provided
+  if (reminderType !== undefined) {
+    if (!['daily', 'before_lock'].includes(reminderType)) {
+      return res.status(400).json({ error: 'Reminder type must be either "daily" or "before_lock"' });
+    }
+  }
+
+  // Validate daily reminder time if provided
+  if (dailyReminderTime !== undefined) {
+    if (!dailyReminderTime.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/)) {
+      return res.status(400).json({ error: 'Daily reminder time must be in HH:MM:SS format' });
+    }
+  }
+
   const connection = await db.getConnection();
 
   try {
@@ -152,6 +170,24 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
         `INSERT INTO text_settings (setting_key, setting_value) VALUES ('default_timezone', ?)
          ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
         [defaultTimezone]
+      );
+    }
+
+    // Update reminder type if provided
+    if (reminderType !== undefined) {
+      await connection.query(
+        `INSERT INTO text_settings (setting_key, setting_value) VALUES ('reminder_type', ?)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+        [reminderType]
+      );
+    }
+
+    // Update daily reminder time if provided
+    if (dailyReminderTime !== undefined) {
+      await connection.query(
+        `INSERT INTO text_settings (setting_key, setting_value) VALUES ('daily_reminder_time', ?)
+         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+        [dailyReminderTime]
       );
     }
 

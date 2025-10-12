@@ -22,9 +22,13 @@ export interface TextSettings {
   appTagline: string;
   footerMessage: string;
   defaultTimezone: string;
+  reminderType: string;
+  dailyReminderTime: string;
 }
 
 export interface ReminderSettings {
+  reminderType: string;
+  dailyReminderTime: string;
   firstReminderHours: number;
   finalReminderHours: number;
 }
@@ -117,6 +121,8 @@ export class SettingsService {
         appTagline: settingsMap.get('app_tagline') || 'Predict. Compete. Win.',
         footerMessage: settingsMap.get('footer_message') || 'Built for Sports Fans',
         defaultTimezone: settingsMap.get('default_timezone') || 'America/New_York',
+        reminderType: settingsMap.get('reminder_type') || 'before_lock',
+        dailyReminderTime: settingsMap.get('daily_reminder_time') || '10:00:00',
       };
 
       // Update cache
@@ -185,14 +191,26 @@ export class SettingsService {
     }
 
     try {
-      const [settingsRows] = await db.query<RowDataPacket[]>(
+      // Get numeric reminder settings
+      const [numericRows] = await db.query<RowDataPacket[]>(
         'SELECT setting_key, setting_value FROM numeric_settings WHERE setting_key LIKE ?',
         ['reminder_%']
       );
 
+      // Get text reminder settings
+      const [textRows] = await db.query<RowDataPacket[]>(
+        'SELECT setting_key, setting_value FROM text_settings WHERE setting_key IN (?, ?)',
+        ['reminder_type', 'daily_reminder_time']
+      );
+
+      const numericMap = new Map(numericRows.map(s => [s.setting_key, s.setting_value]));
+      const textMap = new Map(textRows.map(s => [s.setting_key, s.setting_value]));
+
       const settings: ReminderSettings = {
-        firstReminderHours: settingsRows.find(s => s.setting_key === 'reminder_first_hours')?.setting_value || 48,
-        finalReminderHours: settingsRows.find(s => s.setting_key === 'reminder_final_hours')?.setting_value || 6,
+        reminderType: textMap.get('reminder_type') || 'before_lock',
+        dailyReminderTime: textMap.get('daily_reminder_time') || '10:00:00',
+        firstReminderHours: numericMap.get('reminder_first_hours') || 48,
+        finalReminderHours: numericMap.get('reminder_final_hours') || 6,
       };
 
       // Update cache

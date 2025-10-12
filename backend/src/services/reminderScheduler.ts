@@ -16,9 +16,9 @@ export const checkAndSendReminders = async () => {
     // Get reminder settings
     const reminderSettings = await SettingsService.getReminderSettings();
     
-    // Get all active rounds that haven't been completed (with commissioner from season and reminder settings)
+    // Get all active rounds that haven't been completed (with commissioner from season)
     const [rounds] = await db.query<RowDataPacket[]>(
-      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, r.reminder_type, r.daily_reminder_time, r.first_reminder_hours, r.final_reminder_hours, s.commissioner 
+      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, s.commissioner 
        FROM rounds r
        JOIN seasons s ON r.season_id = s.id 
        WHERE r.status = 'active' AND r.lock_time > NOW()`,
@@ -27,19 +27,18 @@ export const checkAndSendReminders = async () => {
 
     for (const round of rounds) {
       const lockTime = new Date(round.lock_time);
-      const roundReminderType = round.reminder_type || 'daily';
 
-      if (roundReminderType === 'daily') {
+      if (reminderSettings.reminderType === 'daily') {
         // Handle daily reminders - check if it's time to send based on daily_reminder_time
-        await checkAndSendDailyReminder(round, now);
-      } else if (roundReminderType === 'before_lock') {
+        await checkAndSendDailyReminder(round, now, reminderSettings);
+      } else if (reminderSettings.reminderType === 'before_lock') {
         // Handle before-lock reminders (existing logic)
         const timeDiff = lockTime.getTime() - now.getTime();
         const hoursDiff = timeDiff / (1000 * 60 * 60);
 
-        // Use round-specific reminder hours or fall back to global settings
-        const firstReminderHours = round.first_reminder_hours || reminderSettings.firstReminderHours;
-        const finalReminderHours = round.final_reminder_hours || reminderSettings.finalReminderHours;
+        // Use global reminder settings
+        const firstReminderHours = reminderSettings.firstReminderHours;
+        const finalReminderHours = reminderSettings.finalReminderHours;
 
         // Check if we need to send first reminder (with 1-hour window on each side)
         if (hoursDiff >= (firstReminderHours - 1) && 
@@ -120,9 +119,9 @@ export const autoLockExpiredRounds = async () => {
 };
 
 // Check and send daily reminder if it's time
-export const checkAndSendDailyReminder = async (round: any, now: Date) => {
+export const checkAndSendDailyReminder = async (round: any, now: Date, reminderSettings: any) => {
   try {
-    const dailyReminderTime = round.daily_reminder_time || '10:00:00';
+    const dailyReminderTime = reminderSettings.dailyReminderTime || '10:00:00';
     const lockTime = new Date(round.lock_time);
     
     // Parse the daily reminder time (e.g., "10:00:00")

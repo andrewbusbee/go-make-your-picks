@@ -341,7 +341,7 @@ export const radioInputClasses =
   "mr-2";
 
 export const radioTextClasses = 
-  "text-sm";
+  "text-sm text-gray-900 dark:text-gray-100";
 
 // ============================================================================
 // LAYOUT UTILITIES
