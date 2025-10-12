@@ -271,10 +271,10 @@ CREATE TABLE IF NOT EXISTS season_winners (
     CONSTRAINT check_place CHECK (place >= 1 AND place <= 10)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Insert default admin (email: admin@gomakeyourpicks.com, password: password)
+-- Insert default admin (email: admin@example.com, password: password)
 -- Password hash for "password" using bcrypt with salt rounds = 10
 INSERT INTO admins (name, email, password_hash, is_main_admin, must_change_password) 
-VALUES ('Main Administrator', 'admin@gomakeyourpicks.com', '$2b$10$sYvBpErqTeSuAEB5OOHML.N.W6yT3YNiHLhu91ffcCt.qJW5mqFHq', TRUE, TRUE)
+VALUES ('Main Administrator', 'admin@example.com', '$2b$10$sYvBpErqTeSuAEB5OOHML.N.W6yT3YNiHLhu91ffcCt.qJW5mqFHq', TRUE, TRUE)
 ON DUPLICATE KEY UPDATE email=email;
 
 -- Default seasons will be created by admin through the UI
