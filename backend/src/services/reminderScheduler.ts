@@ -51,6 +51,9 @@ export const checkAndSendReminders = async () => {
             hoursDiff <= (finalReminderHours + 1)) {
           await sendReminderIfNotSent(round, 'final', finalReminderHours);
         }
+      } else if (reminderSettings.reminderType === 'none') {
+        // No reminders to send - do nothing
+        logger.debug('Reminder type is "none", skipping reminder checks', { roundId: round.id });
       }
     }
 

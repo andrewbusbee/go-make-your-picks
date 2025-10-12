@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
       points_fourth_place: 3,
       points_fifth_place: 2,
       points_sixth_plus_place: 1,
-      reminder_type: 'daily',
+      reminder_type: 'none',
       daily_reminder_time: '10:00:00',
       reminder_first_hours: 48,
       reminder_final_hours: 6
@@ -128,8 +128,8 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
 
   // Validate reminder type if provided
   if (reminderType !== undefined) {
-    if (!['daily', 'before_lock'].includes(reminderType)) {
-      return res.status(400).json({ error: 'Reminder type must be either "daily" or "before_lock"' });
+    if (!['daily', 'before_lock', 'none'].includes(reminderType)) {
+      return res.status(400).json({ error: 'Reminder type must be "daily", "before_lock", or "none"' });
     }
   }
 
