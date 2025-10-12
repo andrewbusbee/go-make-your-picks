@@ -212,43 +212,6 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
             </ul>
           </div>
 
-          {/* Scoring Feature */}
-          <div className={customizations.scoring ? featureCardCustomizedClasses : featureCardClasses}>
-            <div className={`${flexJustifyBetweenClasses} ${mb3Classes}`}>
-              <h3 className={customizations.scoring ? featureCardTitleCustomizedClasses : featureCardTitleClasses}>
-                <span>🏅</span>
-                <span>Scoring System</span>
-                {customizations.scoring && (
-                  <span className={completionCheckmarkClasses}>✓</span>
-                )}
-              </h3>
-              {customizations.scoring && (
-                <span className={customizationBadgeClasses}>Customized</span>
-              )}
-            </div>
-            <p className={featureCardSubtitleClasses}>
-              Configure point values for placements:
-            </p>
-            <ul className={featureCardListClasses}>
-              <li className={featureCardListItemClasses}>
-                <span className={featureCardBulletClasses}>•</span>
-                <span>1st place points</span>
-              </li>
-              <li className={featureCardListItemClasses}>
-                <span className={featureCardBulletClasses}>•</span>
-                <span>2nd place points</span>
-              </li>
-              <li className={featureCardListItemClasses}>
-                <span className={featureCardBulletClasses}>•</span>
-                <span>3rd-6th+ place points</span>
-              </li>
-              <li className={featureCardListItemClasses}>
-                <span className={featureCardBulletClasses}>•</span>
-                <span>Updates in real-time</span>
-              </li>
-            </ul>
-          </div>
-
           {/* Reminders Feature */}
           <div className={customizations.reminders ? featureCardCustomizedClasses : featureCardClasses}>
             <div className={`${flexJustifyBetweenClasses} ${mb3Classes}`}>
@@ -282,6 +245,43 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
               <li className={featureCardListItemClasses}>
                 <span className={featureCardBulletClasses}>•</span>
                 <span>Custom timing options</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Scoring Feature */}
+          <div className={customizations.scoring ? featureCardCustomizedClasses : featureCardClasses}>
+            <div className={`${flexJustifyBetweenClasses} ${mb3Classes}`}>
+              <h3 className={customizations.scoring ? featureCardTitleCustomizedClasses : featureCardTitleClasses}>
+                <span>🏅</span>
+                <span>Scoring System</span>
+                {customizations.scoring && (
+                  <span className={completionCheckmarkClasses}>✓</span>
+                )}
+              </h3>
+              {customizations.scoring && (
+                <span className={customizationBadgeClasses}>Customized</span>
+              )}
+            </div>
+            <p className={featureCardSubtitleClasses}>
+              Configure point values for placements:
+            </p>
+            <ul className={featureCardListClasses}>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>1st place points</span>
+              </li>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>2nd place points</span>
+              </li>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>3rd-6th+ place points</span>
+              </li>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>Updates in real-time</span>
               </li>
             </ul>
           </div>
