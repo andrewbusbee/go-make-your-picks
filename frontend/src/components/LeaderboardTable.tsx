@@ -75,7 +75,7 @@ export default function LeaderboardTable({ rounds, leaderboard }: LeaderboardTab
                   </div>
                 </th>
               ))}
-              <th className={`${tableHeaderCellClasses} w-24`}>
+              <th className={`${tableHeaderCellClasses} w-24 text-center`}>
                 Total
               </th>
             </tr>
@@ -92,9 +92,9 @@ export default function LeaderboardTable({ rounds, leaderboard }: LeaderboardTab
                   const visible = isRoundVisible(round);
                   
                   return (
-                    <td key={round.id} className={`${tableCellSecondaryClasses} py-2 w-28 md:w-32 lg:w-36`}>
+                    <td key={round.id} className={`${tableCellSecondaryClasses} py-2 w-28 md:w-32 lg:w-36 text-center`}>
                       {visible && pick ? (
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center justify-center gap-2">
                           <div className="font-medium text-sm">
                             {pick.pickItems && pick.pickItems.length > 0 ? (
                               pick.pickItems.map((item: any, i: number) => (
@@ -108,7 +108,7 @@ export default function LeaderboardTable({ rounds, leaderboard }: LeaderboardTab
                             )}
                           </div>
                           {score && (
-                            <span className={`${score.total_points > 0 ? badgeSuccessClasses : badgeGrayClasses} text-xs px-1.5 py-0.5 shrink-0`}>
+                            <span className={`${score.total_points > 0 ? badgeSuccessClasses : badgeGrayClasses} text-xs px-1.5 py-0.5`}>
                               {score.total_points > 0 ? '+' : ''}{score.total_points}
                             </span>
                           )}
@@ -121,7 +121,7 @@ export default function LeaderboardTable({ rounds, leaderboard }: LeaderboardTab
                     </td>
                   );
                 })}
-                <td className={`${tableCellClasses} font-bold text-blue-600 dark:text-blue-400 py-2 w-24`}>
+                <td className={`${tableCellClasses} font-bold text-blue-600 dark:text-blue-400 py-2 w-24 text-center`}>
                   {entry.totalPoints} pts
                 </td>
               </tr>
