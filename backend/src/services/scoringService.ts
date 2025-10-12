@@ -56,9 +56,14 @@ export class ScoringService {
         [seasonId]
       );
 
-      // Get all users
+      // Get only users who are participants in this season
       const [users] = await db.query<RowDataPacket[]>(
-        'SELECT id, name FROM users ORDER BY name ASC'
+        `SELECT DISTINCT u.id, u.name 
+         FROM users u
+         JOIN season_participants sp ON u.id = sp.user_id
+         WHERE sp.season_id = ?
+         ORDER BY u.name ASC`,
+        [seasonId]
       );
 
       // Get all picks for the season's rounds
@@ -252,9 +257,14 @@ export class ScoringService {
         [seasonId]
       );
 
-      // Get all users
+      // Get only users who are participants in this season
       const [users] = await db.query<RowDataPacket[]>(
-        'SELECT id, name FROM users ORDER BY name ASC'
+        `SELECT DISTINCT u.id, u.name 
+         FROM users u
+         JOIN season_participants sp ON u.id = sp.user_id
+         WHERE sp.season_id = ?
+         ORDER BY u.name ASC`,
+        [seasonId]
       );
 
       const roundIds = rounds.map(r => r.id);

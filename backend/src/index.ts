@@ -150,8 +150,8 @@ app.use('/api/admin/seed', adminSeedRoutes);
 if (process.env.NODE_ENV === 'production') {
   const frontendPath = path.join(__dirname, '../../frontend/dist');
   
-  // Serve static assets (JS, CSS, images, etc.)
-  app.use(express.static(frontendPath));
+  // Serve static assets (JS, CSS, images, etc.) but NOT index.html
+  app.use(express.static(frontendPath, { index: false }));
   
   // SPA fallback - dynamically render index.html with correct meta tags
   // This ensures social media scrapers and link previews get the right info
@@ -159,7 +159,14 @@ if (process.env.NODE_ENV === 'production') {
     try {
       const { renderHtmlWithMeta } = await import('./utils/htmlRenderer');
       const html = await renderHtmlWithMeta(frontendPath);
+      
+      // Disable caching for dynamically rendered HTML
+      // This ensures updated meta tags are always served fresh
       res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
       res.send(html);
     } catch (error) {
       logger.error('Error rendering HTML', { error });
