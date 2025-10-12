@@ -409,11 +409,7 @@ export default function AdminDashboard() {
         {/* Routes */}
         <Routes>
           <Route path="/" element={
-            !hasPlayers || !hasSeasons || !hasSports ? (
-              <Navigate to="/admin/getting-started" replace />
-            ) : (
-              <Navigate to="/admin/users" replace />
-            )
+            <Navigate to="/admin/getting-started" replace />
           } />
           <Route path="/getting-started" element={
             <GettingStarted 
