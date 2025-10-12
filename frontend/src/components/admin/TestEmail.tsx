@@ -3,7 +3,6 @@ import api from '../../utils/api';
 import {
   headingClasses,
   labelClasses,
-  selectClasses,
   helpTextClasses,
   buttonPrimaryClasses,
   cardClasses,
@@ -18,35 +17,31 @@ import {
   loadingTextClasses
 } from '../../styles/commonClasses';
 
-interface Admin {
-  id: number;
-  username: string;
-  email: string;
-}
-
 export default function TestEmail() {
-  const [selectedAdminId, setSelectedAdminId] = useState<number | ''>('');
-  const [admins, setAdmins] = useState<Admin[]>([]);
-  const [loadingAdmins, setLoadingAdmins] = useState(true);
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
-  // Load admins on component mount
+  // Load current user info on component mount
   useEffect(() => {
-    const loadAdmins = async () => {
+    const loadCurrentUser = async () => {
       try {
-        const response = await api.get('/admin/admins');
-        setAdmins(response.data);
+        const response = await api.get('/auth/me');
+        setCurrentUser({
+          name: response.data.name,
+          email: response.data.email
+        });
       } catch (err) {
-        console.error('Failed to load admins:', err);
-        setError('Failed to load admin list. Please refresh the page.');
+        console.error('Failed to load current user:', err);
+        setError('Failed to load user information. Please refresh the page.');
       } finally {
-        setLoadingAdmins(false);
+        setLoadingUser(false);
       }
     };
 
-    loadAdmins();
+    loadCurrentUser();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,17 +50,9 @@ export default function TestEmail() {
     setSuccess('');
     setLoading(true);
 
-    if (!selectedAdminId) {
-      setError('Please select an admin to send the test email to.');
-      setLoading(false);
-      return;
-    }
-
     try {
-      const selectedAdmin = admins.find(admin => admin.id === selectedAdminId);
-      const response = await api.post('/admin/test-email', { email: selectedAdmin?.email });
+      const response = await api.post('/admin/test-email');
       setSuccess(`Test email sent successfully to ${response.data.sentTo}! Check your inbox.`);
-      setSelectedAdminId(''); // Clear the selection
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to send test email. Check your SMTP configuration.');
       if (err.response?.data?.details) {
@@ -131,37 +118,46 @@ export default function TestEmail() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="admin-select" className={labelClasses}>
+            <label className={labelClasses}>
               Send Test Email To
             </label>
-            {loadingAdmins ? (
+            {loadingUser ? (
               <div className={loadingTextClasses}>
-                Loading admin list...
+                Loading user information...
+              </div>
+            ) : currentUser ? (
+              <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="flex-shrink-0">
+                    <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">
+                        {currentUser.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {currentUser.name}
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      {currentUser.email}
+                    </p>
+                  </div>
+                </div>
               </div>
             ) : (
-              <select
-                id="admin-select"
-                value={selectedAdminId}
-                onChange={(e) => setSelectedAdminId(e.target.value ? Number(e.target.value) : '')}
-                className={selectClasses}
-                required
-              >
-                <option value="">Select an admin...</option>
-                {admins.map((admin) => (
-                  <option key={admin.id} value={admin.id}>
-                    {admin.username} ({admin.email})
-                  </option>
-                ))}
-              </select>
+              <div className={loadingTextClasses}>
+                Unable to load user information
+              </div>
             )}
             <p className={helpTextClasses + " mt-1"}>
-              Select an admin to send the test email to their registered email address.
+              The test email will be sent to your registered email address.
             </p>
           </div>
 
           <button
             type="submit"
-            disabled={loading || loadingAdmins || !selectedAdminId}
+            disabled={loading || loadingUser || !currentUser}
             className={"w-full py-3 flex items-center justify-center " + buttonPrimaryClasses}
           >
             {loading ? (

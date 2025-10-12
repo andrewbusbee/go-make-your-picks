@@ -51,7 +51,7 @@ export interface User {
 
 export interface Admin {
   id: number;
-  username: string;
+  name: string;
   email: string;
   is_main_admin: boolean;
   must_change_password: boolean;
@@ -192,12 +192,12 @@ export interface MagicLinkValidation {
 // ============================================================================
 
 export interface LoginFormData {
-  username: string;
+  email: string;
   password: string;
 }
 
 export interface InitialSetupFormData {
-  newUsername: string;
+  newName: string;
   newEmail: string;
   newPassword: string;
 }

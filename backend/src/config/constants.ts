@@ -8,6 +8,8 @@ export const MIN_JWT_SECRET_LENGTH = 32;
 export const JWT_TOKEN_EXPIRY = '24h'; // 24 hours - reduced from 7 days for security
 export const PASSWORD_SALT_ROUNDS = 12; // Increased from 10 for better security
 export const MAGIC_LINK_TOKEN_BYTES = 32;
+export const ADMIN_MAGIC_LINK_TOKEN_BYTES = 32;
+export const ADMIN_MAGIC_LINK_EXPIRY_MINUTES = 10;
 export const PASSWORD_RESET_TOKEN_BYTES = 32;
 export const PASSWORD_RESET_EXPIRY_HOURS = 1;
 
@@ -38,6 +40,8 @@ export const MAX_NUM_PICKS = 10;
 // Rate Limiting
 export const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 export const LOGIN_RATE_LIMIT_MAX = 5;
+export const ADMIN_MAGIC_LINK_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+export const ADMIN_MAGIC_LINK_RATE_LIMIT_MAX = 3;
 export const PASSWORD_RESET_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 export const PASSWORD_RESET_RATE_LIMIT_MAX = 3;
 export const ACTIVATION_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -78,4 +82,8 @@ export const DEFAULT_TIMEZONE = 'America/New_York';
 export const DEFAULT_PORT = 3003;
 export const DEFAULT_DB_PORT = 3306;
 export const DEFAULT_SMTP_PORT = 587;
+
+// Common Messages (for security and consistency)
+export const MAGIC_LINK_SENT_MESSAGE = 'If an admin account with that email exists, a login link will be sent';
+export const PASSWORD_RESET_SENT_MESSAGE = 'If you entered a valid email, a password reset message will be sent';
 

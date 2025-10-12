@@ -1,4 +1,8 @@
 import rateLimit from 'express-rate-limit';
+import { 
+  ADMIN_MAGIC_LINK_RATE_LIMIT_WINDOW_MS, 
+  ADMIN_MAGIC_LINK_RATE_LIMIT_MAX 
+} from '../config/constants';
 
 // Login rate limiter - prevent brute force attacks
 export const loginLimiter = rateLimit({
@@ -52,4 +56,18 @@ export const magicLinkValidationLimiter = rateLimit({
   message: { error: 'Too many validation attempts. Please wait and try again.' },
   standardHeaders: true,
   legacyHeaders: false,
+});
+
+// Admin magic link request limiter - prevent email spam for admin logins
+// Note: Counter is reset on successful login (see auth routes)
+export const adminMagicLinkLimiter = rateLimit({
+  windowMs: ADMIN_MAGIC_LINK_RATE_LIMIT_WINDOW_MS, // 1 hour
+  max: ADMIN_MAGIC_LINK_RATE_LIMIT_MAX, // 3 attempts per hour
+  message: { error: 'Too many login link requests. Please try again later or contact the main administrator.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  // Key by email from request body
+  keyGenerator: (req) => {
+    return req.body.email || req.ip;
+  },
 });

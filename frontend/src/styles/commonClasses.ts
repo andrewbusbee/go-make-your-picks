@@ -117,6 +117,28 @@ export const buttonLinkWarningClasses =
   "font-medium";
 
 // ============================================================================
+// GRADIENT BUTTONS
+// ============================================================================
+
+export const buttonGradientPrimaryClasses = 
+  "w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white " +
+  "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 " +
+  "focus:outline-none focus:ring-4 focus:ring-blue-300 " +
+  "disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98]";
+
+export const buttonGradientSecondaryClasses = 
+  "flex-1 py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm text-sm font-semibold " +
+  "text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 " +
+  "hover:bg-gray-50 dark:hover:bg-gray-600 " +
+  "focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all";
+
+export const buttonGradientPrimaryFlexClasses = 
+  "flex-[2] flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white " +
+  "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 " +
+  "focus:outline-none focus:ring-4 focus:ring-blue-300 " +
+  "disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98]";
+
+// ============================================================================
 // TABS
 // ============================================================================
 
@@ -592,6 +614,28 @@ export const flexColCenterGapClasses =
 
 export const flexJustifyCenterClasses = 
   "flex justify-center items-end gap-2 sm:gap-3 md:gap-4";
+
+// ============================================================================
+// LOGIN PAGE SPECIFIC
+// ============================================================================
+
+export const loginFormClasses = 
+  "space-y-6";
+
+export const loginButtonContainerClasses = 
+  "flex gap-3";
+
+export const loginBackLinkClasses = 
+  "text-sm font-medium text-blue-600 hover:text-blue-500 transition";
+
+export const loginIconRedClasses = 
+  "h-5 w-5 text-red-400 dark:text-red-300";
+
+export const loginIconGreenClasses = 
+  "h-5 w-5 text-green-400";
+
+export const loginLoadingSpinnerClasses = 
+  "animate-spin -ml-1 mr-3 h-5 w-5 text-white";
 
 // ============================================================================
 // OVERFLOW & SCROLLING

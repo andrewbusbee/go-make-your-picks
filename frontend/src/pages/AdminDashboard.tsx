@@ -227,12 +227,12 @@ export default function AdminDashboard() {
   if (showChangePassword && adminData?.must_change_password) {
     return (
       <InitialSetup
-        onSuccess={(token, username) => {
+        onSuccess={(token, name) => {
           // Update the token
           localStorage.setItem('adminToken', token);
           localStorage.setItem('adminData', JSON.stringify({
             ...adminData,
-            username,
+            name,
             mustChangePassword: false
           }));
           setShowChangePassword(false);
@@ -263,7 +263,7 @@ export default function AdminDashboard() {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center space-x-2 text-white hover:text-blue-100 focus:outline-none"
                 >
-                  <span className="text-sm font-medium">{adminData?.username}</span>
+                  <span className="text-sm font-medium">{adminData?.name}</span>
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>

@@ -4,12 +4,14 @@ import crypto from 'crypto';
 import { authenticateAdmin, generateToken, AuthRequest } from '../middleware/auth';
 import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
-import { sendPasswordResetEmail } from '../services/emailService';
-import { loginLimiter, passwordResetLimiter } from '../middleware/rateLimiter';
+import { sendPasswordResetEmail, sendAdminMagicLink } from '../services/emailService';
+import { loginLimiter, passwordResetLimiter, adminMagicLinkLimiter } from '../middleware/rateLimiter';
 import { validatePasswordBasic } from '../utils/passwordValidator';
 import { validateRequest } from '../middleware/validator';
 import {
+  requestLoginValidators,
   loginValidators,
+  verifyMagicLinkValidators,
   initialSetupValidators,
   changePasswordValidators,
   changeEmailValidators,
@@ -17,26 +19,122 @@ import {
   resetPasswordValidators,
 } from '../validators/authValidators';
 import logger, { redactEmail } from '../utils/logger';
-import { PASSWORD_SALT_ROUNDS } from '../config/constants';
+import { 
+  PASSWORD_SALT_ROUNDS, 
+  ADMIN_MAGIC_LINK_TOKEN_BYTES,
+  ADMIN_MAGIC_LINK_EXPIRY_MINUTES,
+  MAGIC_LINK_SENT_MESSAGE,
+  PASSWORD_RESET_SENT_MESSAGE
+} from '../config/constants';
 
 const router = express.Router();
 
-// Admin login (with rate limiting)
-router.post('/login', loginLimiter, validateRequest(loginValidators), async (req, res) => {
-  const { username, password } = req.body;
+// Step 1: Request login - check if email requires password or magic link
+router.post('/request-login', validateRequest(requestLoginValidators), async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const [admins] = await db.query<RowDataPacket[]>(
+      'SELECT id, name, email, is_main_admin, password_hash FROM admins WHERE email = ?',
+      [email]
+    );
+
+    if (admins.length === 0) {
+      // Email not found - return generic success message to prevent enumeration
+      return res.json({ message: MAGIC_LINK_SENT_MESSAGE });
+    }
+
+    const admin = admins[0];
+
+    // Main admin - requires password
+    if (admin.is_main_admin) {
+      return res.json({ 
+        requiresPassword: true,
+        message: 'Please enter your password'
+      });
+    }
+
+    // Secondary admin - send magic link (passwordless)
+    // This endpoint has rate limiting via adminMagicLinkLimiter
+    return res.json({ 
+      requiresPassword: false,
+      magicLinkFlow: true,
+      message: 'Please proceed to request a login link'
+    });
+
+  } catch (error) {
+    logger.error('Request login error', { error, emailRedacted: redactEmail(email) });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Step 2a: Send magic link for secondary admins
+router.post('/send-magic-link', adminMagicLinkLimiter, validateRequest(requestLoginValidators), async (req, res) => {
+  const { email } = req.body;
   const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
 
   try {
     const [admins] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM admins WHERE username = ?',
-      [username]
+      'SELECT id, name, email, is_main_admin, password_hash FROM admins WHERE email = ?',
+      [email]
+    );
+
+    if (admins.length === 0) {
+      return res.json({ message: MAGIC_LINK_SENT_MESSAGE });
+    }
+
+    const admin = admins[0];
+
+    // Only secondary admins get magic links
+    if (admin.is_main_admin) {
+      return res.json({ message: MAGIC_LINK_SENT_MESSAGE });
+    }
+
+    // Generate secure token
+    const token = crypto.randomBytes(ADMIN_MAGIC_LINK_TOKEN_BYTES).toString('hex');
+    const expiresAt = new Date(Date.now() + ADMIN_MAGIC_LINK_EXPIRY_MINUTES * 60 * 1000);
+
+    // Delete any existing unused magic links for this admin
+    await db.query(
+      'DELETE FROM admin_magic_links WHERE admin_id = ? AND used_at IS NULL',
+      [admin.id]
+    );
+
+    // Store new magic link
+    await db.query(
+      'INSERT INTO admin_magic_links (admin_id, token, expires_at, ip_address) VALUES (?, ?, ?, ?)',
+      [admin.id, token, expiresAt, ipAddress]
+    );
+
+    // Send magic link email
+    const magicLink = `${process.env.APP_URL}/admin/login?token=${token}`;
+    await sendAdminMagicLink(email, admin.name || 'Admin', magicLink);
+
+    logger.info('Magic link sent', { adminId: admin.id, emailRedacted: redactEmail(email), expiresAt });
+    res.json({ message: MAGIC_LINK_SENT_MESSAGE });
+
+  } catch (error: any) {
+    logger.error('Send magic link error', { error: error.message, emailRedacted: redactEmail(email) });
+    res.json({ message: MAGIC_LINK_SENT_MESSAGE });
+  }
+});
+
+// Step 2b: Main admin login with email + password (with rate limiting)
+router.post('/login', loginLimiter, validateRequest(loginValidators), async (req, res) => {
+  const { email, password } = req.body;
+  const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+
+  try {
+    const [admins] = await db.query<RowDataPacket[]>(
+      'SELECT * FROM admins WHERE email = ?',
+      [email]
     );
 
     if (admins.length === 0) {
       // Log failed attempt for non-existent user (prevents enumeration timing)
       await db.query(
-        'INSERT INTO login_attempts (username, success, ip_address) VALUES (?, FALSE, ?)',
-        [username, ipAddress]
+        'INSERT INTO login_attempts (identifier, success, ip_address) VALUES (?, FALSE, ?)',
+        [email, ipAddress]
       );
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -69,14 +167,14 @@ router.post('/login', loginLimiter, validateRequest(loginValidators), async (req
     if (!validPassword) {
       // Log failed attempt
       await db.query(
-        'INSERT INTO login_attempts (username, success, ip_address) VALUES (?, FALSE, ?)',
-        [username, ipAddress]
+        'INSERT INTO login_attempts (identifier, success, ip_address) VALUES (?, FALSE, ?)',
+        [email, ipAddress]
       );
 
       // Count failed attempts in last hour
       const [failedAttempts] = await db.query<RowDataPacket[]>(
-        'SELECT COUNT(*) as count FROM login_attempts WHERE username = ? AND success = FALSE AND attempt_time > DATE_SUB(NOW(), INTERVAL 1 HOUR)',
-        [username]
+        'SELECT COUNT(*) as count FROM login_attempts WHERE identifier = ? AND success = FALSE AND attempt_time > DATE_SUB(NOW(), INTERVAL 1 HOUR)',
+        [email]
       );
 
       const failCount = failedAttempts[0].count;
@@ -90,7 +188,7 @@ router.post('/login', loginLimiter, validateRequest(loginValidators), async (req
         );
         
         logger.warn('Account locked due to failed login attempts', { 
-          username, 
+          email: redactEmail(email), 
           failCount, 
           ipAddress 
         });
@@ -106,8 +204,8 @@ router.post('/login', loginLimiter, validateRequest(loginValidators), async (req
 
     // Successful login - log it and clear any lock
     await db.query(
-      'INSERT INTO login_attempts (username, success, ip_address) VALUES (?, TRUE, ?)',
-      [username, ipAddress]
+      'INSERT INTO login_attempts (identifier, success, ip_address) VALUES (?, TRUE, ?)',
+      [email, ipAddress]
     );
 
     await db.query(
@@ -115,26 +213,118 @@ router.post('/login', loginLimiter, validateRequest(loginValidators), async (req
       [admin.id]
     );
 
-    const token = generateToken(admin.id, admin.username, admin.is_main_admin);
+    const token = generateToken(admin.id, admin.email, admin.is_main_admin);
 
     res.json({
       token,
       admin: {
         id: admin.id,
-        username: admin.username,
+        name: admin.name,
+        email: admin.email,
         isMainAdmin: admin.is_main_admin,
         mustChangePassword: admin.must_change_password
       }
     });
   } catch (error) {
-    logger.error('Login error', { error, username });
+    logger.error('Login error', { error, emailRedacted: redactEmail(email) });
     res.status(500).json({ error: 'Server error' });
   }
 });
 
-// Initial setup - change username, email, and password (no current password required)
+// Step 3: Verify magic link token for secondary admins
+router.post('/verify-magic-link', validateRequest(verifyMagicLinkValidators), async (req, res) => {
+  const { token } = req.body;
+  const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+
+  try {
+    // Find magic link by token
+    const [links] = await db.query<RowDataPacket[]>(
+      'SELECT * FROM admin_magic_links WHERE token = ?',
+      [token]
+    );
+
+    if (links.length === 0) {
+      return res.status(401).json({ error: 'Invalid or expired login link' });
+    }
+
+    const link = links[0];
+
+    // Check if already used
+    if (link.used_at) {
+      return res.status(401).json({ error: 'This login link has already been used. Please request a new one.' });
+    }
+
+    // Check if expired
+    const now = new Date();
+    const expiresAt = new Date(link.expires_at);
+    
+    if (now > expiresAt) {
+      // Clean up expired link
+      await db.query(
+        'DELETE FROM admin_magic_links WHERE id = ?',
+        [link.id]
+      );
+      return res.status(401).json({ error: 'This login link has expired. Please request a new one.' });
+    }
+
+    // Get admin details
+    const [admins] = await db.query<RowDataPacket[]>(
+      'SELECT * FROM admins WHERE id = ?',
+      [link.admin_id]
+    );
+
+    if (admins.length === 0) {
+      return res.status(401).json({ error: 'Admin account no longer exists' });
+    }
+
+    const admin = admins[0];
+
+    // Verify this is actually a secondary admin (extra security)
+    if (admin.is_main_admin) {
+      logger.error('Attempted to use magic link for main admin', { adminId: admin.id });
+      return res.status(401).json({ error: 'Invalid authentication method' });
+    }
+
+    // Mark link as used
+    await db.query(
+      'UPDATE admin_magic_links SET used_at = NOW() WHERE id = ?',
+      [link.id]
+    );
+
+    // Log successful login
+    await db.query(
+      'INSERT INTO login_attempts (identifier, success, ip_address) VALUES (?, TRUE, ?)',
+      [admin.email, ipAddress]
+    );
+
+    // Generate JWT token
+    const jwtToken = generateToken(admin.id, admin.email, admin.is_main_admin);
+
+    logger.info('Magic link authentication successful', { 
+      adminId: admin.id, 
+      emailRedacted: redactEmail(admin.email) 
+    });
+
+    res.json({
+      token: jwtToken,
+      admin: {
+        id: admin.id,
+        name: admin.name,
+        email: admin.email,
+        isMainAdmin: admin.is_main_admin,
+        mustChangePassword: false
+      }
+    });
+
+  } catch (error) {
+    logger.error('Verify magic link error', { error });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Initial setup - change email and password (main admin only, no current password required)
 router.post('/initial-setup', authenticateAdmin, validateRequest(initialSetupValidators), async (req: AuthRequest, res: Response) => {
-  const { newUsername, newEmail, newPassword } = req.body;
+  const { newName, newEmail, newPassword } = req.body;
 
   try{
     const [admins] = await db.query<RowDataPacket[]>(
@@ -148,14 +338,9 @@ router.post('/initial-setup', authenticateAdmin, validateRequest(initialSetupVal
 
     const admin = admins[0];
 
-    // Check if new username already exists
-    const [existingUsers] = await db.query<RowDataPacket[]>(
-      'SELECT id FROM admins WHERE username = ? AND id != ?',
-      [newUsername, req.adminId]
-    );
-
-    if (existingUsers.length > 0) {
-      return res.status(400).json({ error: 'Username already exists' });
+    // Only main admin can use initial setup
+    if (!admin.is_main_admin) {
+      return res.status(403).json({ error: 'Only main admin can use initial setup' });
     }
 
     // Check if new email already exists
@@ -170,17 +355,18 @@ router.post('/initial-setup', authenticateAdmin, validateRequest(initialSetupVal
 
     const newPasswordHash = await bcrypt.hash(newPassword, PASSWORD_SALT_ROUNDS);
     await db.query(
-      'UPDATE admins SET username = ?, email = ?, password_hash = ?, must_change_password = FALSE WHERE id = ?',
-      [newUsername, newEmail, newPasswordHash, req.adminId]
+      'UPDATE admins SET name = ?, email = ?, password_hash = ?, must_change_password = FALSE WHERE id = ?',
+      [newName, newEmail, newPasswordHash, req.adminId]
     );
 
-    // Generate new token with updated username
-    const token = generateToken(admin.id, newUsername, admin.is_main_admin);
+    // Generate new token with updated email
+    const token = generateToken(admin.id, newEmail, admin.is_main_admin);
 
     res.json({ 
       message: 'Setup completed successfully',
       token,
-      username: newUsername
+      name: newName,
+      email: newEmail
     });
   } catch (error) {
     logger.error('Initial setup error', { error, adminId: req.adminId });
@@ -188,7 +374,7 @@ router.post('/initial-setup', authenticateAdmin, validateRequest(initialSetupVal
   }
 });
 
-// Change password (for regular password changes)
+// Change password (for main admin only - secondary admins are passwordless)
 router.post('/change-password', authenticateAdmin, validateRequest(changePasswordValidators), async (req: AuthRequest, res: Response) => {
   const { currentPassword, newPassword } = req.body;
 
@@ -203,6 +389,12 @@ router.post('/change-password', authenticateAdmin, validateRequest(changePasswor
     }
 
     const admin = admins[0];
+
+    // Only main admin can change password (secondary admins are passwordless)
+    if (!admin.is_main_admin) {
+      return res.status(403).json({ error: 'Secondary admins do not have passwords. You use magic links to log in.' });
+    }
+
     const validPassword = await bcrypt.compare(currentPassword, admin.password_hash);
 
     if (!validPassword) {
@@ -279,12 +471,9 @@ router.post('/forgot-password', passwordResetLimiter, validateRequest(forgotPass
       [email]
     );
 
-    // Always return the same response for security (don't reveal if email exists)
-    const responseMessage = 'If you entered a valid email, a password reset message will be sent';
-
     if (admins.length === 0) {
       // Email not found, but return success message anyway
-      return res.json({ message: responseMessage });
+      return res.json({ message: PASSWORD_RESET_SENT_MESSAGE });
     }
 
     const admin = admins[0];
@@ -303,10 +492,10 @@ router.post('/forgot-password', passwordResetLimiter, validateRequest(forgotPass
     const resetLink = `${process.env.APP_URL}/admin/reset-password?token=${resetToken}`;
     await sendPasswordResetEmail(email, admin.username, resetLink);
 
-    res.json({ message: responseMessage });
+    res.json({ message: PASSWORD_RESET_SENT_MESSAGE });
   } catch (error) {
     logger.error('Forgot password error', { error, emailRedacted: redactEmail(email) });
-    res.json({ message: 'If you entered a valid email, a password reset message will be sent' });
+    res.json({ message: PASSWORD_RESET_SENT_MESSAGE });
   }
 });
 
@@ -367,7 +556,7 @@ router.get('/me', authenticateAdmin, async (req: AuthRequest, res: Response) => 
     // 🔒 ADDITIONAL SECURITY: Double-check admin exists (redundant but explicit)
     // The authenticateAdmin middleware already verifies this, but this provides extra validation
     const [admins] = await db.query<RowDataPacket[]>(
-      'SELECT id, username, email, is_main_admin, must_change_password FROM admins WHERE id = ?',
+      'SELECT id, name, email, is_main_admin, must_change_password FROM admins WHERE id = ?',
       [req.adminId]
     );
 

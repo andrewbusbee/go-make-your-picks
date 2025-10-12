@@ -3,9 +3,9 @@
 -- Admins table
 CREATE TABLE IF NOT EXISTS admins (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(50) UNIQUE NOT NULL,
+    name VARCHAR(100) NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NULL,
     is_main_admin BOOLEAN DEFAULT FALSE,
     must_change_password BOOLEAN DEFAULT FALSE,
     account_locked_until TIMESTAMP NULL DEFAULT NULL,
@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS admins (
     password_reset_expires TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_username (username),
     INDEX idx_email (email),
     INDEX idx_reset_token (password_reset_token),
     INDEX idx_locked_until (account_locked_until)
@@ -22,14 +21,30 @@ CREATE TABLE IF NOT EXISTS admins (
 -- Login attempts table for account lockout feature
 CREATE TABLE IF NOT EXISTS login_attempts (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    username VARCHAR(50) NOT NULL,
+    identifier VARCHAR(255) NOT NULL,
     attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     success BOOLEAN DEFAULT FALSE,
     ip_address VARCHAR(45) NULL,
-    INDEX idx_username (username),
+    INDEX idx_identifier (identifier),
     INDEX idx_attempt_time (attempt_time),
-    INDEX idx_username_time (username, attempt_time),
-    INDEX idx_username_success_time (username, success, attempt_time)
+    INDEX idx_identifier_time (identifier, attempt_time),
+    INDEX idx_identifier_success_time (identifier, success, attempt_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Admin magic links table for passwordless authentication
+CREATE TABLE IF NOT EXISTS admin_magic_links (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    admin_id INT NOT NULL,
+    token VARCHAR(255) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used_at TIMESTAMP NULL DEFAULT NULL,
+    ip_address VARCHAR(45) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_id) REFERENCES admins(id) ON DELETE CASCADE,
+    INDEX idx_token (token),
+    INDEX idx_expires (expires_at),
+    INDEX idx_admin_id (admin_id),
+    INDEX idx_used (used_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Users (family members) table
@@ -256,11 +271,11 @@ CREATE TABLE IF NOT EXISTS season_winners (
     CONSTRAINT check_place CHECK (place >= 1 AND place <= 10)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Insert default admin (username: user, password: password)
+-- Insert default admin (email: admin@gomakeyourpicks.com, password: password)
 -- Password hash for "password" using bcrypt with salt rounds = 10
-INSERT INTO admins (username, email, password_hash, is_main_admin, must_change_password) 
-VALUES ('user', 'admin@gomakeyourpicks.com', '$2b$10$sYvBpErqTeSuAEB5OOHML.N.W6yT3YNiHLhu91ffcCt.qJW5mqFHq', TRUE, TRUE)
-ON DUPLICATE KEY UPDATE username=username;
+INSERT INTO admins (name, email, password_hash, is_main_admin, must_change_password) 
+VALUES ('Main Administrator', 'admin@gomakeyourpicks.com', '$2b$10$sYvBpErqTeSuAEB5OOHML.N.W6yT3YNiHLhu91ffcCt.qJW5mqFHq', TRUE, TRUE)
+ON DUPLICATE KEY UPDATE email=email;
 
 -- Default seasons will be created by admin through the UI
 

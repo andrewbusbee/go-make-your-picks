@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET!;
 
 export interface AuthRequest extends Request {
   adminId?: number;
-  username?: string;
+  email?: string;
   isMainAdmin?: boolean;
 }
 
@@ -25,15 +25,15 @@ export const authenticateAdmin = async (req: AuthRequest, res: Response, next: N
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as {
       adminId: number;
-      username: string;
+      email: string;
       isMainAdmin: boolean;
     };
     
     // 🔒 SECURITY FIX: Verify admin still exists in database
     // This prevents old tokens from deleted admins from accessing the system
     const [admins] = await db.query<RowDataPacket[]>(
-      'SELECT id, username, is_main_admin FROM admins WHERE id = ? AND username = ?',
-      [decoded.adminId, decoded.username]
+      'SELECT id, email, is_main_admin FROM admins WHERE id = ? AND email = ?',
+      [decoded.adminId, decoded.email]
     );
 
     if (admins.length === 0) {
@@ -44,7 +44,7 @@ export const authenticateAdmin = async (req: AuthRequest, res: Response, next: N
     
     // Update request with verified admin data
     req.adminId = admin.id;
-    req.username = admin.username;
+    req.email = admin.email;
     req.isMainAdmin = admin.is_main_admin;
     
     next();
@@ -60,9 +60,9 @@ export const requireMainAdmin = (req: AuthRequest, res: Response, next: NextFunc
   next();
 };
 
-export const generateToken = (adminId: number, username: string, isMainAdmin: boolean): string => {
+export const generateToken = (adminId: number, email: string, isMainAdmin: boolean): string => {
   return jwt.sign(
-    { adminId, username, isMainAdmin },
+    { adminId, email, isMainAdmin },
     JWT_SECRET,
     { expiresIn: JWT_TOKEN_EXPIRY }
   );

@@ -16,11 +16,11 @@ import {
 } from '../../styles/commonClasses';
 
 interface InitialSetupProps {
-  onSuccess: (token: string, username: string) => void;
+  onSuccess: (token: string, name: string) => void;
 }
 
 export default function InitialSetup({ onSuccess }: InitialSetupProps) {
-  const [newUsername, setNewUsername] = useState('');
+  const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -44,13 +44,8 @@ export default function InitialSetup({ onSuccess }: InitialSetupProps) {
       return;
     }
 
-    if (newUsername.toLowerCase() === 'user') {
-      setError('Username "user" is not allowed. Please choose a different username.');
-      return;
-    }
-
-    if (newUsername.length < 3) {
-      setError('Username must be at least 3 characters');
+    if (newName.length < 2) {
+      setError('Name must be at least 2 characters');
       return;
     }
 
@@ -72,14 +67,14 @@ export default function InitialSetup({ onSuccess }: InitialSetupProps) {
 
     try {
       const response = await api.post('/auth/initial-setup', {
-        newUsername,
+        newName,
         newEmail,
         newPassword
       });
       
-      // Update token and username
+      // Update token and name
       localStorage.setItem('adminToken', response.data.token);
-      onSuccess(response.data.token, response.data.username);
+      onSuccess(response.data.token, response.data.name);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to complete setup');
     } finally {
@@ -113,7 +108,7 @@ export default function InitialSetup({ onSuccess }: InitialSetupProps) {
               <div>
                 <p className={alertInfoTextClasses + " font-medium mb-1"}>First-Time Setup Required</p>
                 <p className={alertInfoTextClasses}>
-                  For security, you must change your default username and password. 
+                  For security, you must change your default name and password. 
                   Choose something memorable and secure.
                 </p>
               </div>
@@ -132,22 +127,22 @@ export default function InitialSetup({ onSuccess }: InitialSetupProps) {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* New Username */}
+            {/* New Name */}
             <div>
               <label className={labelClasses}>
-                Choose Your Username
+                Your Display Name
               </label>
               <input
                 type="text"
-                value={newUsername}
-                onChange={(e) => setNewUsername(e.target.value)}
-                placeholder="Enter a unique username (not 'user')"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                placeholder="Enter your display name"
                 className={inputClasses + " py-3"}
                 required
-                minLength={3}
+                minLength={2}
               />
               <p className={bodyTextClasses + " mt-1 text-xs"}>
-                ✓ At least 3 characters • Cannot be "user"
+                ✓ At least 2 characters • This is how you'll be identified
               </p>
             </div>
 

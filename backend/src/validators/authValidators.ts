@@ -4,31 +4,44 @@
 
 import { body } from 'express-validator';
 
-export const loginValidators = [
-  body('username')
+// Email-first login request (Step 1)
+export const requestLoginValidators = [
+  body('email')
     .trim()
-    .escape()
-    .notEmpty().withMessage('Username is required')
-    .isLength({ min: 3, max: 50 }).withMessage('Username must be between 3 and 50 characters'),
+    .notEmpty().withMessage('Email is required')
+    .isEmail().withMessage('Invalid email format'),
+];
+
+// Email + password login for main admin (Step 2)
+export const loginValidators = [
+  body('email')
+    .trim()
+    .notEmpty().withMessage('Email is required')
+    .isEmail().withMessage('Invalid email format'),
   
   body('password')
     .notEmpty().withMessage('Password is required')
     .isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
 ];
 
+// Magic link verification for secondary admins
+export const verifyMagicLinkValidators = [
+  body('token')
+    .notEmpty().withMessage('Token is required')
+    .isLength({ min: 32 }).withMessage('Invalid token format'),
+];
+
 export const initialSetupValidators = [
-  body('newUsername')
+  body('newName')
     .trim()
     .escape()
-    .notEmpty().withMessage('Username is required')
-    .isLength({ min: 3, max: 50 }).withMessage('Username must be between 3 and 50 characters')
-    .not().equals('user').withMessage('Username "user" is not allowed'),
+    .notEmpty().withMessage('Name is required')
+    .isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
   
   body('newEmail')
     .trim()
     .notEmpty().withMessage('Email is required')
-    .isEmail().withMessage('Invalid email format')
-    .normalizeEmail(),
+    .isEmail().withMessage('Invalid email format'),
   
   body('newPassword')
     .notEmpty().withMessage('Password is required')
@@ -60,8 +73,7 @@ export const forgotPasswordValidators = [
   body('email')
     .trim()
     .notEmpty().withMessage('Email is required')
-    .isEmail().withMessage('Invalid email format')
-    .normalizeEmail(),
+    .isEmail().withMessage('Invalid email format'),
 ];
 
 export const resetPasswordValidators = [
@@ -80,7 +92,6 @@ export const changeEmailValidators = [
   body('newEmail')
     .trim()
     .notEmpty().withMessage('Email is required')
-    .isEmail().withMessage('Invalid email format')
-    .normalizeEmail(),
+    .isEmail().withMessage('Invalid email format'),
 ];
 

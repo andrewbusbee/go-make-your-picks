@@ -15,7 +15,7 @@ const router = express.Router();
 router.get('/', authenticateAdmin, requireMainAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const [admins] = await db.query<RowDataPacket[]>(
-      'SELECT id, username, email, is_main_admin, created_at FROM admins ORDER BY created_at DESC'
+      'SELECT id, name, email, is_main_admin, created_at FROM admins ORDER BY created_at DESC'
     );
     res.json(admins);
   } catch (error) {
@@ -24,12 +24,30 @@ router.get('/', authenticateAdmin, requireMainAdmin, async (req: AuthRequest, re
   }
 });
 
-// Create new admin (main admin only)
-router.post('/', authenticateAdmin, requireMainAdmin, async (req: AuthRequest, res: Response) => {
-  const { username, email, password } = req.body;
+// Get basic admin list for email testing (all authenticated admins)
+router.get('/for-email-test', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const [admins] = await db.query<RowDataPacket[]>(
+      'SELECT id, name, email FROM admins ORDER BY name ASC'
+    );
+    res.json(admins);
+  } catch (error) {
+    logger.error('Get admins for email test error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
-  if (!username || !email || !password) {
-    return res.status(400).json({ error: 'Username, email, and password are required' });
+// Create new secondary admin (main admin only, passwordless)
+router.post('/', authenticateAdmin, requireMainAdmin, async (req: AuthRequest, res: Response) => {
+  const { name, email } = req.body;
+
+  if (!name || !email) {
+    return res.status(400).json({ error: 'Name and email are required' });
+  }
+
+  // Validate name length
+  if (name.length < 2 || name.length > 100) {
+    return res.status(400).json({ error: 'Name must be between 2 and 100 characters' });
   }
 
   // Validate email format
@@ -38,24 +56,29 @@ router.post('/', authenticateAdmin, requireMainAdmin, async (req: AuthRequest, r
     return res.status(400).json({ error: 'Invalid email format' });
   }
 
-  if (password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters' });
-  }
-
   try {
-    const passwordHash = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
+    // Secondary admins are passwordless - they use magic links
     const [result] = await db.query<ResultSetHeader>(
-      'INSERT INTO admins (username, email, password_hash, is_main_admin, must_change_password) VALUES (?, ?, ?, FALSE, FALSE)',
-      [username, email, passwordHash]
+      'INSERT INTO admins (name, email, password_hash, is_main_admin, must_change_password) VALUES (?, ?, NULL, FALSE, FALSE)',
+      [name, email]
     );
 
+    logger.info('Secondary admin created', { 
+      adminId: result.insertId, 
+      name, 
+      emailRedacted: redactEmail(email),
+      createdBy: req.adminId
+    });
+
     res.status(201).json({ 
-      message: 'Admin created successfully',
-      id: result.insertId
+      message: 'Secondary admin created successfully. They will receive a magic link to log in.',
+      id: result.insertId,
+      name,
+      email
     });
   } catch (error: any) {
     if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: 'Username or email already exists' });
+      return res.status(400).json({ error: 'Email already exists' });
     }
     logger.error('Create admin error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -63,6 +86,7 @@ router.post('/', authenticateAdmin, requireMainAdmin, async (req: AuthRequest, r
 });
 
 // Reset admin password (main admin only, cannot reset own password)
+// Only works for main admin - secondary admins are passwordless
 router.post('/:id/reset-password', authenticateAdmin, requireMainAdmin, async (req: AuthRequest, res: Response) => {
   const adminId = parseInt(req.params.id);
   const { newPassword } = req.body;
@@ -85,9 +109,9 @@ router.post('/:id/reset-password', authenticateAdmin, requireMainAdmin, async (r
   }
 
   try {
-    // Check if admin exists
+    // Check if admin exists and is main admin
     const [admins] = await db.query<RowDataPacket[]>(
-      'SELECT id, username FROM admins WHERE id = ?',
+      'SELECT id, name, email, is_main_admin FROM admins WHERE id = ?',
       [adminId]
     );
 
@@ -95,15 +119,22 @@ router.post('/:id/reset-password', authenticateAdmin, requireMainAdmin, async (r
       return res.status(404).json({ error: 'Admin not found' });
     }
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const admin = admins[0];
+
+    // Secondary admins don't have passwords
+    if (!admin.is_main_admin) {
+      return res.status(400).json({ error: 'Cannot reset password for secondary admins. They use magic links to log in.' });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, PASSWORD_SALT_ROUNDS);
     await db.query(
       'UPDATE admins SET password_hash = ?, must_change_password = FALSE WHERE id = ?',
       [passwordHash, adminId]
     );
 
     res.json({ 
-      message: `Password reset successfully for ${admins[0].username}`,
-      username: admins[0].username
+      message: `Password reset successfully for ${admin.name}`,
+      name: admin.name
     });
   } catch (error) {
     logger.error('Reset password error:', error);
@@ -121,9 +152,9 @@ router.put('/:id/change-email', authenticateAdmin, requireMainAdmin, validateReq
   }
 
   try {
-    // Check if admin exists and is not a main admin
+    // Check if admin exists
     const [admins] = await db.query<RowDataPacket[]>(
-      'SELECT id, username, email, is_main_admin FROM admins WHERE id = ?',
+      'SELECT id, name, email, is_main_admin FROM admins WHERE id = ?',
       [adminId]
     );
 
@@ -161,13 +192,13 @@ router.put('/:id/change-email', authenticateAdmin, requireMainAdmin, validateReq
     logger.info('Admin email changed by main admin', { 
       adminId: req.adminId, 
       targetAdminId: adminId, 
-      targetUsername: admin.username,
+      targetName: admin.name,
       emailRedacted: redactEmail(newEmail)
     });
 
     res.json({ 
-      message: `Email changed successfully for ${admin.username}`,
-      username: admin.username,
+      message: `Email changed successfully for ${admin.name}`,
+      name: admin.name,
       newEmail
     });
   } catch (error) {

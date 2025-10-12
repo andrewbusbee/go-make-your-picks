@@ -491,6 +491,84 @@ export const sendPasswordResetEmail = async (
   }
 };
 
+export const sendAdminMagicLink = async (
+  email: string,
+  name: string,
+  magicLink: string
+): Promise<void> => {
+  const settings = await getSettings();
+  const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
+  const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
+  
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to: email,
+    subject: `${settings.app_title} - Admin Login Link`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .button { display: inline-block; padding: 15px 30px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; font-weight: bold; }
+            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+            .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 15px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>${settings.app_title}</h1>
+              <div style="font-size: 48px; margin-top: 10px;">🔑</div>
+            </div>
+            <div class="content">
+              <h2>Admin Login Request</h2>
+              <p>Hi ${name},</p>
+              <p>Click the button below to securely log in to your admin account:</p>
+              <div style="text-align: center;">
+                <a href="${magicLink}" class="button">Log In to Admin Dashboard</a>
+              </div>
+              <p style="color: #666; font-size: 14px;">
+                Or copy and paste this link into your browser:<br>
+                <span style="word-break: break-all;">${magicLink}</span>
+              </p>
+              <div class="warning">
+                <strong>⚠️ Important:</strong>
+                <ul>
+                  <li>This link will expire in 10 minutes</li>
+                  <li>This link can only be used once</li>
+                  <li>If you didn't request this login, please ignore this email</li>
+                  <li>Never share this link with anyone</li>
+                </ul>
+              </div>
+            </div>
+            <div class="footer">
+              <p>${settings.app_title} - ${settings.app_tagline}</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  };
+
+  try {
+    await sendEmailWithRetry(mailOptions, 'Admin magic link email');
+    logEmailSent(email, 'Admin Login Link', true);
+  } catch (error: any) {
+    logger.error('Error sending admin magic link email after retries', { 
+      error: error.message,
+      toRedacted: redactEmail(email)
+    });
+    logEmailSent(email, 'Admin Login Link', false);
+    throw new Error(`Failed to send admin login email: ${error.message}`);
+  }
+};
+
 /**
  * Verifies SMTP connection for health checks
  * @returns Promise<{ connected: boolean; error?: string }>
