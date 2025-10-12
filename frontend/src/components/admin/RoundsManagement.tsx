@@ -861,7 +861,7 @@ export default function RoundsManagement() {
                   </button>
                 )}
 
-                {round.status === 'draft' && (
+                {(round.status === 'draft' || round.status === 'active' || round.status === 'locked') && (
                   <button
                     onClick={() => openDeleteModal(round)}
                     className={buttonSmallDangerLinkClasses}
