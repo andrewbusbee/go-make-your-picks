@@ -44,3 +44,12 @@ export const pickSubmissionLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Magic link validation limiter - prevent token enumeration attacks
+export const magicLinkValidationLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 10, // 10 validation attempts per minute
+  message: { error: 'Too many validation attempts. Please wait and try again.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});

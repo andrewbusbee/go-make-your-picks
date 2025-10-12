@@ -2,7 +2,7 @@ import nodemailer from 'nodemailer';
 import retry from 'async-retry';
 import db from '../config/database';
 import { RowDataPacket } from 'mysql2';
-import logger, { logEmailSent } from '../utils/logger';
+import logger, { logEmailSent, redactEmail } from '../utils/logger';
 import { SettingsService } from './settingsService';
 import { 
   EMAIL_RETRY_ATTEMPTS, 
@@ -147,7 +147,7 @@ export const sendMagicLink = async (
   } catch (error: any) {
     logger.error('Error sending magic link email after retries', { 
       error: error.message, 
-      to: email, 
+      toRedacted: redactEmail(email), 
       sportName 
     });
     logEmailSent(email, `${settings.app_title} - Make Your ${sportName} Pick!`, false);
@@ -224,8 +224,8 @@ export const sendLockedNotification = async (
   } catch (error: any) {
     logger.error('Error sending locked notification email after retries', { 
       error: error.message, 
-      to: email, 
-      sportName 
+      toRedacted: redactEmail(email),
+      sportName
     });
     logEmailSent(email, `${settings.app_title} - ${sportName} picks are now locked!`, false);
     throw new Error(`Failed to send email: ${error.message}`);
@@ -370,7 +370,7 @@ export const sendSportCompletionEmail = async (
   } catch (error: any) {
     logger.error('Error sending sport completion email after retries', { 
       error: error.message, 
-      to: email, 
+      toRedacted: redactEmail(email), 
       sportName 
     });
     logEmailSent(email, `${settings.app_title} - ${sportName} Complete - You earned ${userPoints} points!`, false);
@@ -448,8 +448,8 @@ export const sendPasswordResetEmail = async (
     logEmailSent(email, 'Password Reset Request', true);
   } catch (error: any) {
     logger.error('Error sending password reset email after retries', { 
-      error: error.message, 
-      to: email 
+      error: error.message,
+      toRedacted: redactEmail(email)
     });
     logEmailSent(email, 'Password Reset Request', false);
     throw new Error(`Failed to send password reset email: ${error.message}`);

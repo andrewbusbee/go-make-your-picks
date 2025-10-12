@@ -49,14 +49,36 @@ if (process.env.NODE_ENV === 'production') {
   app.use((req, res, next) => {
     // Prevent clickjacking
     res.setHeader('X-Frame-Options', 'DENY');
+    
     // Prevent MIME type sniffing
     res.setHeader('X-Content-Type-Options', 'nosniff');
+    
     // XSS protection
     res.setHeader('X-XSS-Protection', '1; mode=block');
+    
     // Referrer policy
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    // Content Security Policy (basic)
-    res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline';");
+    
+    // Content Security Policy - Strict (Vite builds inline styles/scripts into external files)
+    res.setHeader('Content-Security-Policy', 
+      "default-src 'self'; " +
+      "script-src 'self'; " +
+      "style-src 'self'; " +
+      "img-src 'self' data: https:; " +
+      "font-src 'self' data:; " +
+      "connect-src 'self'; " +
+      "frame-ancestors 'none'; " +
+      "base-uri 'self'; " +
+      "form-action 'self';"
+    );
+    
+    // Permissions Policy - Disable unnecessary browser features
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    
+    // Cross-Origin Policies - Prevent CORS attacks
+    res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
     
     // Note: HSTS header should be set by reverse proxy, not here
     // The proxy terminates HTTPS, so it should control HSTS
@@ -70,7 +92,7 @@ app.use(compression()); // Compress responses (60-80% size reduction)
 
 app.use(cors({
   origin: process.env.APP_URL || `http://localhost:${process.env.PORT || 3003}`,
-  credentials: true,
+  credentials: false, // Disabled - we use JWT in Authorization header, not cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));

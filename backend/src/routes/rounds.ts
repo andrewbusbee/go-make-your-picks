@@ -11,7 +11,7 @@ import { isValidTimezone } from '../utils/timezones';
 import { validateRequest } from '../middleware/validator';
 import { createRoundValidators, updateRoundValidators, completeRoundValidators } from '../validators/roundsValidators';
 import { SettingsService } from '../services/settingsService';
-import logger from '../utils/logger';
+import logger, { redactEmail } from '../utils/logger';
 
 const router = express.Router();
 
@@ -529,7 +529,7 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
       magicLinksData.map(({ user, magicLink }) =>
         sendMagicLink(user.email, user.name, round.sport_name, magicLink, round.email_message, round.commissioner)
           .catch(emailError => {
-            logger.error(`Failed to send email to ${user.email}`, { emailError });
+            logger.error(`Failed to send email`, { emailError, emailRedacted: redactEmail(user.email) });
           })
       )
     );
@@ -781,7 +781,8 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
               participantEmail: participant.email 
             });
           } catch (emailError) {
-            logger.error(`Failed to send completion email to ${participant.email}`, { 
+            logger.error(`Failed to send completion email`, { 
+              emailRedacted: redactEmail(participant.email), 
               emailError, 
               roundId, 
               participantId: participant.id 

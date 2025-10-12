@@ -6,7 +6,8 @@ import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { validatePasswordBasic } from '../utils/passwordValidator';
 import { validateRequest } from '../middleware/validator';
 import { changeEmailValidators } from '../validators/authValidators';
-import logger from '../utils/logger';
+import logger, { redactEmail } from '../utils/logger';
+import { PASSWORD_SALT_ROUNDS } from '../config/constants';
 
 const router = express.Router();
 
@@ -42,7 +43,7 @@ router.post('/', authenticateAdmin, requireMainAdmin, async (req: AuthRequest, r
   }
 
   try {
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
     const [result] = await db.query<ResultSetHeader>(
       'INSERT INTO admins (username, email, password_hash, is_main_admin, must_change_password) VALUES (?, ?, ?, FALSE, FALSE)',
       [username, email, passwordHash]
@@ -161,7 +162,7 @@ router.put('/:id/change-email', authenticateAdmin, requireMainAdmin, validateReq
       adminId: req.adminId, 
       targetAdminId: adminId, 
       targetUsername: admin.username,
-      newEmail 
+      emailRedacted: redactEmail(newEmail)
     });
 
     res.json({ 

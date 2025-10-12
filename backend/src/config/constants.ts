@@ -5,8 +5,8 @@
 
 // Security & Authentication
 export const MIN_JWT_SECRET_LENGTH = 32;
-export const JWT_TOKEN_EXPIRY = '4h';
-export const PASSWORD_SALT_ROUNDS = 10;
+export const JWT_TOKEN_EXPIRY = '24h'; // 24 hours - reduced from 7 days for security
+export const PASSWORD_SALT_ROUNDS = 12; // Increased from 10 for better security
 export const MAGIC_LINK_TOKEN_BYTES = 32;
 export const PASSWORD_RESET_TOKEN_BYTES = 32;
 export const PASSWORD_RESET_EXPIRY_HOURS = 1;

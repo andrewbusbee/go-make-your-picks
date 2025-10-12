@@ -12,11 +12,11 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - mysql-data:/var/lib/mysql
-    # Database port - OPTIONAL: Only expose to localhost for debugging/admin tools
-    # Comment out or remove in production for maximum security (app connects via docker network)
-    # For production, consider removing 'ports' entirely - app uses docker network (mysql:3306)
-    ports:
-      - "127.0.0.1:3306:3306"  # Only accessible from VM localhost, not internet
+    # Database port - REMOVED FOR SECURITY
+    # MySQL is accessible via Docker network (mysql:3306) - no external exposure needed
+    # Uncomment below ONLY for local debugging with database admin tools
+    # ports:
+    #   - "127.0.0.1:3306:3306"  # Only accessible from VM localhost, not internet
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       timeout: 20s

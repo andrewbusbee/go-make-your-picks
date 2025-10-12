@@ -24,6 +24,7 @@ frontend/.vite/
 
 # Docker Compose Override (contains SMTP credentials)
 docker-compose.override.yml
+SECURITY_FIXES_SUMMARY.md
 
 # Logs
 *.log

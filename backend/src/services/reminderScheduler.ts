@@ -2,7 +2,7 @@ import cron from 'node-cron';
 import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { sendMagicLink, sendLockedNotification } from './emailService';
-import logger, { logSchedulerEvent } from '../utils/logger';
+import logger, { logSchedulerEvent, redactEmail } from '../utils/logger';
 import { SettingsService } from './settingsService';
 
 // Check for rounds needing reminders and auto-lock expired rounds
@@ -241,7 +241,7 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
 
         return sendMagicLink(user.email, user.name, round.sport_name, magicLink, customMessage, round.commissioner)
           .catch(emailError => {
-            logger.error(`Failed to send reminder to ${user.email}`, { emailError });
+            logger.error(`Failed to send reminder`, { emailError, emailRedacted: redactEmail(user.email) });
           });
       })
     );
@@ -296,7 +296,7 @@ export const sendLockedNotificationIfNotSent = async (round: any) => {
       allUsers.map(user =>
         sendLockedNotification(user.email, user.name, round.sport_name, leaderboardLink)
           .catch(emailError => {
-            logger.error(`Failed to send locked notification to ${user.email}`, { emailError });
+            logger.error(`Failed to send locked notification`, { emailError, emailRedacted: redactEmail(user.email) });
           })
       )
     );
@@ -417,7 +417,7 @@ export const manualSendGenericReminder = async (roundId: number) => {
 
         return sendMagicLink(user.email, user.name, round.sport_name, magicLink, customMessage, round.commissioner)
           .catch(emailError => {
-            logger.error(`Failed to send reminder to ${user.email}`, { emailError });
+            logger.error(`Failed to send reminder`, { emailError, emailRedacted: redactEmail(user.email) });
           });
       })
     );

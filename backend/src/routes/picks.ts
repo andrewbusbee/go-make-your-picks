@@ -2,7 +2,7 @@ import express from 'express';
 import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import moment from 'moment-timezone';
-import { pickSubmissionLimiter } from '../middleware/rateLimiter';
+import { pickSubmissionLimiter, magicLinkValidationLimiter } from '../middleware/rateLimiter';
 import { validateRequest } from '../middleware/validator';
 import { submitPickValidators } from '../validators/picksValidators';
 import logger from '../utils/logger';
@@ -11,7 +11,7 @@ import { PicksService } from '../services/picksService';
 const router = express.Router();
 
 // Validate magic link and get round info
-router.get('/validate/:token', async (req, res) => {
+router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
   const { token } = req.params;
 
   try {

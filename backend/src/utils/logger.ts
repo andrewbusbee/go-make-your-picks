@@ -5,8 +5,39 @@
 
 import winston from 'winston';
 import path from 'path';
+import crypto from 'crypto';
 
 const { combine, timestamp, printf, colorize, errors, json } = winston.format;
+
+/**
+ * Redact email addresses for privacy/GDPR compliance
+ * Converts: john.doe@example.com -> j****@e*****.com
+ */
+export function redactEmail(email: string): string {
+  if (!email || !email.includes('@')) {
+    return '[REDACTED]';
+  }
+  
+  const [localPart, domain] = email.split('@');
+  const redactedLocal = localPart.length > 2 
+    ? `${localPart[0]}****` 
+    : '****';
+  
+  const domainParts = domain.split('.');
+  const redactedDomain = domainParts.length > 1
+    ? `${domainParts[0][0]}*****`
+    : '*****';
+  
+  return `${redactedLocal}@${redactedDomain}`;
+}
+
+/**
+ * Hash email for tracking without exposing PII
+ * Use this when you need to correlate logs but preserve privacy
+ */
+export function hashEmail(email: string): string {
+  return crypto.createHash('sha256').update(email).digest('hex').substring(0, 12);
+}
 
 // Define log levels
 const levels = {

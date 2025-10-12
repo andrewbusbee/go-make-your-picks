@@ -16,13 +16,15 @@ import {
   forgotPasswordValidators,
   resetPasswordValidators,
 } from '../validators/authValidators';
-import logger from '../utils/logger';
+import logger, { redactEmail } from '../utils/logger';
+import { PASSWORD_SALT_ROUNDS } from '../config/constants';
 
 const router = express.Router();
 
 // Admin login (with rate limiting)
 router.post('/login', loginLimiter, validateRequest(loginValidators), async (req, res) => {
   const { username, password } = req.body;
+  const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
 
   try {
     const [admins] = await db.query<RowDataPacket[]>(
@@ -31,15 +33,87 @@ router.post('/login', loginLimiter, validateRequest(loginValidators), async (req
     );
 
     if (admins.length === 0) {
+      // Log failed attempt for non-existent user (prevents enumeration timing)
+      await db.query(
+        'INSERT INTO login_attempts (username, success, ip_address) VALUES (?, FALSE, ?)',
+        [username, ipAddress]
+      );
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const admin = admins[0];
+
+    // Check if account is currently locked
+    if (admin.account_locked_until) {
+      const lockUntil = new Date(admin.account_locked_until);
+      const now = new Date();
+      
+      if (now < lockUntil) {
+        const minutesLeft = Math.ceil((lockUntil.getTime() - now.getTime()) / 60000);
+        return res.status(403).json({ 
+          error: `Account locked due to too many failed attempts. Try again in ${minutesLeft} minute(s).`,
+          lockedUntil: lockUntil.toISOString()
+        });
+      } else {
+        // Lock expired, clear it
+        await db.query(
+          'UPDATE admins SET account_locked_until = NULL WHERE id = ?',
+          [admin.id]
+        );
+      }
+    }
+
+    // Check password
     const validPassword = await bcrypt.compare(password, admin.password_hash);
 
     if (!validPassword) {
+      // Log failed attempt
+      await db.query(
+        'INSERT INTO login_attempts (username, success, ip_address) VALUES (?, FALSE, ?)',
+        [username, ipAddress]
+      );
+
+      // Count failed attempts in last hour
+      const [failedAttempts] = await db.query<RowDataPacket[]>(
+        'SELECT COUNT(*) as count FROM login_attempts WHERE username = ? AND success = FALSE AND attempt_time > DATE_SUB(NOW(), INTERVAL 1 HOUR)',
+        [username]
+      );
+
+      const failCount = failedAttempts[0].count;
+
+      // Lock account after 10 failed attempts
+      if (failCount >= 10) {
+        const lockUntil = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+        await db.query(
+          'UPDATE admins SET account_locked_until = ? WHERE id = ?',
+          [lockUntil, admin.id]
+        );
+        
+        logger.warn('Account locked due to failed login attempts', { 
+          username, 
+          failCount, 
+          ipAddress 
+        });
+
+        return res.status(403).json({ 
+          error: 'Account locked due to too many failed attempts. Try again in 60 minutes.',
+          lockedUntil: lockUntil.toISOString()
+        });
+      }
+
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+
+    // Successful login - log it and clear any lock
+    await db.query(
+      'INSERT INTO login_attempts (username, success, ip_address) VALUES (?, TRUE, ?)',
+      [username, ipAddress]
+    );
+
+    await db.query(
+      'UPDATE admins SET account_locked_until = NULL WHERE id = ?',
+      [admin.id]
+    );
 
     const token = generateToken(admin.id, admin.username, admin.is_main_admin);
 
@@ -94,7 +168,7 @@ router.post('/initial-setup', authenticateAdmin, validateRequest(initialSetupVal
       return res.status(400).json({ error: 'Email already exists' });
     }
 
-    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    const newPasswordHash = await bcrypt.hash(newPassword, PASSWORD_SALT_ROUNDS);
     await db.query(
       'UPDATE admins SET username = ?, email = ?, password_hash = ?, must_change_password = FALSE WHERE id = ?',
       [newUsername, newEmail, newPasswordHash, req.adminId]
@@ -135,7 +209,7 @@ router.post('/change-password', authenticateAdmin, validateRequest(changePasswor
       return res.status(401).json({ error: 'Current password is incorrect' });
     }
 
-    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    const newPasswordHash = await bcrypt.hash(newPassword, PASSWORD_SALT_ROUNDS);
     await db.query(
       'UPDATE admins SET password_hash = ?, must_change_password = FALSE WHERE id = ?',
       [newPasswordHash, req.adminId]
@@ -186,7 +260,7 @@ router.post('/change-email', authenticateAdmin, validateRequest(changeEmailValid
       [newEmail, req.adminId]
     );
 
-    logger.info('Admin email changed successfully', { adminId: req.adminId, newEmail });
+    logger.info('Admin email changed successfully', { adminId: req.adminId, emailRedacted: redactEmail(newEmail) });
     res.json({ message: 'Email changed successfully' });
   } catch (error) {
     logger.error('Change email error', { error, adminId: req.adminId });
@@ -231,7 +305,7 @@ router.post('/forgot-password', passwordResetLimiter, validateRequest(forgotPass
 
     res.json({ message: responseMessage });
   } catch (error) {
-    logger.error('Forgot password error', { error, email });
+    logger.error('Forgot password error', { error, emailRedacted: redactEmail(email) });
     res.json({ message: 'If you entered a valid email, a password reset message will be sent' });
   }
 });
@@ -271,7 +345,7 @@ router.post('/reset-password', passwordResetLimiter, validateRequest(resetPasswo
     }
 
     // Hash the new password
-    const newPasswordHash = await bcrypt.hash(password, 10);
+    const newPasswordHash = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
 
     // Update password and clear reset token
     await db.query(

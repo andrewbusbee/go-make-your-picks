@@ -40,6 +40,15 @@ RUN apk del python3 make g++
 WORKDIR /app
 RUN npm install -g concurrently
 
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+
+# Change ownership of app directory to non-root user
+RUN chown -R nodejs:nodejs /app
+
+# Switch to non-root user
+USER nodejs
+
 # Expose port
 EXPOSE 3003
 
