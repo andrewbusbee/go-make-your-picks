@@ -47,11 +47,11 @@ export class ScoringService {
       // Get point values from settings (uses historical settings for ended seasons)
       const points = await SettingsService.getPointsSettingsForSeason(seasonId);
 
-      // Get all rounds for the season
+      // Get all rounds for the season (excluding soft-deleted)
       const [rounds] = await db.query<RowDataPacket[]>(
         `SELECT id, sport_name, status, first_place_team, second_place_team, third_place_team, fourth_place_team, fifth_place_team, lock_time
          FROM rounds 
-         WHERE season_id = ? 
+         WHERE season_id = ? AND deleted_at IS NULL
          ORDER BY lock_time ASC`,
         [seasonId]
       );
@@ -199,7 +199,7 @@ export class ScoringService {
       // Get current point values (season is being ended now, so use current settings)
       const points = await SettingsService.getPointsSettings();
 
-      // Calculate final standings with comprehensive scoring (same as leaderboard)
+      // Calculate final standings with comprehensive scoring (same as leaderboard, excluding soft-deleted rounds)
       const [leaderboard] = await db.query<RowDataPacket[]>(
         `SELECT 
           u.id as user_id,
@@ -213,7 +213,7 @@ export class ScoringService {
         FROM users u
         JOIN season_participants sp ON u.id = sp.user_id
         LEFT JOIN scores s ON u.id = s.user_id
-        LEFT JOIN rounds r ON s.round_id = r.id AND r.season_id = ?
+        LEFT JOIN rounds r ON s.round_id = r.id AND r.season_id = ? AND r.deleted_at IS NULL
         WHERE sp.season_id = ?
         GROUP BY u.id, u.name
         ORDER BY total_points DESC`,
@@ -248,11 +248,11 @@ export class ScoringService {
       // Get point values from settings (uses historical settings for ended seasons)
       const points = await SettingsService.getPointsSettingsForSeason(seasonId);
 
-      // Get completed rounds in order
+      // Get completed rounds in order (excluding soft-deleted)
       const [rounds] = await db.query<RowDataPacket[]>(
         `SELECT id, sport_name, lock_time
          FROM rounds 
-         WHERE season_id = ? AND status = 'completed'
+         WHERE season_id = ? AND status = 'completed' AND deleted_at IS NULL
          ORDER BY lock_time ASC`,
         [seasonId]
       );
