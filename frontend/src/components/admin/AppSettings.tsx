@@ -84,6 +84,10 @@ export default function AppSettings() {
   const [originalPointsFourthPlace, setOriginalPointsFourthPlace] = useState(3);
   const [originalPointsFifthPlace, setOriginalPointsFifthPlace] = useState(2);
   const [originalPointsSixthPlusPlace, setOriginalPointsSixthPlusPlace] = useState(1);
+  const [originalReminderType, setOriginalReminderType] = useState<'daily' | 'before_lock' | 'none'>('daily');
+  const [originalDailyReminderTime, setOriginalDailyReminderTime] = useState('10:00');
+  const [originalReminderFirstHours, setOriginalReminderFirstHours] = useState(48);
+  const [originalReminderFinalHours, setOriginalReminderFinalHours] = useState(6);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -123,6 +127,13 @@ export default function AppSettings() {
       setOriginalPointsFourthPlace(parseInt(res.data.points_fourth_place) || 3);
       setOriginalPointsFifthPlace(parseInt(res.data.points_fifth_place) || 2);
       setOriginalPointsSixthPlusPlace(parseInt(res.data.points_sixth_plus_place) || 1);
+      
+      // Set original reminder values
+      const originalTimeValue = res.data.daily_reminder_time || '10:00:00';
+      setOriginalReminderType(res.data.reminder_type || 'daily');
+      setOriginalDailyReminderTime(originalTimeValue.substring(0, 5)); // Remove seconds part
+      setOriginalReminderFirstHours(parseInt(res.data.reminder_first_hours) || 48);
+      setOriginalReminderFinalHours(parseInt(res.data.reminder_final_hours) || 6);
       
       setLoadingSettings(false);
     } catch (error) {
@@ -232,6 +243,10 @@ export default function AppSettings() {
     setPointsFourthPlace(originalPointsFourthPlace);
     setPointsFifthPlace(originalPointsFifthPlace);
     setPointsSixthPlusPlace(originalPointsSixthPlusPlace);
+    setReminderType(originalReminderType);
+    setDailyReminderTime(originalDailyReminderTime);
+    setReminderFirstHours(originalReminderFirstHours);
+    setReminderFinalHours(originalReminderFinalHours);
     setError('');
     setSuccess('');
   };
@@ -246,7 +261,11 @@ export default function AppSettings() {
     pointsThirdPlace !== originalPointsThirdPlace ||
     pointsFourthPlace !== originalPointsFourthPlace ||
     pointsFifthPlace !== originalPointsFifthPlace ||
-    pointsSixthPlusPlace !== originalPointsSixthPlusPlace;
+    pointsSixthPlusPlace !== originalPointsSixthPlusPlace ||
+    reminderType !== originalReminderType ||
+    dailyReminderTime !== originalDailyReminderTime ||
+    reminderFirstHours !== originalReminderFirstHours ||
+    reminderFinalHours !== originalReminderFinalHours;
 
   if (loadingSettings) {
     return (
