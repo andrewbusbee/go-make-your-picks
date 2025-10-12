@@ -49,6 +49,22 @@ export const createRoundValidators = [
       }
       return true;
     }),
+
+  body('reminderType')
+    .optional()
+    .isIn(['daily', 'before_lock']).withMessage('Reminder type must be either "daily" or "before_lock"'),
+
+  body('dailyReminderTime')
+    .optional()
+    .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/).withMessage('Daily reminder time must be in HH:MM:SS format'),
+
+  body('firstReminderHours')
+    .optional()
+    .isInt({ min: 1, max: 168 }).withMessage('First reminder hours must be between 1 and 168'),
+
+  body('finalReminderHours')
+    .optional()
+    .isInt({ min: 1, max: 48 }).withMessage('Final reminder hours must be between 1 and 48'),
 ];
 
 export const updateRoundValidators = [
@@ -84,6 +100,22 @@ export const updateRoundValidators = [
       }
       return true;
     }),
+
+  body('reminderType')
+    .optional()
+    .isIn(['daily', 'before_lock']).withMessage('Reminder type must be either "daily" or "before_lock"'),
+
+  body('dailyReminderTime')
+    .optional()
+    .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/).withMessage('Daily reminder time must be in HH:MM:SS format'),
+
+  body('firstReminderHours')
+    .optional()
+    .isInt({ min: 1, max: 168 }).withMessage('First reminder hours must be between 1 and 168'),
+
+  body('finalReminderHours')
+    .optional()
+    .isInt({ min: 1, max: 48 }).withMessage('Final reminder hours must be between 1 and 48'),
 ];
 
 export const completeRoundValidators = [

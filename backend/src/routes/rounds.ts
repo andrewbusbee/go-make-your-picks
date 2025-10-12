@@ -201,7 +201,7 @@ router.get('/:id', async (req, res) => {
 
 // Create new round (admin only)
 router.post('/', authenticateAdmin, validateRequest(createRoundValidators), async (req: AuthRequest, res: Response) => {
-  const { seasonId, sportName, pickType, numWriteInPicks, emailMessage, lockTime, timezone, teams } = req.body;
+  const { seasonId, sportName, pickType, numWriteInPicks, emailMessage, lockTime, timezone, teams, reminderType, dailyReminderTime, firstReminderHours, finalReminderHours } = req.body;
 
   if (!seasonId || !sportName || !lockTime) {
     return res.status(400).json({ error: 'Season ID, sport name, and lock time are required' });
@@ -231,6 +231,29 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
     return res.status(400).json({ error: 'Invalid timezone. Please select a valid IANA timezone.' });
   }
 
+  // Validate reminder settings
+  const validReminderType = reminderType || 'daily';
+  if (!['daily', 'before_lock'].includes(validReminderType)) {
+    return res.status(400).json({ error: 'Reminder type must be either "daily" or "before_lock"' });
+  }
+
+  const validDailyReminderTime = dailyReminderTime || '10:00:00';
+  const validFirstReminderHours = firstReminderHours || 48;
+  const validFinalReminderHours = finalReminderHours || 6;
+
+  // Validate reminder hours for before_lock type
+  if (validReminderType === 'before_lock') {
+    if (validFirstReminderHours < 1 || validFirstReminderHours > 168) {
+      return res.status(400).json({ error: 'First reminder hours must be between 1 and 168' });
+    }
+    if (validFinalReminderHours < 1 || validFinalReminderHours > 48) {
+      return res.status(400).json({ error: 'Final reminder hours must be between 1 and 48' });
+    }
+    if (validFinalReminderHours >= validFirstReminderHours) {
+      return res.status(400).json({ error: 'Final reminder hours must be less than first reminder hours' });
+    }
+  }
+
   // Parse datetime in the selected timezone, not browser timezone
   // lockTime comes as "2024-10-15T12:00" from datetime-local input
   // Interpret this as 12:00 in the selected timezone, then convert to UTC for storage
@@ -243,8 +266,8 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
     await connection.beginTransaction();
 
     const [result] = await connection.query<ResultSetHeader>(
-      'INSERT INTO rounds (season_id, sport_name, pick_type, num_write_in_picks, email_message, lock_time, timezone, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [seasonId, sportName, validPickType, validPickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, mysqlLockTime, validTimezone, 'draft']
+      'INSERT INTO rounds (season_id, sport_name, pick_type, num_write_in_picks, email_message, lock_time, timezone, reminder_type, daily_reminder_time, first_reminder_hours, final_reminder_hours, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [seasonId, sportName, validPickType, validPickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, mysqlLockTime, validTimezone, validReminderType, validDailyReminderTime, validFirstReminderHours, validFinalReminderHours, 'draft']
     );
 
     const roundId = result.insertId;
@@ -284,7 +307,7 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
 // Update round (admin only)
 router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), async (req: AuthRequest, res: Response) => {
   const roundId = parseInt(req.params.id);
-  const { seasonId, sportName, pickType, numWriteInPicks, emailMessage, lockTime, timezone } = req.body;
+  const { seasonId, sportName, pickType, numWriteInPicks, emailMessage, lockTime, timezone, reminderType, dailyReminderTime, firstReminderHours, finalReminderHours } = req.body;
 
   // Validate pickType if provided
   if (pickType && !['single', 'multiple'].includes(pickType)) {
@@ -301,6 +324,23 @@ router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), as
   // Validate timezone if provided
   if (timezone && !isValidTimezone(timezone)) {
     return res.status(400).json({ error: 'Invalid timezone. Please select a valid timezone.' });
+  }
+
+  // Validate reminder settings if provided
+  if (reminderType && !['daily', 'before_lock'].includes(reminderType)) {
+    return res.status(400).json({ error: 'Reminder type must be either "daily" or "before_lock"' });
+  }
+
+  if (reminderType === 'before_lock') {
+    if (firstReminderHours && (firstReminderHours < 1 || firstReminderHours > 168)) {
+      return res.status(400).json({ error: 'First reminder hours must be between 1 and 168' });
+    }
+    if (finalReminderHours && (finalReminderHours < 1 || finalReminderHours > 48)) {
+      return res.status(400).json({ error: 'Final reminder hours must be between 1 and 48' });
+    }
+    if (firstReminderHours && finalReminderHours && finalReminderHours >= firstReminderHours) {
+      return res.status(400).json({ error: 'Final reminder hours must be less than first reminder hours' });
+    }
   }
 
   // Validate season if provided
@@ -351,9 +391,13 @@ router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), as
         num_write_in_picks = ?,
         email_message = ?,
         lock_time = COALESCE(?, lock_time),
-        timezone = COALESCE(?, timezone)
+        timezone = COALESCE(?, timezone),
+        reminder_type = COALESCE(?, reminder_type),
+        daily_reminder_time = COALESCE(?, daily_reminder_time),
+        first_reminder_hours = COALESCE(?, first_reminder_hours),
+        final_reminder_hours = COALESCE(?, final_reminder_hours)
       WHERE id = ?`,
-      [seasonId, sportName, pickType, pickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, mysqlLockTime, timezone, roundId]
+      [seasonId, sportName, pickType, pickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, mysqlLockTime, timezone, reminderType, dailyReminderTime, firstReminderHours, finalReminderHours, roundId]
     );
 
     res.json({ message: 'Round updated successfully' });

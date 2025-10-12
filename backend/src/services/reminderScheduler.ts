@@ -16,9 +16,9 @@ export const checkAndSendReminders = async () => {
     // Get reminder settings
     const reminderSettings = await SettingsService.getReminderSettings();
     
-    // Get all active rounds that haven't been completed (with commissioner from season)
+    // Get all active rounds that haven't been completed (with commissioner from season and reminder settings)
     const [rounds] = await db.query<RowDataPacket[]>(
-      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, s.commissioner 
+      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, r.reminder_type, r.daily_reminder_time, r.first_reminder_hours, r.final_reminder_hours, s.commissioner 
        FROM rounds r
        JOIN seasons s ON r.season_id = s.id 
        WHERE r.status = 'active' AND r.lock_time > NOW()`,
@@ -27,19 +27,31 @@ export const checkAndSendReminders = async () => {
 
     for (const round of rounds) {
       const lockTime = new Date(round.lock_time);
-      const timeDiff = lockTime.getTime() - now.getTime();
-      const hoursDiff = timeDiff / (1000 * 60 * 60);
+      const roundReminderType = round.reminder_type || 'daily';
 
-      // Check if we need to send first reminder (with 1-hour window on each side)
-      if (hoursDiff >= (reminderSettings.firstReminderHours - 1) && 
-          hoursDiff <= (reminderSettings.firstReminderHours + 1)) {
-        await sendReminderIfNotSent(round, 'first', reminderSettings.firstReminderHours);
-      }
+      if (roundReminderType === 'daily') {
+        // Handle daily reminders - check if it's time to send based on daily_reminder_time
+        await checkAndSendDailyReminder(round, now);
+      } else if (roundReminderType === 'before_lock') {
+        // Handle before-lock reminders (existing logic)
+        const timeDiff = lockTime.getTime() - now.getTime();
+        const hoursDiff = timeDiff / (1000 * 60 * 60);
 
-      // Check if we need to send final reminder (with 1-hour window on each side)
-      if (hoursDiff >= (reminderSettings.finalReminderHours - 1) && 
-          hoursDiff <= (reminderSettings.finalReminderHours + 1)) {
-        await sendReminderIfNotSent(round, 'final', reminderSettings.finalReminderHours);
+        // Use round-specific reminder hours or fall back to global settings
+        const firstReminderHours = round.first_reminder_hours || reminderSettings.firstReminderHours;
+        const finalReminderHours = round.final_reminder_hours || reminderSettings.finalReminderHours;
+
+        // Check if we need to send first reminder (with 1-hour window on each side)
+        if (hoursDiff >= (firstReminderHours - 1) && 
+            hoursDiff <= (firstReminderHours + 1)) {
+          await sendReminderIfNotSent(round, 'first', firstReminderHours);
+        }
+
+        // Check if we need to send final reminder (with 1-hour window on each side)
+        if (hoursDiff >= (finalReminderHours - 1) && 
+            hoursDiff <= (finalReminderHours + 1)) {
+          await sendReminderIfNotSent(round, 'final', finalReminderHours);
+        }
       }
     }
 
@@ -107,8 +119,45 @@ export const autoLockExpiredRounds = async () => {
   }
 };
 
+// Check and send daily reminder if it's time
+export const checkAndSendDailyReminder = async (round: any, now: Date) => {
+  try {
+    const dailyReminderTime = round.daily_reminder_time || '10:00:00';
+    const lockTime = new Date(round.lock_time);
+    
+    // Parse the daily reminder time (e.g., "10:00:00")
+    const [hours, minutes, seconds] = dailyReminderTime.split(':').map(Number);
+    
+    // Create today's reminder time in UTC
+    const today = new Date(now);
+    today.setUTCHours(hours, minutes, seconds, 0);
+    
+    // Check if we're within 1 hour of the daily reminder time
+    const timeDiff = Math.abs(today.getTime() - now.getTime());
+    const oneHourInMs = 60 * 60 * 1000;
+    
+    if (timeDiff <= oneHourInMs) {
+      // Check if we already sent a daily reminder today
+      const todayStart = new Date(now);
+      todayStart.setUTCHours(0, 0, 0, 0);
+      
+      const [existingToday] = await db.query<RowDataPacket[]>(
+        'SELECT id FROM reminder_log WHERE round_id = ? AND reminder_type = ? AND sent_at >= ?',
+        [round.id, 'daily', todayStart]
+      );
+      
+      if (existingToday.length === 0) {
+        // Send daily reminder
+        await sendReminderIfNotSent(round, 'daily', 0);
+      }
+    }
+  } catch (error) {
+    logger.error('Error checking daily reminder', { roundId: round.id, error });
+  }
+};
+
 // Send reminder to users who haven't picked yet
-export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 'final', reminderHours: number) => {
+export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 'final' | 'daily', reminderHours?: number) => {
   try {
     // Check if this reminder was already sent
     const [existing] = await db.query<RowDataPacket[]>(
@@ -171,9 +220,14 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
     }
 
     const APP_URL = process.env.APP_URL || 'http://localhost:3003';
-    const reminderText = reminderType === 'first' 
-      ? `⏰ Reminder: You have about ${reminderHours} hours left to make your pick!`
-      : `🚨 Final reminder: You only have about ${reminderHours} hours left to make your pick!`;
+    let reminderText;
+    if (reminderType === 'daily') {
+      reminderText = `📅 Daily reminder: Don't forget to make your pick for ${round.sport_name}!`;
+    } else if (reminderType === 'first') {
+      reminderText = `⏰ Reminder: You have about ${reminderHours} hours left to make your pick!`;
+    } else {
+      reminderText = `🚨 Final reminder: You only have about ${reminderHours} hours left to make your pick!`;
+    }
 
     // Send reminder emails in parallel
     await Promise.allSettled(
