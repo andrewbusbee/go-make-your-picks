@@ -3,7 +3,6 @@ import api from '../../utils/api';
 import {
   headingClasses,
   labelClasses,
-  inputClasses,
   selectClasses,
   helpTextClasses,
   buttonPrimaryClasses,
