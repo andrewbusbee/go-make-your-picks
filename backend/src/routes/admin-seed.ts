@@ -3,6 +3,7 @@ import { authenticateAdmin, requireMainAdmin, AuthRequest } from '../middleware/
 import db from '../config/database';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { SettingsService } from '../services/settingsService';
+import { withTransaction } from '../utils/transactionWrapper';
 
 const router = express.Router();
 
@@ -12,12 +13,9 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
   // Get settings BEFORE starting transaction to avoid connection conflicts
   const points = await SettingsService.getPointsSettings();
   
-  const connection = await db.getConnection();
-  
   try {
-    await connection.beginTransaction();
-
-    // Get or create default season
+    const details = await withTransaction(async (connection) => {
+      // Get or create default season
     let [seasons] = await connection.query<RowDataPacket[]>(
       'SELECT id FROM seasons WHERE is_default = TRUE LIMIT 1'
     );
@@ -333,20 +331,20 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
       );
     }
 
-    await connection.commit();
-
-    res.json({
-      message: 'Sample data seeded successfully!',
-      details: {
+      return {
         users: userIds.length,
         season: seasonId,
         sports: 2 + completedSports.length, // 2 active + 9 completed
         picks: userIds.length * (2 + completedSports.length)
-      }
+      };
+    });
+
+    res.json({
+      message: 'Sample data seeded successfully!',
+      details: details
     });
 
   } catch (error: any) {
-    await connection.rollback();
     console.error('Seed sample data error:', error);
     console.error('Error details:', {
       message: error.message,
@@ -367,77 +365,68 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
       error: 'Failed to seed sample data',
       details: process.env.NODE_ENV === 'development' ? error.message : 'Check server logs for details'
     });
-  } finally {
-    connection.release();
   }
 });
 
 // ⚠️ TEMPORARY ROUTE - REMOVE BEFORE PRODUCTION ⚠️
 // Clear all sample data
 router.post('/clear-test-data', authenticateAdmin, requireMainAdmin, async (req: AuthRequest, res: Response) => {
-  const connection = await db.getConnection();
-  
   try {
-    await connection.beginTransaction();
+    await withTransaction(async (connection) => {
+      // Delete users with sample emails (CASCADE will handle related data)
+      await connection.query(
+        `DELETE FROM users WHERE email IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          'sample1@example.com',
+          'sample2@example.com',
+          'sample3@example.com',
+          'sample4@example.com',
+          'sample5@example.com',
+          'sample6@example.com',
+          'sample7@example.com',
+          'sample8@example.com',
+          'sample9@example.com',
+          'sample10@example.com',
+          'sample11@example.com',
+          'sample12@example.com',
+          'sample13@example.com',
+          'sample14@example.com',
+          'sample15@example.com'
+        ]
+      );
 
-    // Delete users with sample emails (CASCADE will handle related data)
-    await connection.query(
-      `DELETE FROM users WHERE email IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        'sample1@example.com',
-        'sample2@example.com',
-        'sample3@example.com',
-        'sample4@example.com',
-        'sample5@example.com',
-        'sample6@example.com',
-        'sample7@example.com',
-        'sample8@example.com',
-        'sample9@example.com',
-        'sample10@example.com',
-        'sample11@example.com',
-        'sample12@example.com',
-        'sample13@example.com',
-        'sample14@example.com',
-        'sample15@example.com'
-      ]
-    );
+      // Delete sample sports
+      const testSports = [
+        'March Madness 2027', 
+        'Super Bowl LXI',
+        'NBA Finals 2026',
+        'World Cup 2026',
+        'Masters 2026',
+        'Kentucky Derby 2026',
+        'Stanley Cup 2026',
+        'UFC Championship 2026',
+        'Wimbledon 2026',
+        'Olympics Basketball 2024',
+        'Champions League 2026'
+      ];
+      
+      await connection.query(
+        `DELETE FROM rounds WHERE sport_name IN (${testSports.map(() => '?').join(', ')})`,
+        testSports
+      );
 
-    // Delete sample sports
-    const testSports = [
-      'March Madness 2027', 
-      'Super Bowl LXI',
-      'NBA Finals 2026',
-      'World Cup 2026',
-      'Masters 2026',
-      'Kentucky Derby 2026',
-      'Stanley Cup 2026',
-      'UFC Championship 2026',
-      'Wimbledon 2026',
-      'Olympics Basketball 2024',
-      'Champions League 2026'
-    ];
-    
-    await connection.query(
-      `DELETE FROM rounds WHERE sport_name IN (${testSports.map(() => '?').join(', ')})`,
-      testSports
-    );
-
-    // Delete sample season (CASCADE will handle related data like season_participants)
-    await connection.query(
-      `DELETE FROM seasons WHERE name = ?`,
-      ['Test Season 2025-2026']
-    );
-
-    await connection.commit();
+      // Delete sample season (CASCADE will handle related data like season_participants)
+      await connection.query(
+        `DELETE FROM seasons WHERE name = ?`,
+        ['Test Season 2025-2026']
+      );
+    });
 
     res.json({ message: 'Sample data deleted successfully!' });
 
   } catch (error) {
-    await connection.rollback();
     console.error('Clear sample data error:', error);
     res.status(500).json({ error: 'Failed to delete sample data' });
-  } finally {
-    connection.release();
   }
 });
 

@@ -12,6 +12,7 @@ import { validateRequest } from '../middleware/validator';
 import { createRoundValidators, updateRoundValidators, completeRoundValidators } from '../validators/roundsValidators';
 import { SettingsService } from '../services/settingsService';
 import logger, { redactEmail } from '../utils/logger';
+import { withTransaction } from '../utils/transactionWrapper';
 
 const router = express.Router();
 
@@ -354,47 +355,46 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
   const lockTimeMoment = moment.tz(lockTime, validTimezone);
   const mysqlLockTime = lockTimeMoment.utc().format('YYYY-MM-DD HH:mm:ss');
 
-  const connection = await db.getConnection();
-  
   try {
-    await connection.beginTransaction();
-
-    const [result] = await connection.query<ResultSetHeader>(
-      'INSERT INTO rounds (season_id, sport_name, pick_type, num_write_in_picks, email_message, lock_time, timezone, reminder_type, daily_reminder_time, first_reminder_hours, final_reminder_hours, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [seasonId, sportName, validPickType, validPickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, mysqlLockTime, validTimezone, validReminderType, validDailyReminderTime, validFirstReminderHours, validFinalReminderHours, 'draft']
-    );
-
-    const roundId = result.insertId;
-
-    // Add teams if provided (only for single pick type)
-    if (validPickType === 'single' && teams && Array.isArray(teams) && teams.length > 0) {
-      // Validate team name lengths
-      for (const team of teams) {
-        if (team.length > 100) {
-          await connection.rollback();
-          return res.status(400).json({ error: 'Team names must be 100 characters or less' });
-        }
-      }
-      
-      const teamValues = teams.map((team: string) => [roundId, team]);
-      await connection.query(
-        'INSERT INTO round_teams (round_id, team_name) VALUES ?',
-        [teamValues]
+    const roundId = await withTransaction(async (connection) => {
+      const [result] = await connection.query<ResultSetHeader>(
+        'INSERT INTO rounds (season_id, sport_name, pick_type, num_write_in_picks, email_message, lock_time, timezone, reminder_type, daily_reminder_time, first_reminder_hours, final_reminder_hours, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [seasonId, sportName, validPickType, validPickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, mysqlLockTime, validTimezone, validReminderType, validDailyReminderTime, validFirstReminderHours, validFinalReminderHours, 'draft']
       );
-    }
 
-    await connection.commit();
+      const roundId = result.insertId;
+
+      // Add teams if provided (only for single pick type)
+      if (validPickType === 'single' && teams && Array.isArray(teams) && teams.length > 0) {
+        // Validate team name lengths
+        for (const team of teams) {
+          if (team.length > 100) {
+            throw new Error('Team names must be 100 characters or less');
+          }
+        }
+        
+        const teamValues = teams.map((team: string) => [roundId, team]);
+        await connection.query(
+          'INSERT INTO round_teams (round_id, team_name) VALUES ?',
+          [teamValues]
+        );
+      }
+
+      return roundId;
+    });
 
     res.status(201).json({
       message: 'Round created successfully',
       id: roundId
     });
-  } catch (error) {
-    await connection.rollback();
+  } catch (error: any) {
     logger.error('Create round error', { error, seasonId, sportName });
+    
+    if (error.message === 'Team names must be 100 characters or less') {
+      return res.status(400).json({ error: error.message });
+    }
+    
     res.status(500).json({ error: 'Server error' });
-  } finally {
-    connection.release();
   }
 });
 
@@ -610,142 +610,136 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
     return res.status(400).json({ error: 'First place (champion) is required' });
   }
 
-  const connection = await db.getConnection();
-
   try {
-    await connection.beginTransaction();
-
-    // Get round details
-    const [rounds] = await connection.query<RowDataPacket[]>(
-      'SELECT * FROM rounds WHERE id = ?',
-      [roundId]
-    );
-
-    if (rounds.length === 0) {
-      await connection.rollback();
-      return res.status(404).json({ error: 'Round not found' });
-    }
-
-    const round = rounds[0];
-    const pickType = round.pick_type || 'single';
-
-    // Update round with results
-    await connection.query(
-      'UPDATE rounds SET status = ?, first_place_team = ?, second_place_team = ?, third_place_team = ?, fourth_place_team = ?, fifth_place_team = ? WHERE id = ?',
-      ['completed', firstPlaceTeam, secondPlaceTeam || null, thirdPlaceTeam || null, fourthPlaceTeam || null, fifthPlaceTeam || null, roundId]
-    );
-
-    // Get all picks for this round
-    const [picks] = await connection.query<RowDataPacket[]>(
-      'SELECT * FROM picks WHERE round_id = ?',
-      [roundId]
-    );
-
-    // Get all pick items
-    const pickIds = picks.map(p => p.id);
-    let pickItems: RowDataPacket[] = [];
-    if (pickIds.length > 0) {
-      [pickItems] = await connection.query<RowDataPacket[]>(
-        'SELECT * FROM pick_items WHERE pick_id IN (?)',
-        [pickIds]
+    await withTransaction(async (connection) => {
+      // Get round details
+      const [rounds] = await connection.query<RowDataPacket[]>(
+        'SELECT * FROM rounds WHERE id = ?',
+        [roundId]
       );
-    }
 
-    // Calculate scores based on pick type
-    if (pickType === 'single') {
-      // Automatic scoring for single pick type
-      const placements = [firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam, fourthPlaceTeam, fifthPlaceTeam].filter(Boolean);
-      
-      for (const pick of picks) {
-        let first = 0, second = 0, third = 0, fourth = 0, fifth = 0, sixthPlus = 0;
+      if (rounds.length === 0) {
+        throw new Error('Round not found');
+      }
 
-        // Get pick items for this pick
-        const userPickItems = pickItems.filter(pi => pi.pick_id === pick.id);
+      const round = rounds[0];
+      const pickType = round.pick_type || 'single';
+
+      // Update round with results
+      await connection.query(
+        'UPDATE rounds SET status = ?, first_place_team = ?, second_place_team = ?, third_place_team = ?, fourth_place_team = ?, fifth_place_team = ? WHERE id = ?',
+        ['completed', firstPlaceTeam, secondPlaceTeam || null, thirdPlaceTeam || null, fourthPlaceTeam || null, fifthPlaceTeam || null, roundId]
+      );
+
+      // Get all picks for this round
+      const [picks] = await connection.query<RowDataPacket[]>(
+        'SELECT * FROM picks WHERE round_id = ?',
+        [roundId]
+      );
+
+      // Get all pick items
+      const pickIds = picks.map(p => p.id);
+      let pickItems: RowDataPacket[] = [];
+      if (pickIds.length > 0) {
+        [pickItems] = await connection.query<RowDataPacket[]>(
+          'SELECT * FROM pick_items WHERE pick_id IN (?)',
+          [pickIds]
+        );
+      }
+
+      // Calculate scores based on pick type
+      if (pickType === 'single') {
+        // Automatic scoring for single pick type
+        const placements = [firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam, fourthPlaceTeam, fifthPlaceTeam].filter(Boolean);
         
-        // Check each pick against placements (case insensitive)
-        let matched = false;
-        for (const item of userPickItems) {
-          const pickValue = item.pick_value.toLowerCase();
+        for (const pick of picks) {
+          let first = 0, second = 0, third = 0, fourth = 0, fifth = 0, sixthPlus = 0;
+
+          // Get pick items for this pick
+          const userPickItems = pickItems.filter(pi => pi.pick_id === pick.id);
           
-          if (firstPlaceTeam && pickValue === firstPlaceTeam.toLowerCase()) {
-            first = 1;
-            matched = true;
-            break;
-          } else if (secondPlaceTeam && pickValue === secondPlaceTeam.toLowerCase()) {
-            second = 1;
-            matched = true;
-            break;
-          } else if (thirdPlaceTeam && pickValue === thirdPlaceTeam.toLowerCase()) {
-            third = 1;
-            matched = true;
-            break;
-          } else if (fourthPlaceTeam && pickValue === fourthPlaceTeam.toLowerCase()) {
-            fourth = 1;
-            matched = true;
-            break;
-          } else if (fifthPlaceTeam && pickValue === fifthPlaceTeam.toLowerCase()) {
-            fifth = 1;
-            matched = true;
-            break;
+          // Check each pick against placements (case insensitive)
+          let matched = false;
+          for (const item of userPickItems) {
+            const pickValue = item.pick_value.toLowerCase();
+            
+            if (firstPlaceTeam && pickValue === firstPlaceTeam.toLowerCase()) {
+              first = 1;
+              matched = true;
+              break;
+            } else if (secondPlaceTeam && pickValue === secondPlaceTeam.toLowerCase()) {
+              second = 1;
+              matched = true;
+              break;
+            } else if (thirdPlaceTeam && pickValue === thirdPlaceTeam.toLowerCase()) {
+              third = 1;
+              matched = true;
+              break;
+            } else if (fourthPlaceTeam && pickValue === fourthPlaceTeam.toLowerCase()) {
+              fourth = 1;
+              matched = true;
+              break;
+            } else if (fifthPlaceTeam && pickValue === fifthPlaceTeam.toLowerCase()) {
+              fifth = 1;
+              matched = true;
+              break;
+            }
           }
+
+          // If no match in top 5, they get 6th+ place point
+          if (!matched) {
+            sixthPlus = 1;
+          }
+
+          // Insert or update score (flags only, points calculated dynamically)
+          await connection.query(
+            `INSERT INTO scores (user_id, round_id, first_place, second_place, third_place, fourth_place, fifth_place, sixth_plus_place)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE 
+             first_place = VALUES(first_place),
+             second_place = VALUES(second_place),
+             third_place = VALUES(third_place),
+             fourth_place = VALUES(fourth_place),
+             fifth_place = VALUES(fifth_place),
+             sixth_plus_place = VALUES(sixth_plus_place)`,
+            [pick.user_id, roundId, first, second, third, fourth, fifth, sixthPlus]
+          );
+        }
+      } else {
+        // Manual scoring for multiple pick type
+        if (!manualScores || !Array.isArray(manualScores)) {
+          throw new Error('Manual scores are required for multiple pick rounds');
         }
 
-        // If no match in top 5, they get 6th+ place point
-        if (!matched) {
-          sixthPlus = 1;
+        for (const scoreData of manualScores) {
+          const { userId, placement } = scoreData;
+          let first = 0, second = 0, third = 0, fourth = 0, fifth = 0, sixthPlus = 0;
+          
+          // Set the appropriate placement flag based on selection
+          switch(placement) {
+            case 'first': first = 1; break;
+            case 'second': second = 1; break;
+            case 'third': third = 1; break;
+            case 'fourth': fourth = 1; break;
+            case 'fifth': fifth = 1; break;
+            default: sixthPlus = 1; break;
+          }
+
+          await connection.query(
+            `INSERT INTO scores (user_id, round_id, first_place, second_place, third_place, fourth_place, fifth_place, sixth_plus_place)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE 
+             first_place = VALUES(first_place),
+             second_place = VALUES(second_place),
+             third_place = VALUES(third_place),
+             fourth_place = VALUES(fourth_place),
+             fifth_place = VALUES(fifth_place),
+             sixth_plus_place = VALUES(sixth_plus_place)`,
+            [userId, roundId, first, second, third, fourth, fifth, sixthPlus]
+          );
         }
-
-        // Insert or update score (flags only, points calculated dynamically)
-        await connection.query(
-          `INSERT INTO scores (user_id, round_id, first_place, second_place, third_place, fourth_place, fifth_place, sixth_plus_place)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-           ON DUPLICATE KEY UPDATE 
-           first_place = VALUES(first_place),
-           second_place = VALUES(second_place),
-           third_place = VALUES(third_place),
-           fourth_place = VALUES(fourth_place),
-           fifth_place = VALUES(fifth_place),
-           sixth_plus_place = VALUES(sixth_plus_place)`,
-          [pick.user_id, roundId, first, second, third, fourth, fifth, sixthPlus]
-        );
       }
-    } else {
-      // Manual scoring for multiple pick type
-      if (!manualScores || !Array.isArray(manualScores)) {
-        await connection.rollback();
-        return res.status(400).json({ error: 'Manual scores are required for multiple pick rounds' });
-      }
-
-      for (const scoreData of manualScores) {
-        const { userId, placement } = scoreData;
-        let first = 0, second = 0, third = 0, fourth = 0, fifth = 0, sixthPlus = 0;
-        
-        // Set the appropriate placement flag based on selection
-        switch(placement) {
-          case 'first': first = 1; break;
-          case 'second': second = 1; break;
-          case 'third': third = 1; break;
-          case 'fourth': fourth = 1; break;
-          case 'fifth': fifth = 1; break;
-          default: sixthPlus = 1; break;
-        }
-
-        await connection.query(
-          `INSERT INTO scores (user_id, round_id, first_place, second_place, third_place, fourth_place, fifth_place, sixth_plus_place)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-           ON DUPLICATE KEY UPDATE 
-           first_place = VALUES(first_place),
-           second_place = VALUES(second_place),
-           third_place = VALUES(third_place),
-           fourth_place = VALUES(fourth_place),
-           fifth_place = VALUES(fifth_place),
-           sixth_plus_place = VALUES(sixth_plus_place)`,
-          [userId, roundId, first, second, third, fourth, fifth, sixthPlus]
-        );
-      }
-    }
-
-    await connection.commit();
+    });
 
     // Send completion emails to all participants (batched for performance)
     try {
@@ -864,12 +858,17 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
     }
 
     res.json({ message: 'Round completed and scores calculated successfully' });
-  } catch (error) {
-    await connection.rollback();
+  } catch (error: any) {
     logger.error('Complete round error', { error, roundId });
+    
+    // Handle specific error messages
+    if (error.message === 'Round not found') {
+      return res.status(404).json({ error: 'Round not found' });
+    } else if (error.message === 'Manual scores are required for multiple pick rounds') {
+      return res.status(400).json({ error: error.message });
+    }
+    
     res.status(500).json({ error: 'Server error' });
-  } finally {
-    connection.release();
   }
 });
 

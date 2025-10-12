@@ -6,6 +6,7 @@ import { isValidTimezone } from '../utils/timezones';
 import logger from '../utils/logger';
 import { SettingsService } from '../services/settingsService';
 import { clearHtmlSettingsCache } from '../utils/htmlRenderer';
+import { withTransaction } from '../utils/transactionWrapper';
 
 const router = express.Router();
 
@@ -140,98 +141,94 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     }
   }
 
-  const connection = await db.getConnection();
-
   try {
-    await connection.beginTransaction();
-
-    // Update or insert text settings
-    await connection.query(
-      `INSERT INTO text_settings (setting_key, setting_value) VALUES ('app_title', ?)
-       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
-      [appTitle]
-    );
-
-    await connection.query(
-      `INSERT INTO text_settings (setting_key, setting_value) VALUES ('app_tagline', ?)
-       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
-      [appTagline]
-    );
-
-    await connection.query(
-      `INSERT INTO text_settings (setting_key, setting_value) VALUES ('footer_message', ?)
-       ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
-      [footerMessage]
-    );
-
-    // Update default timezone if provided
-    if (defaultTimezone) {
+    await withTransaction(async (connection) => {
+      // Update or insert text settings
       await connection.query(
-        `INSERT INTO text_settings (setting_key, setting_value) VALUES ('default_timezone', ?)
+        `INSERT INTO text_settings (setting_key, setting_value) VALUES ('app_title', ?)
          ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
-        [defaultTimezone]
+        [appTitle]
       );
-    }
 
-    // Update reminder type if provided
-    if (reminderType !== undefined) {
       await connection.query(
-        `INSERT INTO text_settings (setting_key, setting_value) VALUES ('reminder_type', ?)
+        `INSERT INTO text_settings (setting_key, setting_value) VALUES ('app_tagline', ?)
          ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
-        [reminderType]
+        [appTagline]
       );
-    }
 
-    // Update daily reminder time if provided
-    if (dailyReminderTime !== undefined) {
       await connection.query(
-        `INSERT INTO text_settings (setting_key, setting_value) VALUES ('daily_reminder_time', ?)
+        `INSERT INTO text_settings (setting_key, setting_value) VALUES ('footer_message', ?)
          ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
-        [dailyReminderTime]
+        [footerMessage]
       );
-    }
 
-    // Update numeric point values if provided
-    const pointSettings = [
-      { key: 'points_first_place', value: pointsFirstPlace },
-      { key: 'points_second_place', value: pointsSecondPlace },
-      { key: 'points_third_place', value: pointsThirdPlace },
-      { key: 'points_fourth_place', value: pointsFourthPlace },
-      { key: 'points_fifth_place', value: pointsFifthPlace },
-      { key: 'points_sixth_plus_place', value: pointsSixthPlusPlace }
-    ];
-
-    for (const setting of pointSettings) {
-      if (setting.value !== undefined) {
-        const intValue = parseInt(setting.value);
+      // Update default timezone if provided
+      if (defaultTimezone) {
         await connection.query(
-          `INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) VALUES (?, ?, 0, 20)
+          `INSERT INTO text_settings (setting_key, setting_value) VALUES ('default_timezone', ?)
            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
-          [setting.key, intValue]
+          [defaultTimezone]
         );
       }
-    }
 
-    // Update reminder hours if provided
-    if (reminderFirstHours !== undefined) {
-      const intValue = parseInt(reminderFirstHours);
-      await connection.query(
-        `INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) VALUES ('reminder_first_hours', ?, 2, 168)
-         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
-        [intValue]
-      );
-    }
+      // Update reminder type if provided
+      if (reminderType !== undefined) {
+        await connection.query(
+          `INSERT INTO text_settings (setting_key, setting_value) VALUES ('reminder_type', ?)
+           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+          [reminderType]
+        );
+      }
 
-    if (reminderFinalHours !== undefined) {
-      const intValue = parseInt(reminderFinalHours);
-      await connection.query(
-        `INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) VALUES ('reminder_final_hours', ?, 1, 48)
-         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
-        [intValue]
-      );
-    }
+      // Update daily reminder time if provided
+      if (dailyReminderTime !== undefined) {
+        await connection.query(
+          `INSERT INTO text_settings (setting_key, setting_value) VALUES ('daily_reminder_time', ?)
+           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+          [dailyReminderTime]
+        );
+      }
 
-    await connection.commit();
+      // Update numeric point values if provided
+      const pointSettings = [
+        { key: 'points_first_place', value: pointsFirstPlace },
+        { key: 'points_second_place', value: pointsSecondPlace },
+        { key: 'points_third_place', value: pointsThirdPlace },
+        { key: 'points_fourth_place', value: pointsFourthPlace },
+        { key: 'points_fifth_place', value: pointsFifthPlace },
+        { key: 'points_sixth_plus_place', value: pointsSixthPlusPlace }
+      ];
+
+      for (const setting of pointSettings) {
+        if (setting.value !== undefined) {
+          const intValue = parseInt(setting.value);
+          await connection.query(
+            `INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) VALUES (?, ?, 0, 20)
+             ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+            [setting.key, intValue]
+          );
+        }
+      }
+
+      // Update reminder hours if provided
+      if (reminderFirstHours !== undefined) {
+        const intValue = parseInt(reminderFirstHours);
+        await connection.query(
+          `INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) VALUES ('reminder_first_hours', ?, 2, 168)
+           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+          [intValue]
+        );
+      }
+
+      if (reminderFinalHours !== undefined) {
+        const intValue = parseInt(reminderFinalHours);
+        await connection.query(
+          `INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) VALUES ('reminder_final_hours', ?, 1, 48)
+           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+          [intValue]
+        );
+      }
+    });
 
     // Clear settings cache so new values are loaded immediately
     SettingsService.clearCache();
@@ -255,11 +252,8 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
       }
     });
   } catch (error) {
-    await connection.rollback();
     logger.error('Update settings error', { error });
     res.status(500).json({ error: 'Server error' });
-  } finally {
-    connection.release();
   }
 });
 

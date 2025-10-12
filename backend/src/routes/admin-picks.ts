@@ -7,6 +7,7 @@ import { validateRequest } from '../middleware/validator';
 import { adminCreatePickValidators } from '../validators/picksValidators';
 import logger from '../utils/logger';
 import { PicksService } from '../services/picksService';
+import { withTransaction } from '../utils/transactionWrapper';
 
 const router = express.Router();
 
@@ -14,52 +15,50 @@ const router = express.Router();
 router.post('/', authenticateAdmin, validateRequest(adminCreatePickValidators), async (req: AuthRequest, res: Response) => {
   const { userId, roundId, picks } = req.body; // picks is array of pick values
 
-  const connection = await db.getConnection();
-
   try {
-    await connection.beginTransaction();
+    await withTransaction(async (connection) => {
+      // Verify round exists and get details
+      const [rounds] = await connection.query<RowDataPacket[]>(
+        'SELECT * FROM rounds WHERE id = ?',
+        [roundId]
+      );
 
-    // Verify round exists and get details
-    const [rounds] = await connection.query<RowDataPacket[]>(
-      'SELECT * FROM rounds WHERE id = ?',
-      [roundId]
-    );
+      if (rounds.length === 0) {
+        throw new Error('Round not found');
+      }
 
-    if (rounds.length === 0) {
-      await connection.rollback();
-      return res.status(404).json({ error: 'Round not found' });
-    }
+      const round = rounds[0];
+      const pickType = round.pick_type || 'single';
 
-    const round = rounds[0];
-    const pickType = round.pick_type || 'single';
+      // Allow admin to enter picks even after lock time
+      // But prevent if round is completed
+      if (round.status === 'completed') {
+        throw new Error('Cannot modify picks for completed rounds');
+      }
 
-    // Allow admin to enter picks even after lock time
-    // But prevent if round is completed
-    if (round.status === 'completed') {
-      await connection.rollback();
-      return res.status(400).json({ error: 'Cannot modify picks for completed rounds' });
-    }
-
-    // Submit pick using centralized service
-    const shouldValidateTeams = pickType === 'single';
-    
-    await PicksService.submitPick(connection, {
-      userId,
-      roundId,
-      picks,
-      validateTeams: shouldValidateTeams
+      // Submit pick using centralized service
+      const shouldValidateTeams = pickType === 'single';
+      
+      await PicksService.submitPick(connection, {
+        userId,
+        roundId,
+        picks,
+        validateTeams: shouldValidateTeams
+      });
     });
-
-    await connection.commit();
 
     logger.info('Admin pick saved successfully', { userId, roundId, pickCount: picks.length });
     res.json({ message: 'Pick saved successfully' });
-  } catch (error) {
-    await connection.rollback();
+  } catch (error: any) {
     logger.error('Admin pick error', { error, userId, roundId });
+    
+    if (error.message === 'Round not found') {
+      return res.status(404).json({ error: 'Round not found' });
+    } else if (error.message === 'Cannot modify picks for completed rounds') {
+      return res.status(400).json({ error: error.message });
+    }
+    
     res.status(500).json({ error: 'Server error' });
-  } finally {
-    connection.release();
   }
 });
 

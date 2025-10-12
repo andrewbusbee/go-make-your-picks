@@ -7,6 +7,7 @@ import { validateRequest } from '../middleware/validator';
 import { submitPickValidators } from '../validators/picksValidators';
 import logger from '../utils/logger';
 import { PicksService } from '../services/picksService';
+import { withTransaction } from '../utils/transactionWrapper';
 
 const router = express.Router();
 
@@ -105,60 +106,59 @@ router.post('/:token', pickSubmissionLimiter, validateRequest(submitPickValidato
   const { token } = req.params;
   const { picks } = req.body; // Array of pick values
 
-  const connection = await db.getConnection();
-
   try {
-    await connection.beginTransaction();
+    await withTransaction(async (connection) => {
+      // Validate magic link
+      const [links] = await connection.query<RowDataPacket[]>(
+        `SELECT ml.*, r.lock_time, r.timezone, r.status, r.pick_type, r.num_write_in_picks
+         FROM magic_links ml
+         JOIN rounds r ON ml.round_id = r.id
+         WHERE ml.token = ?`,
+        [token]
+      );
 
-    // Validate magic link
-    const [links] = await connection.query<RowDataPacket[]>(
-      `SELECT ml.*, r.lock_time, r.timezone, r.status, r.pick_type, r.num_write_in_picks
-       FROM magic_links ml
-       JOIN rounds r ON ml.round_id = r.id
-       WHERE ml.token = ?`,
-      [token]
-    );
+      if (links.length === 0) {
+        throw new Error('Invalid magic link');
+      }
 
-    if (links.length === 0) {
-      await connection.rollback();
-      return res.status(404).json({ error: 'Invalid magic link' });
-    }
+      const link = links[0];
+      const pickType = link.pick_type || 'single';
+      
+      // Get current time in the round's timezone
+      const now = moment.tz(link.timezone);
+      
+      // Parse lock time from database (stored as UTC) and convert to round's timezone
+      const lockTime = moment.utc(link.lock_time).tz(link.timezone);
 
-    const link = links[0];
-    const pickType = link.pick_type || 'single';
-    
-    // Get current time in the round's timezone
-    const now = moment.tz(link.timezone);
-    
-    // Parse lock time from database (stored as UTC) and convert to round's timezone
-    const lockTime = moment.utc(link.lock_time).tz(link.timezone);
+      // Check if expired
+      if (now.isAfter(lockTime) || link.status === 'locked' || link.status === 'completed') {
+        throw new Error('This round is now locked');
+      }
 
-    // Check if expired
-    if (now.isAfter(lockTime) || link.status === 'locked' || link.status === 'completed') {
-      await connection.rollback();
-      return res.status(403).json({ error: 'This round is now locked' });
-    }
-
-    // Submit pick using centralized service
-    const shouldValidateTeams = pickType === 'single';
-    
-    await PicksService.submitPick(connection, {
-      userId: link.user_id,
-      roundId: link.round_id,
-      picks,
-      validateTeams: shouldValidateTeams
+      // Submit pick using centralized service
+      const shouldValidateTeams = pickType === 'single';
+      
+      await PicksService.submitPick(connection, {
+        userId: link.user_id,
+        roundId: link.round_id,
+        picks,
+        validateTeams: shouldValidateTeams
+      });
     });
-
-    await connection.commit();
 
     logger.info('Pick submitted successfully', { token, pickCount: picks.length });
     res.json({ message: 'Pick submitted successfully' });
-  } catch (error) {
-    await connection.rollback();
+  } catch (error: any) {
     logger.error('Submit pick error', { error, token });
+    
+    // Handle specific error messages
+    if (error.message === 'Invalid magic link') {
+      return res.status(404).json({ error: 'Invalid magic link' });
+    } else if (error.message === 'This round is now locked') {
+      return res.status(403).json({ error: 'This round is now locked' });
+    }
+    
     res.status(500).json({ error: 'Server error' });
-  } finally {
-    connection.release();
   }
 });
 
