@@ -7,8 +7,12 @@ const pool = mysql.createPool({
   user: process.env.MYSQL_USER || 'picksuser',
   password: process.env.MYSQL_PASSWORD || 'pickspass',
   waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
+  connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || '20'), // Increased from 10 for production load
+  queueLimit: parseInt(process.env.DB_QUEUE_LIMIT || '100'), // Prevents unlimited queue memory growth
+  maxIdle: 10, // Maximum idle connections to keep in pool
+  idleTimeout: 60000, // Close idle connections after 60 seconds
+  enableKeepAlive: true, // Prevent connection drops
+  keepAliveInitialDelay: 0, // Start keep-alive immediately
   timezone: '+00:00'
 });
 

@@ -35,31 +35,51 @@ export interface ReminderSettings {
 
 export interface AllSettings extends PointsSettings, TextSettings {}
 
+// Unified cache entry interface
+interface CacheEntry<T> {
+  value: T;
+  timestamp: number;
+}
+
 export class SettingsService {
-  private static pointsCache: PointsSettings | null = null;
-  private static pointsCacheTime: number = 0;
-  private static textCache: TextSettings | null = null;
-  private static textCacheTime: number = 0;
-  private static allCache: AllSettings | null = null;
-  private static allCacheTime: number = 0;
-  private static reminderCache: ReminderSettings | null = null;
-  private static reminderCacheTime: number = 0;
+  // Unified cache storage
+  private static cache = new Map<string, CacheEntry<any>>();
   
   // Cache TTL: 1 minute (settings don't change often)
   private static readonly CACHE_TTL = 60000;
+  
+  /**
+   * Generic cache get method with TTL validation
+   */
+  private static getCached<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (entry && (Date.now() - entry.timestamp) < this.CACHE_TTL) {
+      logger.debug(`Cache hit for ${key}`);
+      return entry.value as T;
+    }
+    logger.debug(`Cache miss for ${key}`);
+    return null;
+  }
+  
+  /**
+   * Generic cache set method
+   */
+  private static setCache<T>(key: string, value: T): void {
+    this.cache.set(key, {
+      value,
+      timestamp: Date.now()
+    });
+    logger.debug(`Cache updated for ${key}`);
+  }
 
   /**
    * Get point settings with caching
    * Reduces database queries by 180x
    */
   static async getPointsSettings(): Promise<PointsSettings> {
-    const now = Date.now();
-    
-    // Return cached if still valid
-    if (this.pointsCache && (now - this.pointsCacheTime) < this.CACHE_TTL) {
-      logger.debug('Returning cached points settings');
-      return this.pointsCache;
-    }
+    // Try cache first
+    const cached = this.getCached<PointsSettings>('points');
+    if (cached) return cached;
 
     try {
       const [settingsRows] = await db.query<RowDataPacket[]>(
@@ -77,10 +97,8 @@ export class SettingsService {
       };
 
       // Update cache
-      this.pointsCache = settings;
-      this.pointsCacheTime = now;
+      this.setCache('points', settings);
 
-      logger.debug('Loaded and cached points settings');
       return settings;
     } catch (error) {
       logger.error('Error loading points settings', { error });
@@ -101,13 +119,9 @@ export class SettingsService {
    * Get text settings with caching
    */
   static async getTextSettings(): Promise<TextSettings> {
-    const now = Date.now();
-    
-    // Return cached if still valid
-    if (this.textCache && (now - this.textCacheTime) < this.CACHE_TTL) {
-      logger.debug('Returning cached text settings');
-      return this.textCache;
-    }
+    // Try cache first
+    const cached = this.getCached<TextSettings>('text');
+    if (cached) return cached;
 
     try {
       const [settingsRows] = await db.query<RowDataPacket[]>(
@@ -126,10 +140,8 @@ export class SettingsService {
       };
 
       // Update cache
-      this.textCache = settings;
-      this.textCacheTime = now;
+      this.setCache('text', settings);
 
-      logger.debug('Loaded and cached text settings');
       return settings;
     } catch (error) {
       logger.error('Error loading text settings', { error });
@@ -150,13 +162,9 @@ export class SettingsService {
    * Get all settings with caching
    */
   static async getAllSettings(): Promise<AllSettings> {
-    const now = Date.now();
-    
-    // Return cached if still valid
-    if (this.allCache && (now - this.allCacheTime) < this.CACHE_TTL) {
-      logger.debug('Returning cached all settings');
-      return this.allCache;
-    }
+    // Try cache first
+    const cached = this.getCached<AllSettings>('all');
+    if (cached) return cached;
 
     try {
       const [textSettings, pointsSettings] = await Promise.all([
@@ -170,8 +178,7 @@ export class SettingsService {
       };
 
       // Update cache
-      this.allCache = settings;
-      this.allCacheTime = now;
+      this.setCache('all', settings);
 
       return settings;
     } catch (error) {
@@ -184,13 +191,9 @@ export class SettingsService {
    * Get reminder settings with caching
    */
   static async getReminderSettings(): Promise<ReminderSettings> {
-    const now = Date.now();
-    
-    // Return cached if still valid
-    if (this.reminderCache && (now - this.reminderCacheTime) < this.CACHE_TTL) {
-      logger.debug('Returning cached reminder settings');
-      return this.reminderCache;
-    }
+    // Try cache first
+    const cached = this.getCached<ReminderSettings>('reminder');
+    if (cached) return cached;
 
     try {
       // Get numeric reminder settings
@@ -216,10 +219,8 @@ export class SettingsService {
       };
 
       // Update cache
-      this.reminderCache = settings;
-      this.reminderCacheTime = now;
+      this.setCache('reminder', settings);
 
-      logger.debug('Loaded and cached reminder settings');
       return settings;
     } catch (error) {
       logger.error('Error loading reminder settings', { error });
@@ -288,12 +289,7 @@ export class SettingsService {
    * Clear all caches (call after settings are updated)
    */
   static clearCache(): void {
-    this.pointsCache = null;
-    this.textCache = null;
-    this.allCache = null;
-    this.pointsCacheTime = 0;
-    this.textCacheTime = 0;
-    this.allCacheTime = 0;
+    this.cache.clear();
     logger.info('Settings cache cleared');
   }
 

@@ -193,26 +193,41 @@ router.get('/season/:seasonId', async (req, res) => {
       [seasonId]
     );
     
-    // For each round, if it's draft or active, add participant data
-    const roundsWithParticipants = await Promise.all(rounds.map(async (round) => {
+    // Optimize: Get participants once for the entire season (not per round)
+    const [participants] = await db.query<RowDataPacket[]>(
+      `SELECT u.id, u.name, u.email
+       FROM users u
+       JOIN season_participants sp ON u.id = sp.user_id
+       WHERE sp.season_id = ? AND u.is_active = TRUE
+       ORDER BY u.name ASC`,
+      [seasonId]
+    );
+    
+    // Optimize: Get all picks for all active rounds in this season (single query)
+    const activeRoundIds = rounds.filter(r => r.status === 'active').map(r => r.id);
+    let picksMap = new Map<number, Set<number>>(); // roundId -> Set of userIds who picked
+    
+    if (activeRoundIds.length > 0) {
+      const [allPicks] = await db.query<RowDataPacket[]>(
+        'SELECT round_id, user_id FROM picks WHERE round_id IN (?)',
+        [activeRoundIds]
+      );
+      
+      // Build picks map for O(1) lookup
+      allPicks.forEach(pick => {
+        if (!picksMap.has(pick.round_id)) {
+          picksMap.set(pick.round_id, new Set());
+        }
+        picksMap.get(pick.round_id)!.add(pick.user_id);
+      });
+    }
+    
+    // Build response with O(1) lookups (no queries in loop)
+    const roundsWithParticipants = rounds.map(round => {
       if (round.status === 'draft' || round.status === 'active') {
-        // Get participants for this season
-        const [participants] = await db.query<RowDataPacket[]>(
-          `SELECT u.id, u.name, u.email
-           FROM users u
-           JOIN season_participants sp ON u.id = sp.user_id
-           WHERE sp.season_id = ? AND u.is_active = TRUE
-           ORDER BY u.name ASC`,
-          [seasonId]
-        );
-        
-        // If round is active, check who has picked
         if (round.status === 'active') {
-          const [picks] = await db.query<RowDataPacket[]>(
-            'SELECT user_id FROM picks WHERE round_id = ?',
-            [round.id]
-          );
-          const userIdsWithPicks = new Set(picks.map(p => p.user_id));
+          // Active round - include pick status
+          const userIdsWithPicks = picksMap.get(round.id) || new Set();
           
           const participantsWithPickStatus = participants.map(p => ({
             id: p.id,
@@ -240,7 +255,7 @@ router.get('/season/:seasonId', async (req, res) => {
       
       // For locked/completed rounds, don't include participants
       return round;
-    }));
+    });
     
     res.json(roundsWithParticipants);
   } catch (error) {

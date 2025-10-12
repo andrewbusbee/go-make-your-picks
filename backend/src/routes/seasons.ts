@@ -35,36 +35,47 @@ router.get('/', async (req, res) => {
       'SELECT * FROM seasons WHERE deleted_at IS NULL ORDER BY year_start DESC'
     );
     
-    // For each active season (not ended), add leaderboard data
-    const seasonsWithLeaderboard = await Promise.all(seasons.map(async (season) => {
-      if (!season.ended_at) {
-        // Active season - calculate leaderboard
-        try {
-          const leaderboard = await ScoringService.calculateLeaderboard(season.id);
-          
-          // Sort by total points descending
-          const sortedLeaderboard = leaderboard.leaderboard
+    // Optimize: Calculate leaderboards in parallel (if needed) instead of sequentially
+    // Only calculate for active seasons (not ended)
+    const activeSeasons = seasons.filter(s => !s.ended_at);
+    
+    // Batch calculate all leaderboards in parallel
+    const leaderboardPromises = activeSeasons.map(season =>
+      ScoringService.calculateLeaderboard(season.id)
+        .then(leaderboard => ({
+          seasonId: season.id,
+          leaderboard: leaderboard.leaderboard
             .sort((a: any, b: any) => b.totalPoints - a.totalPoints)
             .map((entry: any, index: number) => ({
               rank: index + 1,
               userId: entry.userId,
               name: entry.userName,
               totalPoints: entry.totalPoints
-            }));
-          
-          return {
-            ...season,
-            leaderboard: sortedLeaderboard
-          };
-        } catch (error) {
+            }))
+        }))
+        .catch(error => {
           logger.error('Error calculating leaderboard for season', { seasonId: season.id, error });
-          return season;
+          return { seasonId: season.id, leaderboard: null };
+        })
+    );
+    
+    const leaderboardResults = await Promise.all(leaderboardPromises);
+    
+    // Build leaderboard lookup map
+    const leaderboardMap = new Map(
+      leaderboardResults.map(result => [result.seasonId, result.leaderboard])
+    );
+    
+    // Attach leaderboards to seasons with O(1) lookup
+    const seasonsWithLeaderboard = seasons.map(season => {
+      if (!season.ended_at && leaderboardMap.has(season.id)) {
+        const leaderboard = leaderboardMap.get(season.id);
+        if (leaderboard) {
+          return { ...season, leaderboard };
         }
       }
-      
-      // Ended season - don't include leaderboard
       return season;
-    }));
+    });
     
     res.json(seasonsWithLeaderboard);
   } catch (error) {
