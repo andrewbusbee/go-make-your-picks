@@ -5,6 +5,24 @@ import { sendMagicLink, sendLockedNotification } from './emailService';
 import logger, { logSchedulerEvent, redactEmail } from '../utils/logger';
 import { SettingsService } from './settingsService';
 
+// Cleanup old login attempts (older than 30 days)
+export const cleanupOldLoginAttempts = async () => {
+  try {
+    const [result] = await db.query<ResultSetHeader>(
+      'DELETE FROM login_attempts WHERE attempt_time < DATE_SUB(NOW(), INTERVAL 30 DAY)'
+    );
+    
+    if (result.affectedRows > 0) {
+      logger.info(`Cleaned up ${result.affectedRows} old login attempt(s)`, { 
+        olderThan: '30 days' 
+      });
+      logSchedulerEvent(`Cleaned up ${result.affectedRows} old login attempts`);
+    }
+  } catch (error) {
+    logger.error('Error cleaning up old login attempts', { error });
+  }
+};
+
 // Check for rounds needing reminders and auto-lock expired rounds
 export const checkAndSendReminders = async () => {
   try {
@@ -453,7 +471,7 @@ export const manualSendLockedNotification = async (roundId: number) => {
 
 // Initialize the scheduler
 export const startReminderScheduler = () => {
-  // Run every minute
+  // Run reminder checks every minute
   cron.schedule('* * * * *', async () => {
     try {
       logSchedulerEvent('Running reminder scheduler check');
@@ -463,6 +481,17 @@ export const startReminderScheduler = () => {
     }
   });
 
+  // Run cleanup job daily at 3:00 AM
+  cron.schedule('0 3 * * *', async () => {
+    try {
+      logSchedulerEvent('Running daily cleanup job');
+      await cleanupOldLoginAttempts();
+    } catch (error) {
+      logger.error('Cleanup cron job failed', { error });
+    }
+  });
+
   logSchedulerEvent('Reminder scheduler started - checking every minute');
+  logSchedulerEvent('Cleanup scheduler started - running daily at 3:00 AM');
 };
 

@@ -28,7 +28,8 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     ip_address VARCHAR(45) NULL,
     INDEX idx_username (username),
     INDEX idx_attempt_time (attempt_time),
-    INDEX idx_username_time (username, attempt_time)
+    INDEX idx_username_time (username, attempt_time),
+    INDEX idx_username_success_time (username, success, attempt_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Users (family members) table
@@ -83,7 +84,7 @@ CREATE TABLE IF NOT EXISTS rounds (
     sport_name VARCHAR(100) NOT NULL,
     pick_type ENUM('single', 'multiple') DEFAULT 'single',
     num_write_in_picks INT DEFAULT NULL,
-    email_message TEXT DEFAULT NULL,
+    email_message VARCHAR(1000) DEFAULT NULL,
     lock_time TIMESTAMP NOT NULL,
     timezone VARCHAR(100) DEFAULT 'America/New_York',
     status ENUM('draft', 'active', 'locked', 'completed') DEFAULT 'draft',
@@ -219,7 +220,7 @@ CREATE TABLE IF NOT EXISTS numeric_settings (
 CREATE TABLE IF NOT EXISTS reminder_log (
     id INT PRIMARY KEY AUTO_INCREMENT,
     round_id INT NOT NULL,
-    reminder_type ENUM('first', 'final', 'locked', '48h', '6h') NOT NULL,
+    reminder_type ENUM('first', 'final', 'locked', 'daily') NOT NULL,
     sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     recipient_count INT NOT NULL DEFAULT 0,
     FOREIGN KEY (round_id) REFERENCES rounds(id) ON DELETE CASCADE,
