@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
       points_fourth_place: 3,
       points_fifth_place: 2,
       points_sixth_plus_place: 1,
-      reminder_type: 'before_lock',
+      reminder_type: 'daily',
       daily_reminder_time: '10:00:00',
       reminder_first_hours: 48,
       reminder_final_hours: 6

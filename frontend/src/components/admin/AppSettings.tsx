@@ -43,6 +43,7 @@ import {
   textSmallClasses,
   textMediumClasses,
   mt1Classes,
+  mb4Classes,
   radioGroupClasses,
   radioLabelClasses,
   radioInputClasses,
@@ -60,7 +61,7 @@ export default function AppSettings() {
   const [pointsFourthPlace, setPointsFourthPlace] = useState(3);
   const [pointsFifthPlace, setPointsFifthPlace] = useState(2);
   const [pointsSixthPlusPlace, setPointsSixthPlusPlace] = useState(1);
-  const [reminderType, setReminderType] = useState<'daily' | 'before_lock'>('before_lock');
+  const [reminderType, setReminderType] = useState<'daily' | 'before_lock'>('daily');
   const [dailyReminderTime, setDailyReminderTime] = useState('10:00');
   const [reminderFirstHours, setReminderFirstHours] = useState(48);
   const [reminderFinalHours, setReminderFinalHours] = useState(6);
@@ -508,13 +509,13 @@ export default function AppSettings() {
 
             {/* Reminder Settings */}
             <h3 className={subheadingClasses}>Reminder Email Settings</h3>
-            <p className={`${bodyTextClasses} ${mt1Classes} mb-4`}>
+            <p className={`${bodyTextClasses} ${mt1Classes} ${mb4Classes}`}>
               These settings control how and when reminder emails are sent to users who have not made their picks.
               Only one reminder type can be active at a time.
             </p>
             
             {/* Reminder Type Selection */}
-            <div className="mb-4">
+            <div className={mb4Classes}>
               <label className={labelClasses}>
                 Reminder Type
               </label>
@@ -546,24 +547,26 @@ export default function AppSettings() {
 
             {/* Daily Reminder Settings */}
             {reminderType === 'daily' && (
-              <div className="mb-4">
-                <label htmlFor="dailyReminderTime" className={labelClasses}>
-                  Time of day to send
-                </label>
-                <input
-                  type="time"
-                  id="dailyReminderTime"
-                  value={dailyReminderTime}
-                  onChange={(e) => setDailyReminderTime(e.target.value)}
-                  className={inputClasses}
-                  required
-                />
-                <p className={`mt-1 ${helpTextClasses}`}>
-                  Daily reminders will be sent at this time in each round's timezone
-                </p>
-                <p className={`${helpTextClasses}`}>
-                  Default: 10:00 AM. Reminders start immediately when a round is activated.
-                </p>
+              <div className={gridTwoColMdClasses}>
+                <div>
+                  <label htmlFor="dailyReminderTime" className={labelClasses}>
+                    Time of day to send
+                  </label>
+                  <input
+                    type="time"
+                    id="dailyReminderTime"
+                    value={dailyReminderTime}
+                    onChange={(e) => setDailyReminderTime(e.target.value)}
+                    className={inputClasses}
+                    required
+                  />
+                  <p className={`mt-1 ${helpTextClasses}`}>
+                    Daily reminders will be sent at this time in each round's timezone
+                  </p>
+                  <p className={`${helpTextClasses}`}>
+                    Default: 10:00 AM. Reminders start immediately when a round is activated.
+                  </p>
+                </div>
               </div>
             )}
 

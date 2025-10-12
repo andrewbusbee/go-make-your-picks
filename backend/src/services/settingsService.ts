@@ -121,7 +121,7 @@ export class SettingsService {
         appTagline: settingsMap.get('app_tagline') || 'Predict. Compete. Win.',
         footerMessage: settingsMap.get('footer_message') || 'Built for Sports Fans',
         defaultTimezone: settingsMap.get('default_timezone') || 'America/New_York',
-        reminderType: settingsMap.get('reminder_type') || 'before_lock',
+        reminderType: settingsMap.get('reminder_type') || 'daily',
         dailyReminderTime: settingsMap.get('daily_reminder_time') || '10:00:00',
       };
 
@@ -140,6 +140,8 @@ export class SettingsService {
         appTagline: 'Predict. Compete. Win.',
         footerMessage: 'Built for Sports Fans',
         defaultTimezone: 'America/New_York',
+        reminderType: 'daily',
+        dailyReminderTime: '10:00:00',
       };
     }
   }
@@ -207,7 +209,7 @@ export class SettingsService {
       const textMap = new Map(textRows.map(s => [s.setting_key, s.setting_value]));
 
       const settings: ReminderSettings = {
-        reminderType: textMap.get('reminder_type') || 'before_lock',
+        reminderType: textMap.get('reminder_type') || 'daily',
         dailyReminderTime: textMap.get('daily_reminder_time') || '10:00:00',
         firstReminderHours: numericMap.get('reminder_first_hours') || 48,
         finalReminderHours: numericMap.get('reminder_final_hours') || 6,
@@ -224,6 +226,8 @@ export class SettingsService {
       
       // Return defaults if query fails
       return {
+        reminderType: 'daily',
+        dailyReminderTime: '10:00:00',
         firstReminderHours: 48,
         finalReminderHours: 6,
       };
