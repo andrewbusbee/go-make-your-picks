@@ -776,6 +776,18 @@ export const customizationBadgeClasses =
 export const completionCheckmarkClasses = 
   "text-green-600 dark:text-green-400 text-lg";
 
+// Feature card with default styling (regular border)
+export const featureCardDefaultClasses = 
+  "p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600";
+
+// Feature card title for default state (no checkmark)
+export const featureCardTitleDefaultClasses = 
+  "text-base font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2";
+
+// Default badge styling
+export const defaultBadgeClasses = 
+  "bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs px-2 py-1 rounded-full font-medium";
+
 // ============================================================================
 // SPORTS MANAGEMENT SECTION STYLING
 // ============================================================================

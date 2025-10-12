@@ -25,8 +25,6 @@ import {
   customizationTitleClasses,
   customizationDescriptionClasses,
   featureGridThreeColClasses,
-  featureCardClasses,
-  featureCardTitleClasses,
   featureCardSubtitleClasses,
   featureCardListClasses,
   featureCardListItemClasses,
@@ -37,7 +35,10 @@ import {
   featureCardCustomizedClasses,
   featureCardTitleCustomizedClasses,
   customizationBadgeClasses,
-  completionCheckmarkClasses
+  completionCheckmarkClasses,
+  featureCardDefaultClasses,
+  featureCardTitleDefaultClasses,
+  defaultBadgeClasses
 } from '../../styles/commonClasses';
 
 interface GettingStartedProps {
@@ -176,17 +177,19 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
 
         <div className={featureGridThreeColClasses}>
           {/* Branding Feature */}
-          <div className={customizations.branding ? featureCardCustomizedClasses : featureCardClasses}>
+          <div className={customizations.branding ? featureCardCustomizedClasses : featureCardDefaultClasses}>
             <div className={`${flexJustifyBetweenClasses} ${mb3Classes}`}>
-              <h3 className={customizations.branding ? featureCardTitleCustomizedClasses : featureCardTitleClasses}>
+              <h3 className={customizations.branding ? featureCardTitleCustomizedClasses : featureCardTitleDefaultClasses}>
                 <span>🎨</span>
                 <span>App Branding</span>
                 {customizations.branding && (
                   <span className={completionCheckmarkClasses}>✓</span>
                 )}
               </h3>
-              {customizations.branding && (
+              {customizations.branding ? (
                 <span className={customizationBadgeClasses}>Customized</span>
+              ) : (
+                <span className={defaultBadgeClasses}>Default</span>
               )}
             </div>
             <p className={featureCardSubtitleClasses}>
@@ -213,17 +216,19 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
           </div>
 
           {/* Reminders Feature */}
-          <div className={customizations.reminders ? featureCardCustomizedClasses : featureCardClasses}>
+          <div className={customizations.reminders ? featureCardCustomizedClasses : featureCardDefaultClasses}>
             <div className={`${flexJustifyBetweenClasses} ${mb3Classes}`}>
-              <h3 className={customizations.reminders ? featureCardTitleCustomizedClasses : featureCardTitleClasses}>
+              <h3 className={customizations.reminders ? featureCardTitleCustomizedClasses : featureCardTitleDefaultClasses}>
                 <span>📧</span>
                 <span>Email Reminders</span>
                 {customizations.reminders && (
                   <span className={completionCheckmarkClasses}>✓</span>
                 )}
               </h3>
-              {customizations.reminders && (
+              {customizations.reminders ? (
                 <span className={customizationBadgeClasses}>Customized</span>
+              ) : (
+                <span className={defaultBadgeClasses}>Default</span>
               )}
             </div>
             <p className={featureCardSubtitleClasses}>
@@ -250,17 +255,19 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
           </div>
 
           {/* Scoring Feature */}
-          <div className={customizations.scoring ? featureCardCustomizedClasses : featureCardClasses}>
+          <div className={customizations.scoring ? featureCardCustomizedClasses : featureCardDefaultClasses}>
             <div className={`${flexJustifyBetweenClasses} ${mb3Classes}`}>
-              <h3 className={customizations.scoring ? featureCardTitleCustomizedClasses : featureCardTitleClasses}>
+              <h3 className={customizations.scoring ? featureCardTitleCustomizedClasses : featureCardTitleDefaultClasses}>
                 <span>🏅</span>
                 <span>Scoring System</span>
                 {customizations.scoring && (
                   <span className={completionCheckmarkClasses}>✓</span>
                 )}
               </h3>
-              {customizations.scoring && (
+              {customizations.scoring ? (
                 <span className={customizationBadgeClasses}>Customized</span>
+              ) : (
+                <span className={defaultBadgeClasses}>Default</span>
               )}
             </div>
             <p className={featureCardSubtitleClasses}>
