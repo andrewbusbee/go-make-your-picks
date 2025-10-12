@@ -165,8 +165,8 @@ export default function AppSettings() {
         return;
       }
 
-      if (reminderFinalHours < 1 || reminderFinalHours > 48) {
-        setError('Final reminder hours must be between 1 and 48');
+      if (reminderFinalHours < 1 || reminderFinalHours > 45) {
+        setError('Final reminder hours must be between 1 and 45');
         return;
       }
 
@@ -500,12 +500,12 @@ export default function AppSettings() {
                     value={reminderFinalHours}
                     onChange={(e) => setReminderFinalHours(parseInt(e.target.value) || 0)}
                     min="1"
-                    max="48"
+                    max="45"
                     className={inputClasses}
                     required
                   />
                   <p className={`mt-1 ${helpTextClasses}`}>
-                    Default: 6 hours. Users receive final reminder this many hours before picks lock (1-48 hours)
+                    Default: 6 hours. Users receive final reminder this many hours before picks lock (1-45 hours)
                   </p>
                 </div>
               </div>

@@ -261,5 +261,5 @@ INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) 
 ('points_fifth_place', 2, 0, 20),
 ('points_sixth_plus_place', 1, 0, 20),
 ('reminder_first_hours', 48, 2, 168),
-('reminder_final_hours', 6, 1, 48)
+('reminder_final_hours', 6, 1, 45)
 ON DUPLICATE KEY UPDATE setting_key=setting_key;

@@ -114,8 +114,8 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
 
   if (reminderFinalHours !== undefined) {
     const hours = parseInt(reminderFinalHours);
-    if (isNaN(hours) || hours < 1 || hours > 48) {
-      return res.status(400).json({ error: 'Final reminder hours must be between 1 and 48' });
+    if (isNaN(hours) || hours < 1 || hours > 45) {
+      return res.status(400).json({ error: 'Final reminder hours must be between 1 and 45' });
     }
   }
 
