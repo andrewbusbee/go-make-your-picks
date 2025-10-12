@@ -696,3 +696,63 @@ export const timeInputClasses =
 export const themeToggleButtonClasses = 
   "bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-200 text-lg";
 
+// ============================================================================
+// APP CUSTOMIZATION SECTION (Getting Started)
+// ============================================================================
+
+// Main customization section wrapper
+export const customizationSectionClasses = 
+  "bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6";
+
+// Header with title and action button
+export const customizationHeaderClasses = 
+  "flex justify-between items-center mb-4";
+
+// Title with icon
+export const customizationTitleClasses = 
+  "text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2";
+
+// Description paragraph
+export const customizationDescriptionClasses = 
+  "text-sm text-gray-600 dark:text-gray-400 mb-6";
+
+// Three column grid for features
+export const featureGridThreeColClasses = 
+  "grid grid-cols-1 md:grid-cols-3 gap-4 mb-4";
+
+// Individual feature card
+export const featureCardClasses = 
+  "p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600";
+
+// Feature card title with icon
+export const featureCardTitleClasses = 
+  "text-base font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2";
+
+// Feature card subtitle
+export const featureCardSubtitleClasses = 
+  "text-sm text-gray-600 dark:text-gray-400 mb-3";
+
+// Bullet list in feature cards
+export const featureCardListClasses = 
+  "space-y-1.5";
+
+// Individual list items in feature cards
+export const featureCardListItemClasses = 
+  "text-sm text-gray-600 dark:text-gray-400 flex items-start gap-2";
+
+// List bullet point
+export const featureCardBulletClasses = 
+  "text-gray-400 dark:text-gray-500 mt-0.5";
+
+// Pro tip info box
+export const proTipBoxClasses = 
+  "bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 dark:border-blue-400 p-4 rounded-r-lg";
+
+// Pro tip text
+export const proTipTextClasses = 
+  "text-sm text-blue-900 dark:text-blue-100 flex items-start gap-2";
+
+// Pro tip icon
+export const proTipIconClasses = 
+  "text-blue-600 dark:text-blue-400 text-lg flex-shrink-0";
+

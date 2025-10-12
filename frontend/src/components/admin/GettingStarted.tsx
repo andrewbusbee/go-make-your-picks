@@ -19,7 +19,21 @@ import {
   flexGapClasses,
   flexCenterClasses,
   mb2Classes,
-  mt1Classes
+  mt1Classes,
+  customizationSectionClasses,
+  customizationHeaderClasses,
+  customizationTitleClasses,
+  customizationDescriptionClasses,
+  featureGridThreeColClasses,
+  featureCardClasses,
+  featureCardTitleClasses,
+  featureCardSubtitleClasses,
+  featureCardListClasses,
+  featureCardListItemClasses,
+  featureCardBulletClasses,
+  proTipBoxClasses,
+  proTipTextClasses,
+  proTipIconClasses
 } from '../../styles/commonClasses';
 
 interface GettingStartedProps {
@@ -121,6 +135,128 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
           Welcome to Go Make Your Picks! Follow these steps to set up your sports picks competition.
           This guide will walk you through creating your first season with players and sports.
         </p>
+      </div>
+
+      {/* App Customization Section */}
+      <div className={customizationSectionClasses}>
+        <div className={customizationHeaderClasses}>
+          <h2 className={customizationTitleClasses}>
+            <span>⚙️</span>
+            <span>Customize Your App</span>
+          </h2>
+          <button
+            onClick={() => onNavigate('/admin/settings')}
+            className={buttonPrimaryClasses}
+          >
+            Go to Settings
+          </button>
+        </div>
+
+        <p className={customizationDescriptionClasses}>
+          Make this application your own! Configure branding, scoring rules, and notification 
+          preferences to match your competition style. All settings can be updated at any time 
+          from the Settings tab.
+        </p>
+
+        <div className={featureGridThreeColClasses}>
+          {/* Branding Feature */}
+          <div className={featureCardClasses}>
+            <h3 className={featureCardTitleClasses}>
+              <span>🎨</span>
+              <span>App Branding</span>
+            </h3>
+            <p className={featureCardSubtitleClasses}>
+              Personalize the look and feel:
+            </p>
+            <ul className={featureCardListClasses}>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>Custom app title</span>
+              </li>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>Tagline message</span>
+              </li>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>Footer text</span>
+              </li>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>Default timezone</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Scoring Feature */}
+          <div className={featureCardClasses}>
+            <h3 className={featureCardTitleClasses}>
+              <span>🏅</span>
+              <span>Scoring System</span>
+            </h3>
+            <p className={featureCardSubtitleClasses}>
+              Configure point values for placements:
+            </p>
+            <ul className={featureCardListClasses}>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>1st place points</span>
+              </li>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>2nd place points</span>
+              </li>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>3rd-6th+ place points</span>
+              </li>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>Updates in real-time</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Reminders Feature */}
+          <div className={featureCardClasses}>
+            <h3 className={featureCardTitleClasses}>
+              <span>📧</span>
+              <span>Email Reminders</span>
+            </h3>
+            <p className={featureCardSubtitleClasses}>
+              Control email notifications:
+            </p>
+            <ul className={featureCardListClasses}>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>Daily at set time</span>
+              </li>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>Before lock time</span>
+              </li>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>Disable all reminders</span>
+              </li>
+              <li className={featureCardListItemClasses}>
+                <span className={featureCardBulletClasses}>•</span>
+                <span>Custom timing options</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Pro Tip */}
+        <div className={proTipBoxClasses}>
+          <div className={proTipTextClasses}>
+            <span className={proTipIconClasses}>💡</span>
+            <span>
+              <strong>Pro Tip:</strong> Set up your branding and scoring rules before creating your 
+              first season to ensure a consistent experience for all players.
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Setup Progress */}
