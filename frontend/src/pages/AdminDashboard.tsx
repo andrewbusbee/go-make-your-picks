@@ -135,7 +135,6 @@ export default function AdminDashboard() {
       const defaultTitle = 'Go Make Your Picks';
       const defaultTagline = 'Predict. Compete. Win.';
       const defaultFooter = 'Built for Sports Fans';
-      const defaultTimezone = 'America/New_York';
       const defaultPoints = {
         first: 6,
         second: 5,
