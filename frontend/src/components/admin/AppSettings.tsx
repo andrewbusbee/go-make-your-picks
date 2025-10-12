@@ -42,13 +42,20 @@ import {
   flexSpaceXPtClasses,
   textSmallClasses,
   textMediumClasses,
+  textXsClasses,
   mt1Classes,
+  mb1Classes,
+  mb2Classes,
   mb4Classes,
   pt6Classes,
   radioGroupClasses,
   radioLabelClasses,
   radioInputClasses,
-  radioTextClasses
+  radioTextClasses,
+  shadowClasses,
+  flex1Classes,
+  disabledOpacityClasses,
+  p4Classes
 } from '../../styles/commonClasses';
 
 export default function AppSettings() {
@@ -249,18 +256,18 @@ export default function AppSettings() {
   return (
     <div>
       <div className={mb6Classes}>
-        <h2 className={headingClasses + " mb-2"}>App Customization</h2>
+        <h2 className={`${headingClasses} ${mb2Classes}`}>App Customization</h2>
       </div>
 
-      <div className={`${cardClasses} shadow-md`}>
+      <div className={`${cardClasses} ${shadowClasses}`}>
         {/* Info Box */}
-        <div className={alertInfoClasses + " p-4 mb-6"}>
+        <div className={`${alertInfoClasses} ${p4Classes} ${mb6Classes}`}>
           <div className={flexItemsStartClasses}>
             <svg className={svgIconBlueClasses} fill="currentColor" viewBox="0 0 20 20">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
             <div className={textSmallClasses}>
-              <p className={alertInfoTextClasses + " font-medium mb-1"}>Customize Your App</p>
+              <p className={`${alertInfoTextClasses} font-medium ${mb1Classes}`}>Customize Your App</p>
               <p className={alertInfoTextClasses}>
                 These settings control the branding throughout the app, including the website header, footer, and email templates. 
                 Changes take effect immediately but require a page refresh.
@@ -271,24 +278,24 @@ export default function AppSettings() {
 
         {/* Success Message */}
         {success && (
-          <div className={alertSuccessClasses + " p-4 mb-6"}>
+          <div className={`${alertSuccessClasses} ${p4Classes} ${mb6Classes}`}>
             <div className={flexItemsStartClasses}>
               <svg className={svgIconGreenClasses} fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
               </svg>
-              <p className={alertSuccessTextClasses + " text-sm"}>{success}</p>
+              <p className={`${alertSuccessTextClasses} ${textSmallClasses}`}>{success}</p>
             </div>
           </div>
         )}
 
         {/* Error Message */}
         {error && (
-          <div className={alertErrorClasses + " p-4 mb-6"}>
+          <div className={`${alertErrorClasses} ${p4Classes} ${mb6Classes}`}>
             <div className={flexItemsStartClasses}>
               <svg className={svgIconRedClasses} fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
-              <p className={alertErrorTextClasses + " text-sm"}>{error}</p>
+              <p className={`${alertErrorTextClasses} ${textSmallClasses}`}>{error}</p>
             </div>
           </div>
         )}
@@ -323,7 +330,7 @@ export default function AppSettings() {
                 className={inputClasses}
                 required
               />
-              <p className={bodyTextClasses + " mt-1 text-xs"}>
+              <p className={`${bodyTextClasses} ${mt1Classes} ${textXsClasses}`}>
                 Appears in the header and emails. Maximum 100 characters.
               </p>
             </div>
@@ -384,9 +391,9 @@ export default function AppSettings() {
           </div>
 
           {/* Scoring Settings Section */}
-          <div className={`pt-6 ${dividerClasses}`}>
-            <h3 className={`${subheadingClasses} mb-4`}>Scoring Settings</h3>
-            <p className={`${bodyTextClasses} mb-4`}>
+          <div className={`${pt6Classes} ${dividerClasses}`}>
+            <h3 className={`${subheadingClasses} ${mb4Classes}`}>Scoring Settings</h3>
+            <p className={`${bodyTextClasses} ${mb4Classes}`}>
               Customize point values for each placement. Changes apply to all rounds instantly.
             </p>
 
@@ -636,7 +643,7 @@ export default function AppSettings() {
             <button
               type="submit"
               disabled={loading || !hasChanges}
-              className={`flex-1 ${buttonPrimaryClasses} disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`${flex1Classes} ${buttonPrimaryClasses} ${disabledOpacityClasses}`}
             >
               {loading ? 'Saving...' : 'Save Changes'}
             </button>

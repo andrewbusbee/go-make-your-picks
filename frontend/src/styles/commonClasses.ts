@@ -674,3 +674,14 @@ export const warningTextYellowSecondaryClasses =
 export const mt2Classes = "mt-2";
 export const mt3Classes = "mt-3";
 
+// ============================================================================
+// ADDITIONAL UTILITY CLASSES
+// ============================================================================
+
+export const shadowClasses = "shadow-md";
+export const flex1Classes = "flex-1";
+export const disabledOpacityClasses = "disabled:opacity-50 disabled:cursor-not-allowed";
+export const p4Classes = "p-4";
+export const mb1Classes = "mb-1";
+export const textXsClasses = "text-xs";
+
