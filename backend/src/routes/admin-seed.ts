@@ -4,6 +4,7 @@ import db from '../config/database';
 import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { SettingsService } from '../services/settingsService';
 import { withTransaction } from '../utils/transactionWrapper';
+import { QueryCacheService } from '../services/queryCacheService';
 
 const router = express.Router();
 
@@ -339,6 +340,9 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
       };
     });
 
+    // Invalidate seasons cache after seeding
+    QueryCacheService.invalidatePattern('seasons:');
+    
     res.json({
       message: 'Sample data seeded successfully!',
       details: details

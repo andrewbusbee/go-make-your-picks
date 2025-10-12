@@ -107,7 +107,9 @@ export default function AppSettings() {
       setPointsFifthPlace(parseInt(res.data.points_fifth_place) || 2);
       setPointsSixthPlusPlace(parseInt(res.data.points_sixth_plus_place) || 1);
       setReminderType(res.data.reminder_type || 'daily');
-      setDailyReminderTime(res.data.daily_reminder_time || '10:00:00');
+      // Convert HH:MM:SS format to HH:MM format for the time input
+      const timeValue = res.data.daily_reminder_time || '10:00:00';
+      setDailyReminderTime(timeValue.substring(0, 5)); // Remove seconds part
       setReminderFirstHours(parseInt(res.data.reminder_first_hours) || 48);
       setReminderFinalHours(parseInt(res.data.reminder_final_hours) || 6);
       
