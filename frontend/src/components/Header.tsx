@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
+import { themeToggleButtonClasses } from '../styles/commonClasses';
 
 interface HeaderProps {
   showAdminLink?: boolean;
@@ -41,7 +42,7 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
-              className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full w-12 h-12 flex items-center justify-center transition-all duration-200 text-2xl"
+              className={themeToggleButtonClasses}
               aria-label="Toggle theme"
             >
               {theme === 'light' ? '🌙' : '☀️'}

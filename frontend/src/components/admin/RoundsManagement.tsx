@@ -712,7 +712,7 @@ export default function RoundsManagement() {
       {!currentSeason ? (
         <div className={`${cardClasses} shadow-md text-center p-8`}>
           <div className={iconLargeClasses}>🏆</div>
-          <h3 className={`${subheadingClasses} ${mb2Classes}`}>No Season Selected</h3>
+          <h3 className={`${subheadingClasses} ${mb2Classes}`}>No Seasons Created or Active</h3>
           <p className={bodyTextClasses}>
             {seasons.length === 0 
               ? "Please create a season first in the Seasons tab."

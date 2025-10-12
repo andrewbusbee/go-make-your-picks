@@ -55,7 +55,8 @@ import {
   shadowClasses,
   flex1Classes,
   disabledOpacityClasses,
-  p4Classes
+  p4Classes,
+  timeInputClasses
 } from '../../styles/commonClasses';
 
 export default function AppSettings() {
@@ -390,130 +391,6 @@ export default function AppSettings() {
 
           </div>
 
-          {/* Scoring Settings Section */}
-          <div className={`${pt6Classes} ${dividerClasses}`}>
-            <h3 className={`${subheadingClasses} ${mb4Classes}`}>Scoring Settings</h3>
-            <p className={`${bodyTextClasses} ${mb4Classes}`}>
-              Customize point values for each placement. Changes apply to all rounds instantly.
-            </p>
-
-            <div className={gridThreeColMdClasses}>
-              <div>
-                <label htmlFor="pointsFirstPlace" className={labelClasses}>
-                  Champion (1st Place)
-                </label>
-                <input
-                  type="number"
-                  id="pointsFirstPlace"
-                  value={pointsFirstPlace}
-                  onChange={(e) => setPointsFirstPlace(parseInt(e.target.value) || 0)}
-                  min="0"
-                  max="20"
-                  className={inputClasses}
-                  required
-                />
-                <p className={`mt-1 ${helpTextClasses}`}>
-                  Points for picking the champion (0-20)
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="pointsSecondPlace" className={labelClasses}>
-                  Second Place
-                </label>
-                <input
-                  type="number"
-                  id="pointsSecondPlace"
-                  value={pointsSecondPlace}
-                  onChange={(e) => setPointsSecondPlace(parseInt(e.target.value) || 0)}
-                  min="0"
-                  max="20"
-                  className={inputClasses}
-                  required
-                />
-                <p className={`mt-1 ${helpTextClasses}`}>
-                  Points for picking 2nd place (0-20)
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="pointsThirdPlace" className={labelClasses}>
-                  Third Place
-                </label>
-                <input
-                  type="number"
-                  id="pointsThirdPlace"
-                  value={pointsThirdPlace}
-                  onChange={(e) => setPointsThirdPlace(parseInt(e.target.value) || 0)}
-                  min="0"
-                  max="20"
-                  className={inputClasses}
-                  required
-                />
-                <p className={`mt-1 ${helpTextClasses}`}>
-                  Points for picking 3rd place (0-20)
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="pointsFourthPlace" className={labelClasses}>
-                  Fourth Place
-                </label>
-                <input
-                  type="number"
-                  id="pointsFourthPlace"
-                  value={pointsFourthPlace}
-                  onChange={(e) => setPointsFourthPlace(parseInt(e.target.value) || 0)}
-                  min="0"
-                  max="20"
-                  className={inputClasses}
-                  required
-                />
-                <p className={`mt-1 ${helpTextClasses}`}>
-                  Points for picking 4th place (0-20)
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="pointsFifthPlace" className={labelClasses}>
-                  Fifth Place
-                </label>
-                <input
-                  type="number"
-                  id="pointsFifthPlace"
-                  value={pointsFifthPlace}
-                  onChange={(e) => setPointsFifthPlace(parseInt(e.target.value) || 0)}
-                  min="0"
-                  max="20"
-                  className={inputClasses}
-                  required
-                />
-                <p className={`mt-1 ${helpTextClasses}`}>
-                  Points for picking 5th place (0-20)
-                </p>
-              </div>
-
-              <div>
-                <label htmlFor="pointsSixthPlusPlace" className={labelClasses}>
-                  Sixth Place & Below
-                </label>
-                <input
-                  type="number"
-                  id="pointsSixthPlusPlace"
-                  value={pointsSixthPlusPlace}
-                  onChange={(e) => setPointsSixthPlusPlace(parseInt(e.target.value) || 0)}
-                  min="0"
-                  max="20"
-                  className={inputClasses}
-                  required
-                />
-                <p className={`mt-1 ${helpTextClasses}`}>
-                  Points for all other players (0-20)
-                </p>
-              </div>
-            </div>
-          </div>
-
             <hr className={dividerClasses} />
 
             {/* Reminder Settings */}
@@ -557,7 +434,7 @@ export default function AppSettings() {
 
             {/* Daily Reminder Settings */}
             {reminderType === 'daily' && (
-              <div className={gridTwoColMdClasses}>
+              <div className={gridThreeColMdClasses}>
                 <div>
                   <label htmlFor="dailyReminderTime" className={labelClasses}>
                     Time of day to send
@@ -567,7 +444,7 @@ export default function AppSettings() {
                     id="dailyReminderTime"
                     value={dailyReminderTime}
                     onChange={(e) => setDailyReminderTime(e.target.value)}
-                    className={inputClasses}
+                    className={timeInputClasses}
                     required
                   />
                   <p className={`mt-1 ${helpTextClasses}`}>
@@ -622,21 +499,147 @@ export default function AppSettings() {
                 </div>
               </div>
             )}
+            </div>
 
-            <div className={warningBoxYellowClasses}>
-              <div className={flexItemsStartClasses}>
-                <svg className={svgIconYellowClasses} fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-                <div className={textSmallClasses}>
-                  <p className={`${warningTextYellowClasses} ${textMediumClasses}`}>Dynamic Scoring</p>
-                  <p className={`${warningTextYellowSecondaryClasses} ${mt1Classes}`}>
-                    Changing these values will <strong>instantly update all leaderboard scores</strong> without needing to recalculate past rounds. 
-                    Maximum points per round: {pointsFirstPlace} (1st) + {pointsSecondPlace} (2nd) + ... = up to {pointsFirstPlace} points for the winner.
+            <hr className={dividerClasses} />
+
+            {/* Scoring Settings Section */}
+            <div className={pt6Classes}>
+              <h3 className={`${subheadingClasses} ${mb4Classes}`}>Scoring Settings</h3>
+              <p className={`${bodyTextClasses} ${mb4Classes}`}>
+                Customize point values for each placement. Changes apply to all rounds instantly.
+              </p>
+
+              <div className={gridThreeColMdClasses}>
+                <div>
+                  <label htmlFor="pointsFirstPlace" className={labelClasses}>
+                    Champion (1st Place)
+                  </label>
+                  <input
+                    type="number"
+                    id="pointsFirstPlace"
+                    value={pointsFirstPlace}
+                    onChange={(e) => setPointsFirstPlace(parseInt(e.target.value) || 0)}
+                    min="0"
+                    max="20"
+                    className={inputClasses}
+                    required
+                  />
+                  <p className={`mt-1 ${helpTextClasses}`}>
+                    Points for picking the champion (0-20)
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="pointsSecondPlace" className={labelClasses}>
+                    Second Place
+                  </label>
+                  <input
+                    type="number"
+                    id="pointsSecondPlace"
+                    value={pointsSecondPlace}
+                    onChange={(e) => setPointsSecondPlace(parseInt(e.target.value) || 0)}
+                    min="0"
+                    max="20"
+                    className={inputClasses}
+                    required
+                  />
+                  <p className={`mt-1 ${helpTextClasses}`}>
+                    Points for picking 2nd place (0-20)
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="pointsThirdPlace" className={labelClasses}>
+                    Third Place
+                  </label>
+                  <input
+                    type="number"
+                    id="pointsThirdPlace"
+                    value={pointsThirdPlace}
+                    onChange={(e) => setPointsThirdPlace(parseInt(e.target.value) || 0)}
+                    min="0"
+                    max="20"
+                    className={inputClasses}
+                    required
+                  />
+                  <p className={`mt-1 ${helpTextClasses}`}>
+                    Points for picking 3rd place (0-20)
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="pointsFourthPlace" className={labelClasses}>
+                    Fourth Place
+                  </label>
+                  <input
+                    type="number"
+                    id="pointsFourthPlace"
+                    value={pointsFourthPlace}
+                    onChange={(e) => setPointsFourthPlace(parseInt(e.target.value) || 0)}
+                    min="0"
+                    max="20"
+                    className={inputClasses}
+                    required
+                  />
+                  <p className={`mt-1 ${helpTextClasses}`}>
+                    Points for picking 4th place (0-20)
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="pointsFifthPlace" className={labelClasses}>
+                    Fifth Place
+                  </label>
+                  <input
+                    type="number"
+                    id="pointsFifthPlace"
+                    value={pointsFifthPlace}
+                    onChange={(e) => setPointsFifthPlace(parseInt(e.target.value) || 0)}
+                    min="0"
+                    max="20"
+                    className={inputClasses}
+                    required
+                  />
+                  <p className={`mt-1 ${helpTextClasses}`}>
+                    Points for picking 5th place (0-20)
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="pointsSixthPlusPlace" className={labelClasses}>
+                    Sixth Place & Below
+                  </label>
+                  <input
+                    type="number"
+                    id="pointsSixthPlusPlace"
+                    value={pointsSixthPlusPlace}
+                    onChange={(e) => setPointsSixthPlusPlace(parseInt(e.target.value) || 0)}
+                    min="0"
+                    max="20"
+                    className={inputClasses}
+                    required
+                  />
+                  <p className={`mt-1 ${helpTextClasses}`}>
+                    Points for all other players (0-20)
                   </p>
                 </div>
               </div>
-            </div>
+
+              <div className={warningBoxYellowClasses}>
+                <div className={flexItemsStartClasses}>
+                  <svg className={svgIconYellowClasses} fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  <div className={textSmallClasses}>
+                    <p className={`${warningTextYellowClasses} ${textMediumClasses}`}>Dynamic Scoring</p>
+                    <p className={`${warningTextYellowSecondaryClasses} ${mt1Classes}`}>
+                      Changing these values will <strong>instantly update all leaderboard scores</strong> without needing to recalculate past rounds. 
+                      Maximum points per round: {pointsFirstPlace} (1st) + {pointsSecondPlace} (2nd) + ... = up to {pointsFirstPlace} points for the winner.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
           <div className={flexSpaceXPtClasses}>

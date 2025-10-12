@@ -685,3 +685,14 @@ export const p4Classes = "p-4";
 export const mb1Classes = "mb-1";
 export const textXsClasses = "text-xs";
 
+// Time input with lighter picker button in dark mode
+export const timeInputClasses = 
+  "w-full px-3 py-2 border border-gray-300 dark:border-gray-600 " +
+  "dark:bg-gray-700 dark:text-white rounded-md " +
+  "focus:outline-none focus:ring-blue-500 focus:border-blue-500 " +
+  "[&::-webkit-calendar-picker-indicator]:dark:invert [&::-webkit-calendar-picker-indicator]:dark:opacity-80";
+
+// Theme toggle button - smaller size
+export const themeToggleButtonClasses = 
+  "bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full w-10 h-10 flex items-center justify-center transition-all duration-200 text-lg";
+
