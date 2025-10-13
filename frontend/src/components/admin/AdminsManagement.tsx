@@ -37,11 +37,13 @@ export default function AdminsManagement() {
   const [admins, setAdmins] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
+  const [showChangeNameModal, setShowChangeNameModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<any>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [confirmEmail, setConfirmEmail] = useState('');
+  const [newName, setNewName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -132,6 +134,43 @@ export default function AdminsManagement() {
     }
   };
 
+  const openChangeNameModal = (admin: any) => {
+    setSelectedAdmin(admin);
+    setNewName('');
+    setError('');
+    setShowChangeNameModal(true);
+  };
+
+  const closeChangeNameModal = () => {
+    setShowChangeNameModal(false);
+    setSelectedAdmin(null);
+    setNewName('');
+    setError('');
+  };
+
+  const handleChangeName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    if (!newName || newName.trim().length < 2) {
+      setError('Name must be at least 2 characters');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await api.put(`/admin/admins/${selectedAdmin.id}/change-name`, { newName });
+      alert(`Name changed successfully for ${selectedAdmin.email}`);
+      closeChangeNameModal();
+      await loadAdmins();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to change name');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDelete = async (adminId: number) => {
     if (!confirm('Are you sure you want to delete this admin?')) {
       return;
@@ -205,6 +244,12 @@ export default function AdminsManagement() {
                 <td className={`${tableCellClasses} text-right`}>
                   {!admin.is_main_admin && (
                     <div className={`${flexSpaceXClasses} justify-end`}>
+                      <button
+                        onClick={() => openChangeNameModal(admin)}
+                        className={buttonLinkClasses}
+                      >
+                        Change Name
+                      </button>
                       <button
                         onClick={() => openChangeEmailModal(admin)}
                         className={buttonLinkClasses}
@@ -361,6 +406,64 @@ export default function AdminsManagement() {
                 <button
                   type="button"
                   onClick={closeChangeEmailModal}
+                  className={buttonCancelClasses}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Name Modal */}
+      {showChangeNameModal && selectedAdmin && (
+        <div className={modalBackdropClasses}>
+          <div className={modalClasses}>
+            <h3 className={modalTitleClasses}>
+              Change Name for {selectedAdmin.email}
+            </h3>
+
+            {error && (
+              <div className={alertErrorClasses + " p-4 mb-4"}>
+                <p className={alertErrorTextClasses}>{error}</p>
+              </div>
+            )}
+
+            <div className={grayInfoBoxClasses}>
+              <p className={grayInfoTextClasses}>
+                <strong>Current name:</strong> {selectedAdmin.name || 'No name set'}
+              </p>
+            </div>
+
+            <form onSubmit={handleChangeName} className={formSectionClasses}>
+              <div>
+                <label className={labelClasses}>
+                  New Name
+                </label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className={inputClasses}
+                  placeholder="Enter new name"
+                  required
+                  minLength={2}
+                  maxLength={100}
+                />
+              </div>
+
+              <div className={flexSpaceXPtClasses}>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`${buttonPrimaryClasses} flex-1`}
+                >
+                  {loading ? 'Changing...' : 'Change Name'}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeChangeNameModal}
                   className={buttonCancelClasses}
                 >
                   Cancel

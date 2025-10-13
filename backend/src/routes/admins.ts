@@ -5,7 +5,7 @@ import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { validatePasswordBasic } from '../utils/passwordValidator';
 import { validateRequest } from '../middleware/validator';
-import { changeEmailValidators } from '../validators/authValidators';
+import { changeEmailValidators, changeNameValidators } from '../validators/authValidators';
 import logger, { redactEmail } from '../utils/logger';
 import { PASSWORD_SALT_ROUNDS } from '../config/constants';
 
@@ -203,6 +203,61 @@ router.put('/:id/change-email', authenticateAdmin, requireMainAdmin, validateReq
     });
   } catch (error) {
     logger.error('Change admin email error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Change admin name (main admin only, cannot change own name)
+router.put('/:id/change-name', authenticateAdmin, requireMainAdmin, validateRequest(changeNameValidators), async (req: AuthRequest, res: Response) => {
+  const adminId = parseInt(req.params.id);
+  const { newName } = req.body;
+
+  if (adminId === req.adminId) {
+    return res.status(400).json({ error: 'Cannot change your own name. Use the change name feature in your profile instead.' });
+  }
+
+  try {
+    // Check if admin exists
+    const [admins] = await db.query<RowDataPacket[]>(
+      'SELECT id, name, email, is_main_admin FROM admins WHERE id = ?',
+      [adminId]
+    );
+
+    if (admins.length === 0) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    const admin = admins[0];
+
+    if (admin.is_main_admin) {
+      return res.status(400).json({ error: 'Cannot change name for main admin accounts' });
+    }
+
+    // Check if new name is different from current name
+    if (admin.name === newName) {
+      return res.status(400).json({ error: 'New name must be different from current name' });
+    }
+
+    // Update name
+    await db.query(
+      'UPDATE admins SET name = ? WHERE id = ?',
+      [newName, adminId]
+    );
+
+    logger.info('Admin name changed by main admin', { 
+      adminId: req.adminId, 
+      targetAdminId: adminId, 
+      oldName: admin.name,
+      newName
+    });
+
+    res.json({ 
+      message: `Name changed successfully for ${admin.email}`,
+      email: admin.email,
+      newName
+    });
+  } catch (error) {
+    logger.error('Change admin name error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
