@@ -11,7 +11,6 @@ export const createRoundValidators = [
   
   body('sportName')
     .trim()
-    .escape()
     .notEmpty().withMessage('Sport name is required')
     .isLength({ min: 1, max: 100 }).withMessage('Sport name must be between 1 and 100 characters'),
   

@@ -8,7 +8,6 @@ import { MIN_VALID_YEAR, MAX_VALID_YEAR, MAX_SEASON_NAME_LENGTH } from '../confi
 export const createSeasonValidators = [
   body('name')
     .trim()
-    .escape()
     .notEmpty().withMessage('Season name is required')
     .isLength({ max: MAX_SEASON_NAME_LENGTH }).withMessage(`Season name must be ${MAX_SEASON_NAME_LENGTH} characters or less`),
   
