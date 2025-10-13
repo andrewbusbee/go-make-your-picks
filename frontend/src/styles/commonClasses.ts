@@ -1040,3 +1040,39 @@ export const mobileNavigationDesktopClasses =
 export const mobileNavigationMobileClasses = 
   "md:hidden flex items-center";
 
+// ============================================================================
+// CHAMPIONS PAGE LAYOUT STYLES
+// ============================================================================
+
+// Champions page container
+export const championsPageContainerClasses = 
+  "container mx-auto px-4 py-8";
+
+// Champions header plate container
+export const championsHeaderPlateContainerClasses = 
+  "max-w-4xl mx-auto mb-12";
+
+// Champions loading/error state container
+export const championsLoadingContainerClasses = 
+  "flex items-center justify-center min-h-[50vh]";
+
+// Champions loading text
+export const championsLoadingTextClasses = 
+  "text-gray-600 dark:text-gray-400 text-xl";
+
+// Champions error text
+export const championsErrorTextClasses = 
+  "text-red-600 dark:text-red-400 text-xl text-center";
+
+// Champions try again button
+export const championsTryAgainButtonClasses = 
+  "mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition";
+
+// Champions no data text
+export const championsNoDataTextClasses = 
+  "text-gray-600 dark:text-gray-400 text-xl";
+
+// Champions empty state icon
+export const championsEmptyStateIconClasses = 
+  "text-6xl mb-4";
+

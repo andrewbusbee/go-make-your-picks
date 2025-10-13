@@ -18,7 +18,15 @@ import {
   championsGridClasses,
   championsEmptyStateClasses,
   championsEmptyStateTextClasses,
-  championsButtonClasses
+  championsButtonClasses,
+  championsPageContainerClasses,
+  championsHeaderPlateContainerClasses,
+  championsLoadingContainerClasses,
+  championsLoadingTextClasses,
+  championsErrorTextClasses,
+  championsTryAgainButtonClasses,
+  championsNoDataTextClasses,
+  championsEmptyStateIconClasses
 } from '../styles/commonClasses';
 
 interface Champion {
@@ -77,8 +85,8 @@ export default function ChampionsPage() {
     return (
       <div className={`${pageContainerClasses} pb-20`}>
         <Header />
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="text-gray-600 dark:text-gray-400 text-xl">Loading Champions...</div>
+        <div className={championsLoadingContainerClasses}>
+          <div className={championsLoadingTextClasses}>Loading Champions...</div>
         </div>
         <Footer />
       </div>
@@ -89,12 +97,12 @@ export default function ChampionsPage() {
     return (
       <div className={`${pageContainerClasses} pb-20`}>
         <Header />
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="text-red-600 dark:text-red-400 text-xl text-center">
+        <div className={championsLoadingContainerClasses}>
+          <div className={championsErrorTextClasses}>
             <p>{error}</p>
             <button 
               onClick={loadChampionsData}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className={championsTryAgainButtonClasses}
             >
               Try Again
             </button>
@@ -109,8 +117,8 @@ export default function ChampionsPage() {
     return (
       <div className={`${pageContainerClasses} pb-20`}>
         <Header />
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="text-gray-600 dark:text-gray-400 text-xl">No data available</div>
+        <div className={championsLoadingContainerClasses}>
+          <div className={championsNoDataTextClasses}>No data available</div>
         </div>
         <Footer />
       </div>
@@ -123,14 +131,14 @@ export default function ChampionsPage() {
     <div className={`${pageContainerClasses} pb-20`}>
       <Header />
       
-      <div className="container mx-auto px-4 py-8">
+      <div className={championsPageContainerClasses}>
         {/* Page Title */}
         <h1 className={championsWallTitleClasses}>
           🏆 HALL OF FAME 🏆
         </h1>
 
         {/* Large Header Plate */}
-        <div className="max-w-4xl mx-auto mb-12">
+        <div className={championsHeaderPlateContainerClasses}>
           <div className={championsHeaderPlateClasses}>
             {/* Brass sheen effect */}
             <div className={brassPlateSheenClasses}></div>
@@ -184,7 +192,7 @@ export default function ChampionsPage() {
           </div>
         ) : (
           <div className={championsEmptyStateClasses}>
-            <div className="text-6xl mb-4">🏆</div>
+            <div className={championsEmptyStateIconClasses}>🏆</div>
             <div className={championsEmptyStateTextClasses}>
               No inductees yet. Complete a season to see champions in the Hall of Fame!
             </div>
