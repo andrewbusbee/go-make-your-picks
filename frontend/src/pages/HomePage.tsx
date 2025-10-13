@@ -341,17 +341,31 @@ export default function HomePage() {
             {/* Data sections */}
             <div className="space-y-8">
               {/* Cumulative Graph - Only show if there are completed rounds */}
-              {leaderboardData.rounds && leaderboardData.rounds.some((round: any) => round.status === 'completed') && (
-                <CumulativeGraph data={graphData} />
-              )}
+              {leaderboardData.rounds && leaderboardData.rounds.some((round: any) => round.status === 'completed') && (() => {
+                const allowedRoundIds = (leaderboardData.rounds || [])
+                  .filter((r: any) => r.status === 'locked' || r.status === 'completed')
+                  .map((r: any) => r.id);
+
+                const filteredGraphData = (graphData || []).map((user: any) => ({
+                  ...user,
+                  points: (user.points || []).filter((p: any) => allowedRoundIds.includes(p.roundId))
+                }));
+
+                return <CumulativeGraph data={filteredGraphData} />;
+              })()}
 
               {/* Leaderboard Table */}
               <div>
                 <h2 className={`${headingClasses} mb-4`}>Leaderboard</h2>
-                <LeaderboardTable 
-                  rounds={leaderboardData.rounds}
-                  leaderboard={leaderboardData.leaderboard}
-                />
+                {(() => {
+                  const filteredRounds = (leaderboardData.rounds || []).filter((r: any) => r.status === 'locked' || r.status === 'completed');
+                  return (
+                    <LeaderboardTable 
+                      rounds={filteredRounds}
+                      leaderboard={leaderboardData.leaderboard}
+                    />
+                  );
+                })()}
               </div>
             </div>
           </>
