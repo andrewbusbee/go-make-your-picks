@@ -58,7 +58,8 @@ import {
   completedSectionHeaderClasses,
   completedSportsCardClasses,
   activeSectionHeaderClasses,
-  activationWarningClasses
+  activationWarningClasses,
+  activationInfoClasses
 } from '../../styles/commonClasses';
 
 // Helper function to decode JWT token
@@ -908,10 +909,15 @@ export default function RoundsManagement() {
                       >
                         Activate & Send Links
                       </button>
-                      {!canActivateRound(round) && (
+                      {!canActivateRound(round) ? (
                         <div className={activationWarningClasses}>
                           <span>⚠️</span>
                           <span>Please edit and fill out all required fields before activating this sport</span>
+                        </div>
+                      ) : (
+                        <div className={activationInfoClasses}>
+                          <span>📧</span>
+                          <span>Activating this sport will immediately send pick links to all players</span>
                         </div>
                       )}
                     </div>

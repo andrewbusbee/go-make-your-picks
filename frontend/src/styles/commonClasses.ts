@@ -856,3 +856,7 @@ export const activeSectionHeaderClasses =
 export const activationWarningClasses = 
   "text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-start gap-1";
 
+// Activation info message (for complete sports ready to activate)
+export const activationInfoClasses = 
+  "text-xs text-blue-600 dark:text-blue-400 mt-2 flex items-start gap-1";
+
