@@ -284,6 +284,15 @@ export default function AdminDashboard() {
                     >
                       Change Name
                     </button>
+                    <button
+                      onClick={() => {
+                        setShowChangeEmail(true);
+                        setShowUserMenu(false);
+                      }}
+                      className={`block w-full text-left px-4 py-2 text-sm ${labelClasses} hover:bg-gray-100 dark:hover:bg-gray-700`}
+                    >
+                      Change Email
+                    </button>
                     {adminData?.isMainAdmin && (
                       <button
                         onClick={() => {
@@ -295,15 +304,6 @@ export default function AdminDashboard() {
                         Change Password
                       </button>
                     )}
-                    <button
-                      onClick={() => {
-                        setShowChangeEmail(true);
-                        setShowUserMenu(false);
-                      }}
-                      className={`block w-full text-left px-4 py-2 text-sm ${labelClasses} hover:bg-gray-100 dark:hover:bg-gray-700`}
-                    >
-                      Change Email
-                    </button>
                     <button
                       onClick={handleLogout}
                       className="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 last:rounded-b-lg"

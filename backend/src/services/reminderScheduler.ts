@@ -122,9 +122,9 @@ export const autoLockExpiredRounds = async () => {
           sportName: round.sport_name,
           lockTime: round.lock_time 
         });
-      } catch (error) {
+      } catch (error: any) {
         logger.error('Error auto-locking round', { 
-          error, 
+          error: error.message, 
           roundId: round.id, 
           sportName: round.sport_name 
         });
@@ -135,7 +135,7 @@ export const autoLockExpiredRounds = async () => {
       logSchedulerEvent(`Auto-locked ${expiredRounds.length} expired round(s)`);
     }
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Error in auto-lock expired rounds', { error });
   }
 };
@@ -593,9 +593,28 @@ export const manualSendLockedNotification = async (roundId: number) => {
 let isReminderJobRunning = false;
 let isCleanupJobRunning = false;
 
+// Helper function to run async operations with timeout
+const runWithTimeout = async (asyncFn: () => Promise<void>, timeoutMs: number, operationName: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`${operationName} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    asyncFn()
+      .then(() => {
+        clearTimeout(timer);
+        resolve();
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        reject(error);
+      });
+  });
+};
+
 // Initialize the scheduler
 export const startReminderScheduler = () => {
-  // Run reminder checks every 5 minutes
+  // Run reminder checks every 5 minutes with 4-minute timeout
   cron.schedule('*/5 * * * *', async () => {
     // Skip if previous execution is still running
     if (isReminderJobRunning) {
@@ -604,17 +623,34 @@ export const startReminderScheduler = () => {
     }
 
     isReminderJobRunning = true;
+    const startTime = Date.now();
+    
     try {
       logSchedulerEvent('Running reminder scheduler check');
-      await checkAndSendReminders();
-    } catch (error) {
-      logger.error('Cron job failed', { error });
+      
+      // Run with 4-minute timeout (leaving 1 minute buffer)
+      await runWithTimeout(
+        () => checkAndSendReminders(),
+        4 * 60 * 1000, // 4 minutes
+        'Reminder scheduler check'
+      );
+      
+      const duration = Date.now() - startTime;
+      logSchedulerEvent(`Reminder scheduler check completed in ${duration}ms`);
+      
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      logger.error('Cron job failed', { 
+        error: error.message, 
+        duration: `${duration}ms`,
+        operation: 'reminder_check'
+      });
     } finally {
       isReminderJobRunning = false;
     }
   });
 
-  // Run cleanup job daily at 3:00 AM
+  // Run cleanup job daily at 3:00 AM with 30-minute timeout
   cron.schedule('0 3 * * *', async () => {
     // Skip if previous execution is still running
     if (isCleanupJobRunning) {
@@ -623,17 +659,34 @@ export const startReminderScheduler = () => {
     }
 
     isCleanupJobRunning = true;
+    const startTime = Date.now();
+    
     try {
       logSchedulerEvent('Running daily cleanup job');
-      await cleanupOldLoginAttempts();
-    } catch (error) {
-      logger.error('Cleanup cron job failed', { error });
+      
+      // Run with 30-minute timeout for cleanup
+      await runWithTimeout(
+        () => cleanupOldLoginAttempts(),
+        30 * 60 * 1000, // 30 minutes
+        'Daily cleanup job'
+      );
+      
+      const duration = Date.now() - startTime;
+      logSchedulerEvent(`Daily cleanup job completed in ${duration}ms`);
+      
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      logger.error('Cleanup cron job failed', { 
+        error: error.message, 
+        duration: `${duration}ms`,
+        operation: 'cleanup_job'
+      });
     } finally {
       isCleanupJobRunning = false;
     }
   });
 
-  logSchedulerEvent('Reminder scheduler started - checking every 5 minutes');
-  logSchedulerEvent('Cleanup scheduler started - running daily at 3:00 AM');
+  logSchedulerEvent('Reminder scheduler started - checking every 5 minutes (4min timeout)');
+  logSchedulerEvent('Cleanup scheduler started - running daily at 3:00 AM (30min timeout)');
 };
 
