@@ -171,24 +171,46 @@ export default function ChampionsPage() {
         {/* Champions Grid */}
         {champions.length > 0 ? (
           <div className={championsGridClasses}>
-            {champions.map((champion) => (
-              <div key={`${champion.season_id}-${champion.user_name}`} className={championPlateClasses}>
-                {/* Brass sheen effect */}
-                <div className={brassPlateSheenClasses}></div>
-                
-                <div className="relative z-10">
-                  <div className={championNameClasses}>
-                    {champion.user_name}
+            {(() => {
+              // Group champions by season to handle ties
+              const groupedChampions = champions.reduce((acc, champion) => {
+                const seasonKey = `${champion.season_id}-${champion.year_start}-${champion.year_end}`;
+                if (!acc[seasonKey]) {
+                  acc[seasonKey] = {
+                    season_id: champion.season_id,
+                    year_start: champion.year_start,
+                    year_end: champion.year_end,
+                    champions: []
+                  };
+                }
+                acc[seasonKey].champions.push(champion.user_name);
+                return acc;
+              }, {} as Record<string, { season_id: number; year_start: number; year_end: number; champions: string[] }>);
+
+              // Convert to array and sort by season_id (most recent first)
+              return Object.values(groupedChampions)
+                .sort((a, b) => b.season_id - a.season_id)
+                .map((group) => (
+                  <div key={`${group.season_id}`} className={championPlateClasses}>
+                    {/* Brass sheen effect */}
+                    <div className={brassPlateSheenClasses}></div>
+                    
+                    <div className="relative z-10">
+                      <div className={championNameClasses}>
+                        {group.champions.map((name, nameIndex) => (
+                          <div key={nameIndex}>{name}</div>
+                        ))}
+                      </div>
+                      <div className={championYearClasses}>
+                        {group.year_start === group.year_end 
+                          ? group.year_start 
+                          : `${group.year_start}-${group.year_end}`
+                        }
+                      </div>
+                    </div>
                   </div>
-                  <div className={championYearClasses}>
-                    {champion.year_start === champion.year_end 
-                      ? champion.year_start 
-                      : `${champion.year_start}-${champion.year_end}`
-                    }
-                  </div>
-                </div>
-              </div>
-            ))}
+                ));
+            })()}
           </div>
         ) : (
           <div className={championsEmptyStateClasses}>

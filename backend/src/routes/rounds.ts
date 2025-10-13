@@ -223,8 +223,25 @@ router.get('/season/:seasonId', async (req, res) => {
       });
     }
     
+    // Get all teams for all rounds in this season (single query)
+    const [allTeams] = await db.query<RowDataPacket[]>(
+      'SELECT round_id, team_name FROM round_teams WHERE round_id IN (?)',
+      [rounds.map(r => r.id)]
+    );
+    
+    // Build teams map for O(1) lookup
+    const teamsMap = new Map<number, any[]>();
+    allTeams.forEach(team => {
+      if (!teamsMap.has(team.round_id)) {
+        teamsMap.set(team.round_id, []);
+      }
+      teamsMap.get(team.round_id)!.push(team);
+    });
+    
     // Build response with O(1) lookups (no queries in loop)
     const roundsWithParticipants = rounds.map(round => {
+      const teams = teamsMap.get(round.id) || [];
+      
       if (round.status === 'draft' || round.status === 'active') {
         if (round.status === 'active') {
           // Active round - include pick status
@@ -242,20 +259,25 @@ router.get('/season/:seasonId', async (req, res) => {
             ...round,
             participants: participantsWithPickStatus,
             pickedCount,
-            totalParticipants: participants.length
+            totalParticipants: participants.length,
+            teams
           };
         } else {
           // Draft - just return participant names
           return {
             ...round,
             participants: participants.map(p => ({ id: p.id, name: p.name })),
-            totalParticipants: participants.length
+            totalParticipants: participants.length,
+            teams
           };
         }
       }
       
-      // For locked/completed rounds, don't include participants
-      return round;
+      // For locked/completed rounds, include teams but no participants
+      return {
+        ...round,
+        teams
+      };
     });
     
     res.json(roundsWithParticipants);

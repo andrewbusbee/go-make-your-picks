@@ -121,6 +121,7 @@ export default function RoundsManagement() {
       (round.pick_type === 'single' && round.teams && round.teams.length > 0) ||
       (round.pick_type === 'multiple' && round.num_write_in_picks > 0);
     
+    
     return hasName && hasSeason && hasLockTime && hasTimezone && hasPickType && hasTeamsOrPicks;
   };
   
@@ -568,6 +569,12 @@ export default function RoundsManagement() {
   };
 
   const handleRestoreRound = async (roundId: number) => {
+    // Check if current season has ended
+    if (currentSeason && currentSeason.ended_at) {
+      alert('Cannot restore sports from ended seasons. The season has been closed and finalized.');
+      return;
+    }
+
     if (!confirm('Restore this deleted sport?')) {
       return;
     }
@@ -1969,7 +1976,13 @@ export default function RoundsManagement() {
                 <div className="flex flex-wrap gap-2 mt-4">
                   <button
                     onClick={() => handleRestoreRound(round.id)}
-                    className="text-sm bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 font-medium"
+                    disabled={currentSeason && currentSeason.ended_at}
+                    className={`text-sm px-3 py-1 rounded font-medium ${
+                      currentSeason && currentSeason.ended_at
+                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                    title={currentSeason && currentSeason.ended_at ? 'Cannot restore sports from ended seasons' : 'Restore this deleted sport'}
                   >
                     🔄 Restore
                   </button>
