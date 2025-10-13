@@ -730,15 +730,15 @@ export default function RoundsManagement() {
         </div>
       ) : (
         <>
-          {/* Active Sports Section */}
+          {/* Locked Sports Section */}
           {(() => {
-            const activeRounds = rounds.filter(round => round.status !== 'completed');
-            if (activeRounds.length > 0) {
+            const lockedRounds = rounds.filter(round => round.status === 'locked');
+            if (lockedRounds.length > 0) {
               return (
                 <div className="mb-8">
-                  <h3 className={activeSectionHeaderClasses}>Active Sports</h3>
+                  <h3 className={activeSectionHeaderClasses}>Locked Sports</h3>
                   <div className={gridTwoColClasses}>
-                    {activeRounds.map((round) => (
+                    {lockedRounds.map((round) => (
                       <div key={round.id} className={`${cardClasses} shadow-md`}>
               <div className={`${flexJustifyBetweenStartClasses} ${mb3Classes}`}>
                 <div>
@@ -792,6 +792,86 @@ export default function RoundsManagement() {
               )}
 
               <div className={`${flexWrapGapClasses} ${mt4Classes}`}>
+                {round.status === 'locked' && (
+                  <>
+                    <button
+                      onClick={() => openEditModal(round)}
+                      className={buttonSmallSecondaryClasses}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => openCompleteModal(round)}
+                      className={buttonSmallPrimaryClasses}
+                    >
+                      Complete & Score Sport
+                    </button>
+                  </>
+                )}
+                {(round.status === 'locked') && (
+                  <button
+                    onClick={() => openDeleteModal(round)}
+                    className={buttonSmallDangerLinkClasses}
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            </div>
+                      ))}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+          {/* Divider + Draft Sports Section */}
+          {(() => {
+            const draftRounds = rounds.filter(round => round.status === 'draft' || round.status === 'active');
+            if (draftRounds.length > 0) {
+              return (
+                <div className={sectionWithDividerClasses}>
+                  <h3 className={activeSectionHeaderClasses}>Draft Sports</h3>
+                  <div className={gridTwoColClasses}>
+                    {draftRounds.map((round) => (
+                      <div key={round.id} className={`${cardClasses} shadow-md`}>
+              <div className={`${flexJustifyBetweenStartClasses} ${mb3Classes}`}>
+                <div>
+                  <h3 className={subheadingClasses}>{round.sport_name}</h3>
+                  <p className={bodyTextClasses}>
+                    Lock: {new Date(round.lock_time).toLocaleString('en-US', {
+                      timeZone: round.timezone,
+                      dateStyle: 'short',
+                      timeStyle: 'short'
+                    })} ({round.timezone?.replace('_', ' ')})
+                  </p>
+                </div>
+                {getStatusBadge(round.status)}
+              </div>
+
+              {/* Participants list - hidden for draft rounds */}
+              {(round.status === 'active') && round.participants && (
+                <div className={participantSectionClasses}>
+                  <p className={participantHeaderClasses}>
+                    👥 Participants {round.status === 'active' ? `(${round.pickedCount}/${round.totalParticipants} picked)` : `(${round.totalParticipants} players)`}:
+                  </p>
+                  <div className={participantListClasses}>
+                    {round.participants.map((participant: any) => (
+                      <div key={participant.id} className={participantItemClasses}>
+                        {round.status === 'active' && (
+                          <span className={participantCheckmarkClasses}>
+                            {participant.hasPicked ? '✅' : '❌'}
+                          </span>
+                        )}
+                        <span>{participant.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className={`${flexWrapGapClasses} ${mt4Classes}`}>
                 {round.status === 'draft' && (
                   <>
                     <button
@@ -808,7 +888,6 @@ export default function RoundsManagement() {
                     </button>
                   </>
                 )}
-                
                 {round.status === 'active' && (
                   <>
                     <button
@@ -833,45 +912,9 @@ export default function RoundsManagement() {
                     </button>
                   </>
                 )}
-
-                {round.status === 'locked' && (
-                  <>
-                    <button
-                      onClick={() => openEditModal(round)}
-                      className={buttonSmallSecondaryClasses}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => openCompleteModal(round)}
-                      className={buttonSmallPrimaryClasses}
-                    >
-                      Complete & Score Sport
-                    </button>
-                  </>
-                )}
-                
-                {round.status === 'completed' && (
-                  <button
-                    onClick={() => handleUnlockRound(round.id)}
-                    className={`${buttonSmallYellowClasses} ${flexItemsGap1Classes}`}
-                    title="Unlock round for editing"
-                  >
-                    🔓 Unlock
-                  </button>
-                )}
-
-                {(round.status === 'draft' || round.status === 'active' || round.status === 'locked') && (
-                  <button
-                    onClick={() => openDeleteModal(round)}
-                    className={buttonSmallDangerLinkClasses}
-                  >
-                    Delete
-                  </button>
-                )}
               </div>
             </div>
-                      ))}
+                    ))}
                   </div>
                 </div>
               );
