@@ -1,7 +1,7 @@
 import cron from 'node-cron';
 import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
-import { sendMagicLink, sendLockedNotification } from './emailService';
+import { sendMagicLink, sendLockedNotification, sendAdminReminderSummary } from './emailService';
 import logger, { logSchedulerEvent, redactEmail } from '../utils/logger';
 import { SettingsService } from './settingsService';
 
@@ -276,6 +276,61 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       recipientCount: usersWithoutPicks.length,
     });
 
+    // Send admin reminder summary
+    try {
+      // Get all participants in this season
+      const [allParticipants] = await db.query<RowDataPacket[]>(
+        `SELECT DISTINCT u.id, u.name,
+         CASE WHEN p.id IS NOT NULL THEN 1 ELSE 0 END as hasPicked
+         FROM users u
+         JOIN season_participants sp ON u.id = sp.user_id
+         LEFT JOIN picks p ON u.id = p.user_id AND p.round_id = ?
+         WHERE sp.season_id = ? AND u.is_active = TRUE`,
+        [round.id, round.season_id]
+      );
+
+      // Separate participants with and without picks
+      const participantsWithPicks = allParticipants
+        .filter(p => p.hasPicked)
+        .map(p => ({ name: p.name }));
+      
+      const participantsMissingPicks = allParticipants
+        .filter(p => !p.hasPicked)
+        .map(p => ({ name: p.name }));
+
+      // Get season name
+      const [seasonResult] = await db.query<RowDataPacket[]>(
+        'SELECT name FROM seasons WHERE id = ?',
+        [round.season_id]
+      );
+      
+      const seasonName = seasonResult.length > 0 ? seasonResult[0].name : 'Unknown Season';
+
+      // Send admin summary
+      await sendAdminReminderSummary(
+        round.sport_name,
+        seasonName,
+        round.lock_time,
+        round.timezone,
+        participantsWithPicks,
+        participantsMissingPicks
+      );
+
+      logger.info('Admin reminder summary sent', {
+        roundId: round.id,
+        sportName: round.sport_name,
+        seasonName,
+        participantsWithPicks: participantsWithPicks.length,
+        participantsMissingPicks: participantsMissingPicks.length
+      });
+    } catch (summaryError) {
+      logger.error('Failed to send admin reminder summary', {
+        roundId: round.id,
+        error: summaryError
+      });
+      // Don't throw - this is not critical enough to fail the reminder process
+    }
+
   } catch (error) {
     logger.error(`Error sending ${reminderType} reminder`, { roundId: round.id, error });
   }
@@ -445,6 +500,61 @@ export const manualSendGenericReminder = async (roundId: number) => {
       roundId: round.id,
       recipientCount: usersWithoutPicks.length,
     });
+
+    // Send admin reminder summary for manual reminders too
+    try {
+      // Get all participants in this season
+      const [allParticipants] = await db.query<RowDataPacket[]>(
+        `SELECT DISTINCT u.id, u.name,
+         CASE WHEN p.id IS NOT NULL THEN 1 ELSE 0 END as hasPicked
+         FROM users u
+         JOIN season_participants sp ON u.id = sp.user_id
+         LEFT JOIN picks p ON u.id = p.user_id AND p.round_id = ?
+         WHERE sp.season_id = ? AND u.is_active = TRUE`,
+        [round.id, round.season_id]
+      );
+
+      // Separate participants with and without picks
+      const participantsWithPicks = allParticipants
+        .filter(p => p.hasPicked)
+        .map(p => ({ name: p.name }));
+      
+      const participantsMissingPicks = allParticipants
+        .filter(p => !p.hasPicked)
+        .map(p => ({ name: p.name }));
+
+      // Get season name
+      const [seasonResult] = await db.query<RowDataPacket[]>(
+        'SELECT name FROM seasons WHERE id = ?',
+        [round.season_id]
+      );
+      
+      const seasonName = seasonResult.length > 0 ? seasonResult[0].name : 'Unknown Season';
+
+      // Send admin summary
+      await sendAdminReminderSummary(
+        round.sport_name,
+        seasonName,
+        round.lock_time,
+        round.timezone,
+        participantsWithPicks,
+        participantsMissingPicks
+      );
+
+      logger.info('Admin reminder summary sent (manual)', {
+        roundId: round.id,
+        sportName: round.sport_name,
+        seasonName,
+        participantsWithPicks: participantsWithPicks.length,
+        participantsMissingPicks: participantsMissingPicks.length
+      });
+    } catch (summaryError) {
+      logger.error('Failed to send admin reminder summary (manual)', {
+        roundId: round.id,
+        error: summaryError
+      });
+      // Don't throw - this is not critical enough to fail the reminder process
+    }
     
     return { sent: usersWithoutPicks.length, message: `Reminder sent to ${usersWithoutPicks.length} player(s)` };
 

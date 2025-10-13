@@ -626,6 +626,169 @@ export const sendAdminMagicLink = async (
 };
 
 /**
+ * Sends admin reminder summary email to main admin
+ * @param sportName - Name of the sport
+ * @param seasonName - Name of the season
+ * @param lockTime - Lock time for the sport
+ * @param timezone - Timezone for lock time
+ * @param participantsWithPicks - Array of participants who have made picks
+ * @param participantsMissingPicks - Array of participants who haven't made picks
+ */
+export const sendAdminReminderSummary = async (
+  sportName: string,
+  seasonName: string,
+  lockTime: string,
+  timezone: string,
+  participantsWithPicks: Array<{ name: string }>,
+  participantsMissingPicks: Array<{ name: string }>
+): Promise<void> => {
+  const settings = await getSettings();
+  
+  // Get main admin email
+  const [adminResult] = await db.query<RowDataPacket[]>(
+    'SELECT email FROM admins WHERE is_main_admin = 1 LIMIT 1'
+  );
+  
+  if (adminResult.length === 0) {
+    logger.warn('No main admin found to send reminder summary');
+    return;
+  }
+  
+  const adminEmail = adminResult[0].email;
+  
+  // Format lock time
+  const lockDate = new Date(lockTime).toLocaleString('en-US', {
+    timeZone: timezone,
+    dateStyle: 'short',
+    timeStyle: 'short'
+  });
+  
+  // Limit lists to 25 each
+  const limitedWithPicks = participantsWithPicks.slice(0, 25);
+  const limitedMissingPicks = participantsMissingPicks.slice(0, 25);
+  
+  const totalParticipants = participantsWithPicks.length + participantsMissingPicks.length;
+  const picksSubmitted = participantsWithPicks.length;
+  const missingPicks = participantsMissingPicks.length;
+  
+  const mailOptions = {
+    from: process.env.SMTP_FROM || 'noreply@example.com',
+    to: adminEmail,
+    subject: `${settings.app_title} Reminder Summary: ${seasonName} — ${sportName} (locks ${lockDate} ${timezone.replace('_', ' ')})`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Reminder Summary</title>
+          <style>
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+            .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+            .stats-container { background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin-bottom: 25px; }
+            .participant-list { background-color: #f8f9fa; padding: 15px; border-radius: 6px; max-height: 300px; overflow-y: auto; margin-bottom: 25px; }
+            .participant-item { padding: 5px 0; border-bottom: 1px solid #eee; display: flex; align-items: center; }
+            .notes-box { background-color: #e3f2fd; padding: 15px; border-radius: 6px; border-left: 4px solid #2196f3; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>${settings.app_title}</h1>
+              <div style="font-size: 48px; margin-top: 10px;">📊</div>
+              <h2 style="margin: 10px 0 0 0; font-size: 18px; font-weight: normal;">Reminder Summary for ${sportName}</h2>
+              <p style="margin: 15px 0 0 0; font-size: 14px; opacity: 0.9;">Lock time: ${lockDate} (${timezone.replace('_', ' ')})</p>
+            </div>
+            <div class="content">
+              <div class="stats-container">
+                <h3 style="margin: 0 0 15px 0; color: #333; font-size: 16px;">Quick Stats</h3>
+                <div style="display: flex; justify-content: space-around; text-align: center;">
+                  <div>
+                    <div style="font-size: 24px; font-weight: bold; color: #667eea;">${totalParticipants}</div>
+                    <div style="font-size: 12px; color: #666;">Total participants</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 24px; font-weight: bold; color: #28a745;">${picksSubmitted}</div>
+                    <div style="font-size: 12px; color: #666;">Picks submitted</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 24px; font-weight: bold; color: #dc3545;">${missingPicks}</div>
+                    <div style="font-size: 12px; color: #666;">Missing picks</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <h3 style="margin: 0 0 15px 0; color: #333; font-size: 16px;">Participants With Picks</h3>
+                <div class="participant-list">
+                  ${limitedWithPicks.length > 0 ? limitedWithPicks.map(participant => 
+                    `<div class="participant-item">
+                      <span style="margin-right: 8px; color: #28a745;">✅</span>
+                      <span>${participant.name}</span>
+                    </div>`
+                  ).join('') : '<p style="color: #666; font-style: italic;">No participants have made picks yet.</p>'}
+                  ${participantsWithPicks.length > 25 ? `<p style="margin-top: 10px; color: #666; font-style: italic;">+ ${participantsWithPicks.length - 25} more</p>` : ''}
+                </div>
+              </div>
+              
+              <div>
+                <h3 style="margin: 0 0 15px 0; color: #333; font-size: 16px;">Participants Missing Picks</h3>
+                <div class="participant-list">
+                  ${limitedMissingPicks.length > 0 ? limitedMissingPicks.map(participant => 
+                    `<div class="participant-item">
+                      <span style="margin-right: 8px; color: #dc3545;">❌</span>
+                      <span>${participant.name}</span>
+                    </div>`
+                  ).join('') : '<p style="color: #666; font-style: italic;">All participants have made their picks!</p>'}
+                  ${participantsMissingPicks.length > 25 ? `<p style="margin-top: 10px; color: #666; font-style: italic;">+ ${participantsMissingPicks.length - 25} more</p>` : ''}
+                </div>
+              </div>
+              
+              <div class="notes-box">
+                <h4 style="margin: 0 0 10px 0; color: #1976d2; font-size: 14px;">Notes</h4>
+                <p style="margin: 0; font-size: 13px; color: #1976d2; line-height: 1.4;">
+                  This summary was sent automatically when reminder emails were sent to players who have not picked.<br>
+                  Reminder settings can be adjusted in the settings section of the admin dashboard.
+                </p>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <p>${settings.app_title}</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    `,
+  };
+
+  try {
+    await sendEmailWithRetry(mailOptions, 'Admin reminder summary email');
+    logEmailSent(adminEmail, 'Admin Reminder Summary', true);
+    logger.info('Admin reminder summary sent', { 
+      sportName, 
+      seasonName, 
+      totalParticipants, 
+      picksSubmitted, 
+      missingPicks,
+      adminEmail: redactEmail(adminEmail)
+    });
+  } catch (error: any) {
+    logger.error('Error sending admin reminder summary email', { 
+      error: error.message,
+      sportName,
+      seasonName,
+      adminEmail: redactEmail(adminEmail)
+    });
+    logEmailSent(adminEmail, 'Admin Reminder Summary', false);
+    throw new Error(`Failed to send admin reminder summary: ${error.message}`);
+  }
+};
+
+/**
  * Verifies SMTP connection for health checks
  * @returns Promise<{ connected: boolean; error?: string }>
  */
