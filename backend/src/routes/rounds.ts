@@ -784,47 +784,72 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
         participantCount: participants.length 
       });
 
+      // Group participants by email to merge completion emails for shared addresses
+      const participantsByEmail = new Map<string, Array<{ id: number; name: string }>>();
+      participants.forEach((p: any) => {
+        if (!participantsByEmail.has(p.email)) {
+          participantsByEmail.set(p.email, []);
+        }
+        participantsByEmail.get(p.email)!.push({ id: p.id, name: p.name });
+      });
+
+      logger.info('Grouped participants by email', {
+        roundId,
+        uniqueEmails: participantsByEmail.size,
+        totalParticipants: participants.length
+      });
+
       // Send emails in batches to prevent overwhelming SMTP server and database
       const BATCH_SIZE = 10;
       const emailResults: PromiseSettledResult<void>[] = [];
+      const emailEntries = Array.from(participantsByEmail.entries());
       
-      for (let i = 0; i < participants.length; i += BATCH_SIZE) {
-        const batch = participants.slice(i, i + BATCH_SIZE);
+      for (let i = 0; i < emailEntries.length; i += BATCH_SIZE) {
+        const batch = emailEntries.slice(i, i + BATCH_SIZE);
         
-        logger.info(`Processing email batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(participants.length / BATCH_SIZE)}`, {
+        logger.info(`Processing email batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(emailEntries.length / BATCH_SIZE)}`, {
           roundId,
           batchSize: batch.length,
           startIndex: i
         });
 
         const batchResults = await Promise.allSettled(
-          batch.map(async (participant) => {
+          batch.map(async ([email, users]) => {
             try {
-              // Calculate user-specific data from shared data (no DB queries)
-              const performanceData = calculateUserPerformanceData(participant.id, sharedData);
+              // Calculate performance data for each user sharing this email
+              const usersData = users.map(user => {
+                const performanceData = calculateUserPerformanceData(user.id, sharedData);
+                return {
+                  name: user.name,
+                  pick: performanceData.userPick,
+                  points: performanceData.userPoints
+                };
+              });
+
+              // Get shared data from first user (same for all)
+              const firstUserData = calculateUserPerformanceData(users[0].id, sharedData);
               
               await sendSportCompletionEmail(
-                participant.email,
-                participant.name,
-                performanceData.sportName,
-                performanceData.userPick,
-                performanceData.userPoints,
-                performanceData.finalResults,
-                performanceData.leaderboard,
+                email,
+                usersData,
+                firstUserData.sportName,
+                firstUserData.finalResults,
+                firstUserData.leaderboard,
                 leaderboardLink,
                 roundCommissioner
               );
               
               logger.debug('Successfully sent completion email', { 
                 roundId, 
-                participantId: participant.id 
+                email: redactEmail(email),
+                userCount: users.length
               });
             } catch (emailError) {
               logger.error(`Failed to send completion email`, { 
-                emailRedacted: redactEmail(participant.email), 
+                emailRedacted: redactEmail(email), 
                 emailError, 
-                roundId, 
-                participantId: participant.id 
+                roundId,
+                userCount: users.length
               });
               throw emailError;
             }
@@ -834,7 +859,7 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
         emailResults.push(...batchResults);
         
         // Small delay between batches to avoid SMTP rate limiting
-        if (i + BATCH_SIZE < participants.length) {
+        if (i + BATCH_SIZE < emailEntries.length) {
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
@@ -1117,10 +1142,10 @@ router.post('/test-completion-email', authenticateAdmin, async (req: AuthRequest
     // Test data
     const testData = {
       email: 'test@example.com', // You can change this to your email for testing
-      name: 'Test User',
+      users: [
+        { name: 'Test User', pick: 'Yankees', points: 6 }
+      ],
       sportName: 'Test Sport',
-      userPick: 'Yankees',
-      userPoints: 6,
       finalResults: [
         { place: 1, team: 'Yankees' },
         { place: 2, team: 'Red Sox' },
@@ -1138,10 +1163,8 @@ router.post('/test-completion-email', authenticateAdmin, async (req: AuthRequest
     
     await sendSportCompletionEmail(
       testData.email,
-      testData.name,
+      testData.users,
       testData.sportName,
-      testData.userPick,
-      testData.userPoints,
       testData.finalResults,
       testData.leaderboard,
       testData.leaderboardLink

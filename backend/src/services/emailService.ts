@@ -41,6 +41,42 @@ async function areEmailNotificationsEnabled(): Promise<boolean> {
   }
 }
 
+/**
+ * Check if an email address is shared by multiple active users
+ * @param email - Email address to check
+ * @returns true if email is used by 2+ active users
+ */
+async function isEmailShared(email: string): Promise<boolean> {
+  try {
+    const [users] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM users WHERE email = ? AND is_active = TRUE',
+      [email]
+    );
+    return users[0].count > 1;
+  } catch (error) {
+    logger.error('Error checking if email is shared', { error });
+    return false; // Default to not shared on error
+  }
+}
+
+/**
+ * Get all active users with a specific email address
+ * @param email - Email address to look up
+ * @returns Array of users sharing this email
+ */
+async function getUsersWithEmail(email: string): Promise<Array<{ id: number; name: string; email: string }>> {
+  try {
+    const [users] = await db.query<RowDataPacket[]>(
+      'SELECT id, name, email FROM users WHERE email = ? AND is_active = TRUE ORDER BY name ASC',
+      [email]
+    );
+    return users as Array<{ id: number; name: string; email: string }>;
+  } catch (error) {
+    logger.error('Error getting users with email', { error });
+    return [];
+  }
+}
+
 function getCommissionerSignature(commissioner?: string): string {
   if (commissioner && commissioner.trim()) {
     return `<p style="text-align: center; margin-top: 30px; color: #666; font-style: italic;">
@@ -215,8 +251,20 @@ export const sendMagicLink = async (
   const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
   
+  // Check if email is shared by multiple players
+  const emailIsShared = await isEmailShared(email);
+  const nameFormatted = emailIsShared 
+    ? `<span style="color: #dc2626; font-weight: bold;">${name}</span>`
+    : name;
+  
+  const sharedEmailNote = emailIsShared 
+    ? `<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0; color: #856404;"><strong>⚠️ Note:</strong> This email is shared with multiple players. This link is specifically for <strong>${name}</strong>.</p>
+      </div>`
+    : '';
+  
   const bodyHtml = `
-    <h2>Hi ${name}!</h2>
+    <h2>Hi ${nameFormatted}!</h2>
     <p>It's time to make your pick for <strong>${sportName}</strong>!</p>
     ${customMessage ? `<div class="custom-message">${customMessage.replace(/\n/g, '<br>')}</div>` : ''}
     <p>Click the button below to submit or update your championship prediction:</p>
@@ -228,6 +276,7 @@ export const sendMagicLink = async (
       <span style="word-break: break-all;">${magicLink}</span>
     </p>
     <p><strong>Important:</strong> This link is unique to you and will expire once picks are locked. You can update your pick as many times as you want before the deadline.</p>
+    ${sharedEmailNote}
     ${getCommissionerSignature(commissioner)}
   `;
 
@@ -261,7 +310,7 @@ export const sendMagicLink = async (
 
 export const sendLockedNotification = async (
   email: string,
-  name: string,
+  names: string[], // Changed to array to support merged emails
   sportName: string,
   leaderboardLink: string,
   customMessage?: string
@@ -280,8 +329,14 @@ export const sendLockedNotification = async (
   const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
   
+  // Format names for greeting
+  const isShared = names.length > 1;
+  const namesFormatted = isShared
+    ? names.map(n => `<span style="color: #dc2626; font-weight: bold;">${n}</span>`).join(', ')
+    : names[0];
+  
   const bodyHtml = `
-    <h2>Hi ${name}!</h2>
+    <h2>Hi ${namesFormatted}!</h2>
     <div class="locked-notice">
       <h3 style="margin-top: 0; color: #856404;">📋 ${sportName} picks are now locked!</h3>
       <p style="margin-bottom: 0; color: #856404;">The deadline to pick for ${sportName} has passed, so picks can no longer be submitted.</p>
@@ -323,10 +378,8 @@ export const sendLockedNotification = async (
 
 export const sendSportCompletionEmail = async (
   email: string,
-  name: string,
+  users: Array<{ name: string; pick: string; points: number }>, // Changed to array to support merged emails
   sportName: string,
-  userPick: string,
-  userPoints: number,
   finalResults: Array<{place: number, team: string}>,
   leaderboard: Array<{name: string, points: number, isCurrentUser: boolean}>,
   leaderboardLink: string,
@@ -398,14 +451,31 @@ export const sendSportCompletionEmail = async (
     }).join('<br>');
   };
 
-  const bodyHtml = `
-    <h2>Hi ${name}!</h2>
-    <p><strong>${sportName} has been completed!</strong></p>
+  // Format names for greeting
+  const isShared = users.length > 1;
+  const namesFormatted = isShared
+    ? users.map(u => `<span style="color: #dc2626; font-weight: bold;">${u.name}</span>`).join(', ')
+    : users[0].name;
+  
+  // Build individual result sections for each user
+  const userResultsSections = users.map(user => `
     <div class="user-highlight">
-      <div class="section-title">🎯 Your Result:</div>
-      <p>✅ Your pick: <strong>${userPick}</strong></p>
-      <p>🏆 You earned <strong>${userPoints} points</strong>!</p>
+      <div class="section-title">🎯 ${isShared ? `Results for <span style="color: #dc2626; font-weight: bold;">${user.name}</span>` : 'Your Result'}:</div>
+      <p>✅ Your pick: <strong>${user.pick}</strong></p>
+      <p>🏆 You earned <strong>${user.points} points</strong>!</p>
     </div>
+  `).join('');
+  
+  // Calculate total points for subject line
+  const totalPoints = users.reduce((sum, user) => sum + user.points, 0);
+  const subjectPoints = users.length === 1 
+    ? `You earned ${users[0].points} points!`
+    : `Results!`;
+  
+  const bodyHtml = `
+    <h2>Hi ${namesFormatted}!</h2>
+    <p><strong>${sportName} has been completed!</strong></p>
+    ${userResultsSections}
     <div class="results-box">
       <div class="section-title">📊 ${sportName} Results:</div>
       <p>${formatResults(finalResults)}</p>
@@ -430,20 +500,20 @@ export const sendSportCompletionEmail = async (
   const mailOptions = {
     from: `"${fromName}" <${fromEmail}>`,
     to: email,
-    subject: `${settings.app_title} - ${sportName} Complete - You earned ${userPoints} points!`,
+    subject: `${settings.app_title} - ${sportName} Complete - ${subjectPoints}`,
     html,
   };
 
   try {
     await sendEmailWithRetry(mailOptions, 'Sport completion email');
-    logEmailSent(email, `${settings.app_title} - ${sportName} Complete - You earned ${userPoints} points!`, true);
+    logEmailSent(email, `${settings.app_title} - ${sportName} Complete - ${subjectPoints}`, true);
   } catch (error: any) {
     logger.error('Error sending sport completion email after retries', { 
       error: error.message, 
       toRedacted: redactEmail(email), 
       sportName 
     });
-    logEmailSent(email, `${settings.app_title} - ${sportName} Complete - You earned ${userPoints} points!`, false);
+    logEmailSent(email, `${settings.app_title} - ${sportName} Complete - ${subjectPoints}`, false);
     throw new Error(`Failed to send email: ${error.message}`);
   }
 };

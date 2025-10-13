@@ -365,12 +365,21 @@ export const sendLockedNotificationIfNotSent = async (round: any) => {
     const APP_URL = process.env.APP_URL || 'http://localhost:3003';
     const leaderboardLink = `${APP_URL}`;
 
-    // Send locked notification to all users in parallel
+    // Group users by email to merge notifications for shared emails
+    const usersByEmail = new Map<string, string[]>();
+    allUsers.forEach(user => {
+      if (!usersByEmail.has(user.email)) {
+        usersByEmail.set(user.email, []);
+      }
+      usersByEmail.get(user.email)!.push(user.name);
+    });
+
+    // Send locked notification (one per unique email, merged if shared)
     await Promise.allSettled(
-      allUsers.map(user =>
-        sendLockedNotification(user.email, user.name, round.sport_name, leaderboardLink)
+      Array.from(usersByEmail.entries()).map(([email, names]) =>
+        sendLockedNotification(email, names, round.sport_name, leaderboardLink)
           .catch(emailError => {
-            logger.error(`Failed to send locked notification`, { emailError, emailRedacted: redactEmail(user.email) });
+            logger.error(`Failed to send locked notification`, { emailError, emailRedacted: redactEmail(email) });
           })
       )
     );
