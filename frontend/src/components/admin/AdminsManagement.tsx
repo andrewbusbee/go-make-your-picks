@@ -33,12 +33,18 @@ import {
   grayInfoTextClasses
 } from '../../styles/commonClasses';
 
-export default function AdminsManagement() {
+interface AdminsManagementProps {
+  isMainAdmin: boolean;
+}
+
+export default function AdminsManagement({ isMainAdmin }: AdminsManagementProps) {
   const [admins, setAdmins] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
   const [showChangeNameModal, setShowChangeNameModal] = useState(false);
+  const [showChangeCommissionerModal, setShowChangeCommissionerModal] = useState(false);
   const [selectedAdmin, setSelectedAdmin] = useState<any>(null);
+  const [selectedCommissioner, setSelectedCommissioner] = useState<number | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -55,6 +61,9 @@ export default function AdminsManagement() {
     try {
       const res = await api.get('/admin/admins');
       setAdmins(res.data);
+      // Find current commissioner
+      const commissioner = res.data.find((admin: any) => admin.is_commissioner);
+      setSelectedCommissioner(commissioner?.id || null);
     } catch (error) {
       console.error('Error loading admins:', error);
     }
@@ -185,16 +194,56 @@ export default function AdminsManagement() {
     }
   };
 
+  const openChangeCommissionerModal = () => {
+    setError('');
+    setShowChangeCommissionerModal(true);
+  };
+
+  const closeChangeCommissionerModal = () => {
+    setShowChangeCommissionerModal(false);
+    setError('');
+  };
+
+  const handleChangeCommissioner = async () => {
+    if (selectedCommissioner === null) {
+      setError('Please select an admin to be the commissioner');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+      await api.put(`/admin/admins/${selectedCommissioner}/set-commissioner`);
+      await loadAdmins();
+      closeChangeCommissionerModal();
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to change commissioner');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div>
       <div className={`${flexJustifyBetweenClasses} ${mb6Classes}`}>
         <h2 className={headingClasses}>Admin Accounts</h2>
-        <button
-          onClick={openModal}
-          className={buttonPrimaryClasses}
-        >
-          + Add Admin
-        </button>
+        <div className={flexSpaceXClasses}>
+          <button
+            onClick={openChangeCommissionerModal}
+            className={buttonPrimaryClasses}
+          >
+            Change Commissioner
+          </button>
+          {isMainAdmin && (
+            <button
+              onClick={openModal}
+              className={buttonPrimaryClasses}
+            >
+              + Add Admin
+            </button>
+          )}
+        </div>
       </div>
 
       <div className={`${cardClasses} shadow-md overflow-hidden`}>
@@ -228,21 +277,28 @@ export default function AdminsManagement() {
                   {admin.email}
                 </td>
                 <td className={tableCellSecondaryClasses}>
-                  {admin.is_main_admin ? (
-                    <span className={badgePurpleClasses}>
-                      Main Admin
-                    </span>
-                  ) : (
-                    <span className={badgePrimaryClasses}>
-                      Admin
-                    </span>
-                  )}
+                  <div className="flex items-center space-x-2">
+                    {admin.is_main_admin ? (
+                      <span className={badgePurpleClasses}>
+                        Main Admin
+                      </span>
+                    ) : (
+                      <span className={badgePrimaryClasses}>
+                        Admin
+                      </span>
+                    )}
+                    {admin.is_commissioner && (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                        👑 Commissioner
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className={tableCellSecondaryClasses}>
                   {new Date(admin.created_at).toLocaleDateString()}
                 </td>
                 <td className={`${tableCellClasses} text-right`}>
-                  {!admin.is_main_admin && (
+                  {!admin.is_main_admin && isMainAdmin && (
                     <div className={`${flexSpaceXClasses} justify-end`}>
                       <button
                         onClick={() => openChangeNameModal(admin)}
@@ -272,7 +328,7 @@ export default function AdminsManagement() {
       </div>
 
       {/* Add Admin Modal */}
-      {showModal && (
+      {showModal && isMainAdmin && (
         <div className={modalBackdropClasses}>
           <div className={modalClasses}>
             <h3 className={modalTitleClasses}>Add New Admin</h3>
@@ -347,7 +403,7 @@ export default function AdminsManagement() {
       )}
 
       {/* Change Email Modal */}
-      {showChangeEmailModal && selectedAdmin && (
+      {showChangeEmailModal && selectedAdmin && isMainAdmin && (
         <div className={modalBackdropClasses}>
           <div className={modalClasses}>
             <h3 className={modalTitleClasses}>
@@ -417,7 +473,7 @@ export default function AdminsManagement() {
       )}
 
       {/* Change Name Modal */}
-      {showChangeNameModal && selectedAdmin && (
+      {showChangeNameModal && selectedAdmin && isMainAdmin && (
         <div className={modalBackdropClasses}>
           <div className={modalClasses}>
             <h3 className={modalTitleClasses}>
@@ -470,6 +526,76 @@ export default function AdminsManagement() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Commissioner Modal */}
+      {showChangeCommissionerModal && (
+        <div className={modalBackdropClasses}>
+          <div className={modalClasses}>
+            <h3 className={modalTitleClasses}>
+              Change Commissioner
+            </h3>
+
+            {error && (
+              <div className={alertErrorClasses}>
+                <p className={alertErrorTextClasses}>{error}</p>
+              </div>
+            )}
+
+            <div className={formSectionClasses}>
+              <label className={labelClasses}>
+                Select Commissioner
+              </label>
+              <p className={`${bodyTextClasses} mb-4 text-sm`}>
+                The commissioner designation is used for email signatures and can be assigned to any admin.
+              </p>
+              <div className="space-y-2">
+                {admins.map((admin) => (
+                  <label key={admin.id} className="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 dark:border-gray-600">
+                    <input
+                      type="radio"
+                      name="commissioner"
+                      value={admin.id}
+                      checked={selectedCommissioner === admin.id}
+                      onChange={() => setSelectedCommissioner(admin.id)}
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <span className={bodyTextClasses}>{admin.name}</span>
+                        {admin.is_main_admin && (
+                          <span className="text-xs text-purple-600 dark:text-purple-400">(Main Admin)</span>
+                        )}
+                        {admin.is_commissioner && (
+                          <span className="text-xs">👑</span>
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">{admin.email}</span>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className={flexSpaceXPtClasses}>
+              <button
+                type="button"
+                onClick={handleChangeCommissioner}
+                disabled={loading}
+                className={`${buttonPrimaryClasses} flex-1`}
+              >
+                {loading ? 'Changing...' : 'Change Commissioner'}
+              </button>
+              <button
+                type="button"
+                onClick={closeChangeCommissionerModal}
+                className={buttonCancelClasses}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

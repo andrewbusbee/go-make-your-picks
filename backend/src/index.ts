@@ -28,6 +28,7 @@ import { requestLogger } from './middleware/requestLogger';
 import { validateBodySize } from './middleware/validator';
 import packageJson from '../package.json';
 import { DEFAULT_PORT, PUBLIC_RATE_LIMIT_WINDOW_MS, PUBLIC_RATE_LIMIT_MAX, MAX_JSON_PAYLOAD_SIZE } from './config/constants';
+import { migrationRunner, allMigrations } from './migrations';
 
 // Load environment variables first
 dotenv.config();
@@ -217,6 +218,11 @@ async function startServer() {
   try {
     // Validate database connection before starting server
     await validateDatabaseConnection();
+    
+    // Run database migrations
+    logger.info('🔄 Running database migrations...');
+    await migrationRunner.runAll(allMigrations);
+    logger.info('✅ Database migrations completed');
     
     // Start the server
     app.listen(PORT, '0.0.0.0', () => {

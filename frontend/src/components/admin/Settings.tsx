@@ -58,21 +58,19 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
         >
           Email
         </button>
-        {!!isMainAdmin && (
-          <button
-            onClick={() => handleTabChange('admins')}
-            className={getSubTabClass('admins')}
-          >
-            Admins
-          </button>
-        )}
+        <button
+          onClick={() => handleTabChange('admins')}
+          className={getSubTabClass('admins')}
+        >
+          Admins
+        </button>
       </div>
 
       {/* Content */}
       <div>
         {activeTab === 'customize' && <AppSettings />}
         {activeTab === 'email' && <TestEmail isMainAdmin={isMainAdmin} />}
-        {activeTab === 'admins' && !!isMainAdmin && <AdminsManagement />}
+        {activeTab === 'admins' && <AdminsManagement isMainAdmin={isMainAdmin} />}
       </div>
     </div>
   );

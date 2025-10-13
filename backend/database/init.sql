@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS admins (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NULL,
     is_main_admin BOOLEAN DEFAULT FALSE,
+    is_commissioner BOOLEAN DEFAULT FALSE,
     must_change_password BOOLEAN DEFAULT FALSE,
     account_locked_until TIMESTAMP NULL DEFAULT NULL,
     password_reset_token VARCHAR(255) NULL DEFAULT NULL,

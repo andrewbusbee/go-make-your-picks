@@ -11,11 +11,11 @@ import { PASSWORD_SALT_ROUNDS } from '../config/constants';
 
 const router = express.Router();
 
-// Get all admins (main admin only)
-router.get('/', authenticateAdmin, requireMainAdmin, async (req: AuthRequest, res: Response) => {
+// Get all admins (all authenticated admins can view)
+router.get('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const [admins] = await db.query<RowDataPacket[]>(
-      'SELECT id, name, email, is_main_admin, created_at FROM admins ORDER BY created_at DESC'
+      'SELECT id, name, email, is_main_admin, is_commissioner, created_at FROM admins ORDER BY created_at DESC'
     );
     res.json(admins);
   } catch (error) {
@@ -275,6 +275,43 @@ router.delete('/:id', authenticateAdmin, requireMainAdmin, async (req: AuthReque
     res.json({ message: 'Admin deleted successfully' });
   } catch (error) {
     logger.error('Delete admin error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Set commissioner (any authenticated admin can change)
+router.put('/:id/set-commissioner', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+  const adminId = parseInt(req.params.id);
+
+  if (isNaN(adminId)) {
+    return res.status(400).json({ error: 'Invalid admin ID' });
+  }
+
+  try {
+    // Verify the admin exists
+    const [admins] = await db.query<RowDataPacket[]>(
+      'SELECT id FROM admins WHERE id = ?',
+      [adminId]
+    );
+
+    if (admins.length === 0) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    // First, remove commissioner status from all admins
+    await db.query('UPDATE admins SET is_commissioner = FALSE');
+
+    // Then set the new commissioner
+    await db.query('UPDATE admins SET is_commissioner = TRUE WHERE id = ?', [adminId]);
+
+    logger.info('Commissioner changed', { 
+      changedBy: req.adminId,
+      newCommissionerId: adminId
+    });
+
+    res.json({ message: 'Commissioner updated successfully' });
+  } catch (error) {
+    logger.error('Set commissioner error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
