@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import api from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
@@ -31,7 +31,12 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+  // Determine which menu items to show based on current route
+  const showHomeLink = location.pathname !== '/';
+  const showChampionsLink = location.pathname !== '/champions';
 
   useEffect(() => {
     loadSettings();
@@ -137,31 +142,35 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
             {/* Mobile Dropdown Menu */}
             {isMobileMenuOpen && (
               <div className={mobileDropdownMenuClasses}>
-                {/* Champions Menu Item */}
-                <Link 
-                  to="/champions" 
-                  className={`${mobileDropdownMenuItemClasses} ${mobileDropdownMenuItemSpecialClasses}`}
-                  onClick={closeMobileMenu}
-                >
-                  <div className={mobileDropdownMenuItemWithIconClasses}>
-                    <span className={mobileDropdownMenuItemIconClasses}>🏆</span>
-                    <span className={mobileDropdownMenuItemTextClasses}>Champions</span>
-                  </div>
-                </Link>
+                {/* Champions Menu Item - only show if not on champions page */}
+                {showChampionsLink && (
+                  <Link 
+                    to="/champions" 
+                    className={`${mobileDropdownMenuItemClasses} ${mobileDropdownMenuItemSpecialClasses}`}
+                    onClick={closeMobileMenu}
+                  >
+                    <div className={mobileDropdownMenuItemWithIconClasses}>
+                      <span className={mobileDropdownMenuItemIconClasses}>🏆</span>
+                      <span className={mobileDropdownMenuItemTextClasses}>Champions</span>
+                    </div>
+                  </Link>
+                )}
 
-                {/* Home Menu Item */}
-                <Link 
-                  to="/" 
-                  className={mobileDropdownMenuItemClasses}
-                  onClick={closeMobileMenu}
-                >
-                  <div className={mobileDropdownMenuItemWithIconClasses}>
-                    <span className={mobileDropdownMenuItemIconClasses}>🏠</span>
-                    <span className={mobileDropdownMenuItemTextClasses}>Home</span>
-                  </div>
-                </Link>
+                {/* Home Menu Item - only show if not on home page */}
+                {showHomeLink && (
+                  <Link 
+                    to="/" 
+                    className={mobileDropdownMenuItemClasses}
+                    onClick={closeMobileMenu}
+                  >
+                    <div className={mobileDropdownMenuItemWithIconClasses}>
+                      <span className={mobileDropdownMenuItemIconClasses}>🏠</span>
+                      <span className={mobileDropdownMenuItemTextClasses}>Home</span>
+                    </div>
+                  </Link>
+                )}
 
-                {/* Admin Menu Item */}
+                {/* Admin Menu Item - always show if showAdminLink is true */}
                 {showAdminLink && (
                   <button 
                     onClick={() => {
@@ -177,7 +186,7 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
                   </button>
                 )}
 
-                {/* Theme Toggle Menu Item */}
+                {/* Theme Toggle Menu Item - always show */}
                 <button 
                   onClick={() => {
                     toggleTheme();
