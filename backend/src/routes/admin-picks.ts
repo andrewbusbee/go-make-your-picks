@@ -14,6 +14,7 @@ const router = express.Router();
 // Create or update pick as admin
 router.post('/', authenticateAdmin, validateRequest(adminCreatePickValidators), async (req: AuthRequest, res: Response) => {
   const { userId, roundId, picks } = req.body; // picks is array of pick values
+  const adminId = req.adminId!;
 
   try {
     await withTransaction(async (connection) => {
@@ -36,6 +37,23 @@ router.post('/', authenticateAdmin, validateRequest(adminCreatePickValidators), 
         throw new Error('Cannot modify picks for completed rounds');
       }
 
+      // Check if pick already exists and capture original value for edit tracking
+      const [existingPicks] = await connection.query<RowDataPacket[]>(
+        `SELECT p.id, pi.pick_value 
+         FROM picks p
+         LEFT JOIN pick_items pi ON p.id = pi.pick_id
+         WHERE p.round_id = ? AND p.user_id = ?
+         ORDER BY pi.pick_number`,
+        [roundId, userId]
+      );
+
+      let originalPickValue: string | null = null;
+      if (existingPicks.length > 0) {
+        // Capture original pick value(s)
+        const originalValues = existingPicks.map(p => p.pick_value).filter(Boolean);
+        originalPickValue = originalValues.length > 0 ? originalValues.join(', ') : null;
+      }
+
       // Submit pick using centralized service
       const shouldValidateTeams = pickType === 'single';
       
@@ -45,9 +63,20 @@ router.post('/', authenticateAdmin, validateRequest(adminCreatePickValidators), 
         picks,
         validateTeams: shouldValidateTeams
       });
+
+      // Update pick with admin edit tracking information
+      await connection.query(
+        `UPDATE picks 
+         SET admin_edited = TRUE,
+             original_pick = ?,
+             edited_by_admin_id = ?,
+             edited_at = NOW()
+         WHERE round_id = ? AND user_id = ?`,
+        [originalPickValue, adminId, roundId, userId]
+      );
     });
 
-    logger.info('Admin pick saved successfully', { userId, roundId, pickCount: picks.length });
+    logger.info('Admin pick saved successfully', { userId, roundId, pickCount: picks.length, adminId });
     res.json({ message: 'Pick saved successfully' });
   } catch (error: any) {
     logger.error('Admin pick error', { error, userId, roundId });

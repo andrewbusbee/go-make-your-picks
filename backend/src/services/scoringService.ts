@@ -73,9 +73,11 @@ export class ScoringService {
       
       if (roundIds.length > 0) {
         [picks] = await db.query<RowDataPacket[]>(
-          `SELECT p.*, r.status as round_status, r.lock_time, r.timezone
+          `SELECT p.*, r.status as round_status, r.lock_time, r.timezone,
+                  a.name as editor_name
            FROM picks p
            JOIN rounds r ON p.round_id = r.id
+           LEFT JOIN admins a ON p.edited_by_admin_id = a.id
            WHERE p.round_id IN (?)`,
           [roundIds]
         );

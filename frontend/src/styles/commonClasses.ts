@@ -873,3 +873,23 @@ export const copySportsDropdownClasses =
 export const copySportsWarningClasses = 
   "text-xs text-amber-600 dark:text-amber-400 mt-2 flex items-start gap-1";
 
+// ============================================================================
+// ADMIN PICK EDIT TRACKING
+// ============================================================================
+
+// Container for admin edit tracking display (flex column layout)
+export const adminEditContainerClasses = 
+  "flex flex-col gap-1";
+
+// Checkmark icon for admin edited picks
+export const adminEditCheckmarkClasses = 
+  "text-green-600 dark:text-green-400";
+
+// Pick change display (Line 1: "Eagles → Chiefs")
+export const adminEditPickChangeClasses = 
+  "text-sm font-normal text-gray-900 dark:text-gray-100";
+
+// Metadata display (Line 2: "Edited by Admin on MM/DD/YYYY")
+export const adminEditMetadataClasses = 
+  "text-xs text-gray-500 dark:text-gray-400 mt-1";
+

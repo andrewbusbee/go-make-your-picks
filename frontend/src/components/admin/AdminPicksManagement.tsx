@@ -31,7 +31,11 @@ import {
   mlSpacingClasses,
   spacingYClasses,
   infoBoxClasses,
-  textBlueInfoClasses
+  textBlueInfoClasses,
+  adminEditContainerClasses,
+  adminEditCheckmarkClasses,
+  adminEditPickChangeClasses,
+  adminEditMetadataClasses
 } from '../../styles/commonClasses';
 
 export default function AdminPicksManagement() {
@@ -48,6 +52,15 @@ export default function AdminPicksManagement() {
   const [writeInPicks, setWriteInPicks] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Helper function to format date as MM/DD/YYYY
+  const formatEditDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
 
   useEffect(() => {
     loadSeasons();
@@ -311,6 +324,9 @@ export default function AdminPicksManagement() {
                 <th className={tableHeaderCellClasses}>
                   Pick{roundDetails?.pick_type === 'multiple' ? 's' : ''}
                 </th>
+                <th className={tableHeaderCellClasses}>
+                  Admin Edited
+                </th>
                 <th className={tableHeaderCellRightClasses}>
                   Actions
                 </th>
@@ -334,6 +350,23 @@ export default function AdminPicksManagement() {
                       </span>
                     ) : (
                       <span className={textGrayItalicClasses}>No pick</span>
+                    )}
+                  </td>
+                  <td className={`px-6 py-4 ${bodyTextClasses}`}>
+                    {pickData.pick && pickData.pick.admin_edited ? (
+                      <div className={adminEditContainerClasses}>
+                        <div className={adminEditPickChangeClasses}>
+                          <span className={adminEditCheckmarkClasses}>✅ </span>
+                          {pickData.pick.original_pick || '(No Pick)'} → {pickData.pick.pickItems && pickData.pick.pickItems.length > 0 
+                            ? pickData.pick.pickItems.map((item: any) => item.pickValue).join(', ')
+                            : '(No Pick)'}
+                        </div>
+                        <div className={adminEditMetadataClasses}>
+                          Edited by {pickData.pick.editor_name || 'Admin'} on {formatEditDate(pickData.pick.edited_at)}
+                        </div>
+                      </div>
+                    ) : (
+                      <span>-</span>
                     )}
                   </td>
                   <td className={`${tableCellClasses} text-right`}>
