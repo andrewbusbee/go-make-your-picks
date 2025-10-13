@@ -840,19 +840,21 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
   }
 });
 
-// Get seasons closed in past 24 months with sport counts (admin only)
+// Get current active seasons and seasons closed in past 24 months with sport counts (admin only)
 router.get('/copy-sources', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const [seasons] = await db.query<RowDataPacket[]>(
-      `SELECT s.id, s.name, s.year_start, s.year_end, COUNT(r.id) as sport_count
+      `SELECT s.id, s.name, s.year_start, s.year_end, s.ended_at, COUNT(r.id) as sport_count
        FROM seasons s
        LEFT JOIN rounds r ON s.id = r.season_id AND r.deleted_at IS NULL
-       WHERE s.ended_at IS NOT NULL 
-       AND s.ended_at >= DATE_SUB(NOW(), INTERVAL 24 MONTH)
+       WHERE ((s.ended_at IS NULL AND s.is_active = TRUE)
+              OR (s.ended_at IS NOT NULL AND s.ended_at >= DATE_SUB(NOW(), INTERVAL 24 MONTH)))
        AND s.deleted_at IS NULL
-       GROUP BY s.id, s.name, s.year_start, s.year_end
+       GROUP BY s.id, s.name, s.year_start, s.year_end, s.ended_at
        HAVING sport_count > 0
-       ORDER BY s.ended_at DESC`,
+       ORDER BY 
+         CASE WHEN s.ended_at IS NULL THEN 0 ELSE 1 END,
+         s.ended_at DESC`,
       []
     );
 
@@ -862,7 +864,7 @@ router.get('/copy-sources', authenticateAdmin, async (req: AuthRequest, res: Res
       year_start: season.year_start,
       year_end: season.year_end,
       sport_count: season.sport_count,
-      display_name: `${season.name} (${season.year_start}${season.year_start !== season.year_end ? `-${season.year_end}` : ''}) - ${season.sport_count} sport${season.sport_count !== 1 ? 's' : ''}`
+      display_name: `${season.name} (${season.year_start}${season.year_start !== season.year_end ? `-${season.year_end}` : ''}) - ${season.sport_count} sport${season.sport_count !== 1 ? 's' : ''}${season.ended_at ? '' : ' (Current)'}`
     }));
 
     res.json(formattedSeasons);

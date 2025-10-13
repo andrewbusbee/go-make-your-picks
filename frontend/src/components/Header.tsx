@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
@@ -12,6 +12,7 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
   const [appTitle, setAppTitle] = useState('Go Make Your Picks');
   const [appTagline, setAppTagline] = useState('Predict. Compete. Win.');
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadSettings();
@@ -24,6 +25,18 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
       setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
     } catch (error) {
       console.error('Error loading settings:', error);
+    }
+  };
+
+  const handleAdminClick = () => {
+    const token = localStorage.getItem('adminToken');
+    if (token) {
+      // User has a token, navigate to admin dashboard
+      // AdminDashboard will validate the token and redirect to login if invalid
+      navigate('/admin');
+    } else {
+      // No token, go directly to login
+      navigate('/admin/login');
     }
   };
 
@@ -48,12 +61,12 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
               {theme === 'light' ? '🌙' : '☀️'}
             </button>
             {showAdminLink && (
-              <Link 
-                to="/admin/login" 
+              <button 
+                onClick={handleAdminClick}
                 className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition"
               >
                 Admin
-              </Link>
+              </button>
             )}
           </div>
         </div>
