@@ -505,14 +505,14 @@ router.post('/forgot-password', passwordResetLimiter, validateRequest(forgotPass
   const { email } = req.body;
 
   try {
-    // Check if admin exists with this email
+    // Check if admin exists with this email and is main admin (only main admins can reset passwords)
     const [admins] = await db.query<RowDataPacket[]>(
-      'SELECT id, username FROM admins WHERE email = ?',
+      'SELECT id, name FROM admins WHERE email = ? AND is_main_admin = TRUE',
       [email]
     );
 
     if (admins.length === 0) {
-      // Email not found, but return success message anyway
+      // Email not found or not main admin, but return success message anyway for security
       return res.json({ message: PASSWORD_RESET_SENT_MESSAGE });
     }
 
@@ -530,7 +530,7 @@ router.post('/forgot-password', passwordResetLimiter, validateRequest(forgotPass
 
     // Send reset email
     const resetLink = `${process.env.APP_URL}/admin/reset-password?token=${resetToken}`;
-    await sendPasswordResetEmail(email, admin.username, resetLink);
+    await sendPasswordResetEmail(email, admin.name, resetLink);
 
     res.json({ message: PASSWORD_RESET_SENT_MESSAGE });
   } catch (error) {

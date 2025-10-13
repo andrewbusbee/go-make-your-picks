@@ -256,6 +256,15 @@ export default function AdminLogin() {
                 )}
               </button>
             </div>
+
+            <div className="text-center">
+              <Link
+                to="/admin/forgot-password"
+                className={loginBackLinkClasses}
+              >
+                Forgot your password?
+              </Link>
+            </div>
           </form>
         );
 
