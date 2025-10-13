@@ -595,8 +595,8 @@ let isCleanupJobRunning = false;
 
 // Initialize the scheduler
 export const startReminderScheduler = () => {
-  // Run reminder checks every minute
-  cron.schedule('* * * * *', async () => {
+  // Run reminder checks every 5 minutes
+  cron.schedule('*/5 * * * *', async () => {
     // Skip if previous execution is still running
     if (isReminderJobRunning) {
       logger.warn('Skipping reminder check - previous execution still running');
@@ -633,7 +633,7 @@ export const startReminderScheduler = () => {
     }
   });
 
-  logSchedulerEvent('Reminder scheduler started - checking every minute');
+  logSchedulerEvent('Reminder scheduler started - checking every 5 minutes');
   logSchedulerEvent('Cleanup scheduler started - running daily at 3:00 AM');
 };
 
