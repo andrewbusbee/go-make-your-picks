@@ -5,8 +5,7 @@ import Footer from '../components/Footer';
 import api from '../utils/api';
 import { usePageMeta } from '../utils/usePageMeta';
 import {
-  championsWallContainerClasses,
-  championsWallTextureClasses,
+  pageContainerClasses,
   championsWallTitleClasses,
   championsHeaderPlateClasses,
   brassPlateSheenClasses,
@@ -52,7 +51,7 @@ export default function ChampionsPage() {
 
   // Update page meta tags
   usePageMeta({
-    title: 'Champions Wall',
+    title: 'Hall of Fame',
     description: 'Hall of Fame - Past Season Champions'
   });
 
@@ -76,10 +75,10 @@ export default function ChampionsPage() {
 
   if (loading) {
     return (
-      <div className={championsWallContainerClasses}>
+      <div className={`${pageContainerClasses} pb-20`}>
         <Header />
         <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="text-amber-200 text-xl">Loading Champions...</div>
+          <div className="text-gray-600 dark:text-gray-400 text-xl">Loading Champions...</div>
         </div>
         <Footer />
       </div>
@@ -88,14 +87,14 @@ export default function ChampionsPage() {
 
   if (error) {
     return (
-      <div className={championsWallContainerClasses}>
+      <div className={`${pageContainerClasses} pb-20`}>
         <Header />
         <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="text-red-300 text-xl text-center">
+          <div className="text-red-600 dark:text-red-400 text-xl text-center">
             <p>{error}</p>
             <button 
               onClick={loadChampionsData}
-              className="mt-4 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition"
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
             >
               Try Again
             </button>
@@ -108,10 +107,10 @@ export default function ChampionsPage() {
 
   if (!championsData) {
     return (
-      <div className={championsWallContainerClasses}>
+      <div className={`${pageContainerClasses} pb-20`}>
         <Header />
         <div className="flex items-center justify-center min-h-[50vh]">
-          <div className="text-amber-200 text-xl">No data available</div>
+          <div className="text-gray-600 dark:text-gray-400 text-xl">No data available</div>
         </div>
         <Footer />
       </div>
@@ -121,16 +120,13 @@ export default function ChampionsPage() {
   const { champions, appTitle, appTagline, currentCommissioner, yearsActive } = championsData;
 
   return (
-    <div className={championsWallContainerClasses}>
-      {/* Wood grain texture overlay */}
-      <div className={championsWallTextureClasses}></div>
-      
+    <div className={`${pageContainerClasses} pb-20`}>
       <Header />
       
-      <div className="relative z-10">
+      <div className="container mx-auto px-4 py-8">
         {/* Page Title */}
         <h1 className={championsWallTitleClasses}>
-          🏆 CHAMPIONS WALL 🏆
+          🏆 HALL OF FAME 🏆
         </h1>
 
         {/* Large Header Plate */}
@@ -190,7 +186,7 @@ export default function ChampionsPage() {
           <div className={championsEmptyStateClasses}>
             <div className="text-6xl mb-4">🏆</div>
             <div className={championsEmptyStateTextClasses}>
-              No champions yet. Complete a season to see champions here!
+              No inductees yet. Complete a season to see champions in the Hall of Fame!
             </div>
             <Link to="/" className={championsButtonClasses}>
               View Current Season

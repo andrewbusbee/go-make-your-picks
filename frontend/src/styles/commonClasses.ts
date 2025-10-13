@@ -897,22 +897,12 @@ export const adminEditMetadataClasses =
 // CHAMPIONS WALL PLAQUE STYLING
 // ============================================================================
 
-// Champions wall container with wooden background
-export const championsWallContainerClasses = 
-  "bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 " +
-  "dark:from-amber-950 dark:via-amber-900 dark:to-amber-950 " +
-  "min-h-screen p-8 relative overflow-hidden";
-
-// Wood grain texture overlay
-export const championsWallTextureClasses = 
-  "absolute inset-0 opacity-20 " +
-  "bg-[radial-gradient(circle_at_20%_50%,_rgba(120,53,15,0.3)_0%,_transparent_50%)," +
-  "radial-gradient(circle_at_80%_20%,_rgba(120,53,15,0.3)_0%,_transparent_50%)," +
-  "radial-gradient(circle_at_40%_80%,_rgba(120,53,15,0.3)_0%,_transparent_50%)]";
+// Champions wall container with wooden background (removed - now using standard page layout)
+// Wood grain texture overlay (removed - no longer needed with full-page layout)
 
 // Champions wall title
 export const championsWallTitleClasses = 
-  "text-4xl md:text-5xl font-bold text-center text-amber-100 mb-8 " +
+  "text-4xl md:text-5xl font-bold text-center text-gray-900 dark:text-white mb-8 " +
   "drop-shadow-lg tracking-wide";
 
 // Large header brass plate (2 columns wide)
@@ -975,7 +965,7 @@ export const championsEmptyStateClasses =
 
 // Champions empty state text
 export const championsEmptyStateTextClasses = 
-  "text-amber-200 dark:text-amber-300 text-lg mb-4";
+  "text-gray-600 dark:text-gray-400 text-lg mb-4";
 
 // Champions button (for navigation)
 export const championsButtonClasses = 
@@ -983,4 +973,70 @@ export const championsButtonClasses =
   "text-white px-4 py-2 rounded-lg font-semibold " +
   "shadow-lg shadow-yellow-900/30 " +
   "transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-yellow-900/40";
+
+// ============================================================================
+// MOBILE NAVIGATION STYLES
+// ============================================================================
+
+// Mobile hamburger button
+export const mobileHamburgerButtonClasses = 
+  "md:hidden bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg p-2 " +
+  "transition-all duration-200 text-white";
+
+// Mobile hamburger icon (three lines)
+export const mobileHamburgerIconClasses = 
+  "w-6 h-6";
+
+// Mobile dropdown menu container
+export const mobileDropdownMenuClasses = 
+  "md:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-800 " +
+  "shadow-lg border-t border-gray-200 dark:border-gray-700 " +
+  "transition-all duration-300 ease-in-out";
+
+// Mobile dropdown menu item
+export const mobileDropdownMenuItemClasses = 
+  "block w-full text-left px-4 py-3 text-gray-700 dark:text-gray-300 " +
+  "hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 " +
+  "border-b border-gray-100 dark:border-gray-700 last:border-b-0";
+
+// Mobile dropdown menu item with icon
+export const mobileDropdownMenuItemWithIconClasses = 
+  "flex items-center gap-3";
+
+// Mobile dropdown menu item icon
+export const mobileDropdownMenuItemIconClasses = 
+  "w-5 h-5";
+
+// Mobile dropdown menu item text
+export const mobileDropdownMenuItemTextClasses = 
+  "font-medium";
+
+// Mobile dropdown menu item with special styling (Champions)
+export const mobileDropdownMenuItemSpecialClasses = 
+  "bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 " +
+  "text-yellow-800 dark:text-yellow-200 font-semibold";
+
+// Mobile dropdown menu item with admin styling
+export const mobileDropdownMenuItemAdminClasses = 
+  "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 font-semibold";
+
+// Mobile dropdown menu item with theme toggle styling
+export const mobileDropdownMenuItemThemeClasses = 
+  "bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium";
+
+// Mobile header container with relative positioning for dropdown
+export const mobileHeaderContainerClasses = 
+  "relative";
+
+// Mobile logo container (centered on mobile)
+export const mobileLogoContainerClasses = 
+  "flex items-center justify-center md:justify-start md:flex-none";
+
+// Mobile navigation container (hidden on mobile, shown on desktop)
+export const mobileNavigationDesktopClasses = 
+  "hidden md:flex items-center space-x-3";
+
+// Mobile navigation button container (shown on mobile, hidden on desktop)
+export const mobileNavigationMobileClasses = 
+  "md:hidden flex items-center";
 

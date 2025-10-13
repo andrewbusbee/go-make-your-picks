@@ -1,8 +1,25 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
-import { themeToggleButtonClasses, championsButtonClasses } from '../styles/commonClasses';
+import { 
+  themeToggleButtonClasses, 
+  championsButtonClasses,
+  mobileHamburgerButtonClasses,
+  mobileHamburgerIconClasses,
+  mobileDropdownMenuClasses,
+  mobileDropdownMenuItemClasses,
+  mobileDropdownMenuItemWithIconClasses,
+  mobileDropdownMenuItemIconClasses,
+  mobileDropdownMenuItemTextClasses,
+  mobileDropdownMenuItemSpecialClasses,
+  mobileDropdownMenuItemAdminClasses,
+  mobileDropdownMenuItemThemeClasses,
+  mobileHeaderContainerClasses,
+  mobileLogoContainerClasses,
+  mobileNavigationDesktopClasses,
+  mobileNavigationMobileClasses
+} from '../styles/commonClasses';
 
 interface HeaderProps {
   showAdminLink?: boolean;
@@ -11,12 +28,36 @@ interface HeaderProps {
 export default function Header({ showAdminLink = true }: HeaderProps) {
   const [appTitle, setAppTitle] = useState('Go Make Your Picks');
   const [appTagline, setAppTagline] = useState('Predict. Compete. Win.');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadSettings();
   }, []);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
 
   const loadSettings = async () => {
     try {
@@ -41,21 +82,34 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
   };
 
   return (
-    <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg">
+    <header className={`bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg ${mobileHeaderContainerClasses}`}>
       <div className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center space-x-3">
+          {/* Logo - Centered on mobile, left-aligned on desktop */}
+          <Link to="/" className={mobileLogoContainerClasses}>
             <span className="text-4xl">🏆</span>
             <div>
               <h1 className="text-2xl md:text-3xl font-bold">{appTitle}</h1>
               <p className="text-xs md:text-sm text-blue-100">{appTagline}</p>
             </div>
           </Link>
-          <div className="flex items-center space-x-3">
+          
+          {/* Desktop Navigation */}
+          <div className={mobileNavigationDesktopClasses}>
             {/* Champions Button */}
             <Link to="/champions" className={championsButtonClasses}>
               🏆 Champions
             </Link>
+            
+            {/* Admin Button */}
+            {showAdminLink && (
+              <button 
+                onClick={handleAdminClick}
+                className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition"
+              >
+                Admin
+              </button>
+            )}
             
             {/* Theme Toggle Button */}
             <button
@@ -65,13 +119,70 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
             >
               {theme === 'light' ? '🌙' : '☀️'}
             </button>
-            {showAdminLink && (
-              <button 
-                onClick={handleAdminClick}
-                className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition"
-              >
-                Admin
-              </button>
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className={mobileNavigationMobileClasses} ref={mobileMenuRef}>
+            {/* Hamburger Button */}
+            <button
+              onClick={toggleMobileMenu}
+              className={mobileHamburgerButtonClasses}
+              aria-label="Toggle mobile menu"
+            >
+              <svg className={mobileHamburgerIconClasses} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
+            {/* Mobile Dropdown Menu */}
+            {isMobileMenuOpen && (
+              <div className={mobileDropdownMenuClasses}>
+                {/* Champions Menu Item */}
+                <Link 
+                  to="/champions" 
+                  className={`${mobileDropdownMenuItemClasses} ${mobileDropdownMenuItemSpecialClasses}`}
+                  onClick={closeMobileMenu}
+                >
+                  <div className={mobileDropdownMenuItemWithIconClasses}>
+                    <span className={mobileDropdownMenuItemIconClasses}>🏆</span>
+                    <span className={mobileDropdownMenuItemTextClasses}>Champions</span>
+                  </div>
+                </Link>
+
+                {/* Admin Menu Item */}
+                {showAdminLink && (
+                  <button 
+                    onClick={() => {
+                      handleAdminClick();
+                      closeMobileMenu();
+                    }}
+                    className={`${mobileDropdownMenuItemClasses} ${mobileDropdownMenuItemAdminClasses}`}
+                  >
+                    <div className={mobileDropdownMenuItemWithIconClasses}>
+                      <span className={mobileDropdownMenuItemIconClasses}>⚙️</span>
+                      <span className={mobileDropdownMenuItemTextClasses}>Admin</span>
+                    </div>
+                  </button>
+                )}
+
+                {/* Theme Toggle Menu Item */}
+                <button 
+                  onClick={() => {
+                    toggleTheme();
+                    closeMobileMenu();
+                  }}
+                  className={`${mobileDropdownMenuItemClasses} ${mobileDropdownMenuItemThemeClasses}`}
+                >
+                  <div className={mobileDropdownMenuItemWithIconClasses}>
+                    <span className={mobileDropdownMenuItemIconClasses}>
+                      {theme === 'light' ? '🌙' : '☀️'}
+                    </span>
+                    <span className={mobileDropdownMenuItemTextClasses}>
+                      {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                    </span>
+                  </div>
+                </button>
+              </div>
             )}
           </div>
         </div>
