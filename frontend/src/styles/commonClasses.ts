@@ -991,7 +991,7 @@ export const mobileHamburgerIconClasses =
 export const mobileDropdownMenuClasses = 
   "md:hidden absolute top-full left-0 right-0 bg-white dark:bg-gray-800 " +
   "shadow-lg border-t border-gray-200 dark:border-gray-700 " +
-  "transition-all duration-300 ease-in-out";
+  "transition-all duration-300 ease-in-out z-50";
 
 // Mobile dropdown menu item
 export const mobileDropdownMenuItemClasses = 
