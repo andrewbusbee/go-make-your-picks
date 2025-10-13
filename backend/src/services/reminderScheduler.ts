@@ -589,25 +589,47 @@ export const manualSendLockedNotification = async (roundId: number) => {
   await sendLockedNotificationIfNotSent(rounds[0]);
 };
 
+// Mutex flags to prevent concurrent executions
+let isReminderJobRunning = false;
+let isCleanupJobRunning = false;
+
 // Initialize the scheduler
 export const startReminderScheduler = () => {
   // Run reminder checks every minute
   cron.schedule('* * * * *', async () => {
+    // Skip if previous execution is still running
+    if (isReminderJobRunning) {
+      logger.warn('Skipping reminder check - previous execution still running');
+      return;
+    }
+
+    isReminderJobRunning = true;
     try {
       logSchedulerEvent('Running reminder scheduler check');
       await checkAndSendReminders();
     } catch (error) {
       logger.error('Cron job failed', { error });
+    } finally {
+      isReminderJobRunning = false;
     }
   });
 
   // Run cleanup job daily at 3:00 AM
   cron.schedule('0 3 * * *', async () => {
+    // Skip if previous execution is still running
+    if (isCleanupJobRunning) {
+      logger.warn('Skipping cleanup job - previous execution still running');
+      return;
+    }
+
+    isCleanupJobRunning = true;
     try {
       logSchedulerEvent('Running daily cleanup job');
       await cleanupOldLoginAttempts();
     } catch (error) {
       logger.error('Cleanup cron job failed', { error });
+    } finally {
+      isCleanupJobRunning = false;
     }
   });
 
