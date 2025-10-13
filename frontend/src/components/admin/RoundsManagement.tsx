@@ -846,13 +846,87 @@ export default function RoundsManagement() {
             return null;
           })()}
 
+          {/* Divider + Active Sports Section */}
+          {(() => {
+            const activeRounds = rounds.filter(round => round.status === 'active');
+            if (activeRounds.length > 0) {
+              return (
+                <div className={sectionWithDividerClasses}>
+                  <h3 className={activeSectionHeaderClasses}>⚡ Active - Picks in Progress</h3>
+                  <div className={gridTwoColClasses}>
+                    {activeRounds.map((round) => (
+                      <div key={round.id} className={`${cardClasses} shadow-md`}>
+              <div className={`${flexJustifyBetweenStartClasses} ${mb3Classes}`}>
+                <div>
+                  <h3 className={subheadingClasses}>{round.sport_name}</h3>
+                  <p className={bodyTextClasses}>
+                    Lock: {new Date(round.lock_time).toLocaleString('en-US', {
+                      timeZone: round.timezone,
+                      dateStyle: 'short',
+                      timeStyle: 'short'
+                    })} ({round.timezone?.replace('_', ' ')})
+                  </p>
+                </div>
+                {getStatusBadge(round.status)}
+              </div>
+
+              {/* Participants list */}
+              {round.participants && (
+                <div className={participantSectionClasses}>
+                  <p className={participantHeaderClasses}>
+                    👥 Participants ({round.pickedCount}/{round.totalParticipants} picked):
+                  </p>
+                  <div className={participantListClasses}>
+                    {round.participants.map((participant: any) => (
+                      <div key={participant.id} className={participantItemClasses}>
+                        <span className={participantCheckmarkClasses}>
+                          {participant.hasPicked ? '✅' : '❌'}
+                        </span>
+                        <span>{participant.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className={`${flexWrapGapClasses} ${mt4Classes}`}>
+                <button
+                  onClick={() => openEditModal(round)}
+                  className={buttonSmallPrimaryClasses}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleLockRound(round.id)}
+                  className={buttonSmallWarningClasses}
+                  title="Manually lock this sport and send notifications"
+                >
+                  🔒 Lock Now
+                </button>
+                <button
+                  onClick={() => handleSendReminder(round.id)}
+                  className={buttonSmallPurpleClasses}
+                  title="Send reminder to users who haven't picked"
+                >
+                  📧 Remind
+                </button>
+              </div>
+            </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           {/* Divider + Draft Sports Section */}
           {(() => {
-            const draftRounds = rounds.filter(round => round.status === 'draft' || round.status === 'active');
+            const draftRounds = rounds.filter(round => round.status === 'draft');
             if (draftRounds.length > 0) {
               return (
                 <div className={sectionWithDividerClasses}>
-                  <h3 className={activeSectionHeaderClasses}>Draft Sports</h3>
+                  <h3 className={activeSectionHeaderClasses}>📝 Draft Sports</h3>
                   <div className={gridTwoColClasses}>
                     {draftRounds.map((round) => (
                       <div key={round.id} className={`${cardClasses} shadow-md`}>
@@ -870,83 +944,34 @@ export default function RoundsManagement() {
                 {getStatusBadge(round.status)}
               </div>
 
-              {/* Participants list - hidden for draft rounds */}
-              {(round.status === 'active') && round.participants && (
-                <div className={participantSectionClasses}>
-                  <p className={participantHeaderClasses}>
-                    👥 Participants {round.status === 'active' ? `(${round.pickedCount}/${round.totalParticipants} picked)` : `(${round.totalParticipants} players)`}:
-                  </p>
-                  <div className={participantListClasses}>
-                    {round.participants.map((participant: any) => (
-                      <div key={participant.id} className={participantItemClasses}>
-                        {round.status === 'active' && (
-                          <span className={participantCheckmarkClasses}>
-                            {participant.hasPicked ? '✅' : '❌'}
-                          </span>
-                        )}
-                        <span>{participant.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <div className={`${flexWrapGapClasses} ${mt4Classes}`}>
-                {round.status === 'draft' && (
-                  <>
-                    <button
-                      onClick={() => openEditModal(round)}
-                      className={buttonSmallPrimaryClasses}
-                    >
-                      Edit
-                    </button>
-                    <div className="flex flex-col">
-                      <button
-                        onClick={() => handleActivateRound(round.id)}
-                        disabled={!canActivateRound(round)}
-                        className={buttonSmallSuccessClasses}
-                        title={!canActivateRound(round) ? "Please fill out all required fields before activating" : ""}
-                      >
-                        Activate & Send Links
-                      </button>
-                      {!canActivateRound(round) ? (
-                        <div className={activationWarningClasses}>
-                          <span>⚠️</span>
-                          <span>Please edit and fill out all required fields before activating this sport</span>
-                        </div>
-                      ) : (
-                        <div className={activationInfoClasses}>
-                          <span>📧</span>
-                          <span>Activating this sport will immediately send pick links to all players</span>
-                        </div>
-                      )}
+                <button
+                  onClick={() => openEditModal(round)}
+                  className={buttonSmallPrimaryClasses}
+                >
+                  Edit
+                </button>
+                <div className="flex flex-col">
+                  <button
+                    onClick={() => handleActivateRound(round.id)}
+                    disabled={!canActivateRound(round)}
+                    className={buttonSmallSuccessClasses}
+                    title={!canActivateRound(round) ? "Please fill out all required fields before activating" : ""}
+                  >
+                    Activate & Send Links
+                  </button>
+                  {!canActivateRound(round) ? (
+                    <div className={activationWarningClasses}>
+                      <span>⚠️</span>
+                      <span>Please edit and fill out all required fields before activating this sport</span>
                     </div>
-                  </>
-                )}
-                {round.status === 'active' && (
-                  <>
-                    <button
-                      onClick={() => openEditModal(round)}
-                      className={buttonSmallPrimaryClasses}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleLockRound(round.id)}
-                      className={buttonSmallWarningClasses}
-                      title="Manually lock this sport and send notifications"
-                    >
-                      🔒 Lock Now
-                    </button>
-                    <button
-                      onClick={() => handleSendReminder(round.id)}
-                      className={buttonSmallPurpleClasses}
-                      title="Send reminder to users who haven't picked"
-                    >
-                      📧 Remind
-                    </button>
-                  </>
-                )}
+                  ) : (
+                    <div className={activationInfoClasses}>
+                      <span>📧</span>
+                      <span>Activating this sport will immediately send pick links to all players</span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
                     ))}
