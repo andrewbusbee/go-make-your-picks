@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import LeaderboardTable from '../components/LeaderboardTable';
@@ -11,7 +12,8 @@ import {
   selectClasses,
   cardClasses,
   headingClasses,
-  bodyTextClasses
+  bodyTextClasses,
+  championsButtonClasses
 } from '../styles/commonClasses';
 
 export default function HomePage() {
@@ -333,6 +335,13 @@ export default function HomePage() {
                 <p className={`${bodyTextClasses} text-center mt-4`}>
                   Full final standings available below
                 </p>
+                
+                {/* Champions Button */}
+                <div className="text-center mt-6">
+                  <Link to="/champions" className={championsButtonClasses}>
+                    🏆 View Champions Wall
+                  </Link>
+                </div>
               </div>
             )}
           </div>

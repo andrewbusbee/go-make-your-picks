@@ -155,6 +155,69 @@ router.get('/:id/winners', async (req, res) => {
   }
 });
 
+// Get all champions (public) - for champions wall
+router.get('/champions', async (req, res) => {
+  try {
+    // Get all ended seasons with their champions (1st place only)
+    const [champions] = await db.query<RowDataPacket[]>(
+      `SELECT 
+        s.id as season_id,
+        s.name as season_name,
+        s.year_start,
+        s.year_end,
+        s.commissioner,
+        s.ended_at,
+        sw.place,
+        sw.total_points,
+        u.name as user_name
+       FROM seasons s
+       JOIN season_winners sw ON s.id = sw.season_id
+       JOIN users u ON sw.user_id = u.id
+       WHERE s.ended_at IS NOT NULL 
+       AND s.deleted_at IS NULL
+       AND sw.place = 1
+       ORDER BY s.ended_at DESC`
+    );
+
+    // Get app settings for display
+    const [settings] = await db.query<RowDataPacket[]>(
+      `SELECT setting_key, setting_value 
+       FROM text_settings 
+       WHERE setting_key IN ('app_title', 'app_tagline')`
+    );
+
+    const appTitle = settings.find(s => s.setting_key === 'app_title')?.setting_value || 'Go Make Your Picks';
+    const appTagline = settings.find(s => s.setting_key === 'app_tagline')?.setting_value || 'Predict. Compete. Win.';
+
+    // Get years active range from ended seasons only
+    const [yearRange] = await db.query<RowDataPacket[]>(
+      `SELECT 
+        MIN(year_start) as first_year,
+        MAX(year_end) as last_year
+       FROM seasons 
+       WHERE ended_at IS NOT NULL 
+       AND deleted_at IS NULL`
+    );
+
+    // Get current commissioner (from most recent ended season)
+    const currentCommissioner = champions.length > 0 ? champions[0].commissioner : null;
+
+    res.json({
+      champions,
+      appTitle,
+      appTagline,
+      currentCommissioner,
+      yearsActive: yearRange.length > 0 ? {
+        first: yearRange[0].first_year,
+        last: yearRange[0].last_year
+      } : null
+    });
+  } catch (error) {
+    logger.error('Get champions error', { error });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Create new season (admin only)
 router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   const { name, yearStart, yearEnd, commissioner, isDefault, participantIds, copySports, sourceSeasonId } = req.body;

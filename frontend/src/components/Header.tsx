@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
 import { useTheme } from '../contexts/ThemeContext';
-import { themeToggleButtonClasses } from '../styles/commonClasses';
+import { themeToggleButtonClasses, championsButtonClasses } from '../styles/commonClasses';
 
 interface HeaderProps {
   showAdminLink?: boolean;
@@ -52,6 +52,11 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
             </div>
           </Link>
           <div className="flex items-center space-x-3">
+            {/* Champions Button */}
+            <Link to="/champions" className={championsButtonClasses}>
+              🏆 Champions
+            </Link>
+            
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}

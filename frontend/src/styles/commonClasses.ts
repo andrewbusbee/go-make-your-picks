@@ -893,3 +893,94 @@ export const adminEditPickChangeClasses =
 export const adminEditMetadataClasses = 
   "text-xs text-gray-500 dark:text-gray-400 mt-1";
 
+// ============================================================================
+// CHAMPIONS WALL PLAQUE STYLING
+// ============================================================================
+
+// Champions wall container with wooden background
+export const championsWallContainerClasses = 
+  "bg-gradient-to-br from-amber-900 via-amber-800 to-amber-900 " +
+  "dark:from-amber-950 dark:via-amber-900 dark:to-amber-950 " +
+  "min-h-screen p-8 relative overflow-hidden";
+
+// Wood grain texture overlay
+export const championsWallTextureClasses = 
+  "absolute inset-0 opacity-20 " +
+  "bg-[radial-gradient(circle_at_20%_50%,_rgba(120,53,15,0.3)_0%,_transparent_50%)," +
+  "radial-gradient(circle_at_80%_20%,_rgba(120,53,15,0.3)_0%,_transparent_50%)," +
+  "radial-gradient(circle_at_40%_80%,_rgba(120,53,15,0.3)_0%,_transparent_50%)]";
+
+// Champions wall title
+export const championsWallTitleClasses = 
+  "text-4xl md:text-5xl font-bold text-center text-amber-100 mb-8 " +
+  "drop-shadow-lg tracking-wide";
+
+// Large header brass plate (2 columns wide)
+export const championsHeaderPlateClasses = 
+  "bg-gradient-to-br from-yellow-400 via-yellow-300 to-yellow-500 " +
+  "dark:from-yellow-500 dark:via-yellow-400 dark:to-yellow-600 " +
+  "border-2 border-yellow-600 dark:border-yellow-500 " +
+  "rounded-lg p-6 md:p-8 mx-auto mb-8 " +
+  "shadow-lg shadow-yellow-900/30 " +
+  "col-span-2 text-center " +
+  "relative overflow-hidden";
+
+// Brass plate sheen effect
+export const brassPlateSheenClasses = 
+  "absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent " +
+  "transform -skew-x-12 -translate-x-full " +
+  "animate-pulse";
+
+// Header plate title
+export const championsHeaderTitleClasses = 
+  "text-2xl md:text-3xl font-bold text-amber-900 dark:text-amber-950 mb-2";
+
+// Header plate tagline
+export const championsHeaderTaglineClasses = 
+  "text-lg md:text-xl font-semibold text-amber-800 dark:text-amber-900 mb-4";
+
+// Header plate info
+export const championsHeaderInfoClasses = 
+  "text-sm md:text-base text-amber-700 dark:text-amber-800 space-y-1";
+
+// Individual champion brass plate
+export const championPlateClasses = 
+  "bg-gradient-to-br from-yellow-400 via-yellow-300 to-yellow-500 " +
+  "dark:from-yellow-500 dark:via-yellow-400 dark:to-yellow-600 " +
+  "border-2 border-yellow-600 dark:border-yellow-500 " +
+  "rounded-lg p-4 h-24 md:h-28 " +
+  "shadow-lg shadow-yellow-900/30 " +
+  "flex flex-col justify-center items-center text-center " +
+  "relative overflow-hidden " +
+  "hover:shadow-xl hover:shadow-yellow-900/40 transition-all duration-300 " +
+  "hover:scale-105";
+
+// Champion name on plate
+export const championNameClasses = 
+  "text-sm md:text-base font-bold text-amber-900 dark:text-amber-950 " +
+  "leading-tight mb-1";
+
+// Champion year on plate
+export const championYearClasses = 
+  "text-xs md:text-sm font-semibold text-amber-800 dark:text-amber-900";
+
+// Champions grid container
+export const championsGridClasses = 
+  "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 " +
+  "max-w-6xl mx-auto";
+
+// Champions empty state
+export const championsEmptyStateClasses = 
+  "text-center py-16";
+
+// Champions empty state text
+export const championsEmptyStateTextClasses = 
+  "text-amber-200 dark:text-amber-300 text-lg mb-4";
+
+// Champions button (for navigation)
+export const championsButtonClasses = 
+  "bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700 " +
+  "text-white px-4 py-2 rounded-lg font-semibold " +
+  "shadow-lg shadow-yellow-900/30 " +
+  "transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-yellow-900/40";
+
