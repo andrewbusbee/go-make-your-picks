@@ -293,16 +293,20 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
         );
 
         if (sourceSports.length > 0) {
-          // Insert new sports into target season
+          // Insert new sports into target season with placeholder lock_time
+          // Admin will need to edit each sport to set proper lock_time before activating
+          const placeholderLockTime = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+          
           const insertValues = sourceSports.map(sport => [
             seasonId,
             sport.sport_name,
+            placeholderLockTime,
             'draft', // Always start as draft
             new Date() // created_at
           ]);
 
           await connection.query(
-            `INSERT INTO rounds (season_id, sport_name, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?)').join(', ')}`,
+            `INSERT INTO rounds (season_id, sport_name, lock_time, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?, ?)').join(', ')}`,
             insertValues.flat()
           );
 
@@ -439,16 +443,20 @@ router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) =>
           const sportsToCopy = sourceSports.filter(s => !existingSportNames.has(s.sport_name));
 
           if (sportsToCopy.length > 0) {
-            // Insert new sports into target season
+            // Insert new sports into target season with placeholder lock_time
+            // Admin will need to edit each sport to set proper lock_time before activating
+            const placeholderLockTime = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+            
             const insertValues = sportsToCopy.map(sport => [
               seasonId,
               sport.sport_name,
+              placeholderLockTime,
               'draft', // Always start as draft
               new Date() // created_at
             ]);
 
             await connection.query(
-              `INSERT INTO rounds (season_id, sport_name, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?)').join(', ')}`,
+              `INSERT INTO rounds (season_id, sport_name, lock_time, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?, ?)').join(', ')}`,
               insertValues.flat()
             );
 
@@ -995,16 +1003,20 @@ router.post('/:targetId/copy-sports', authenticateAdmin, async (req: AuthRequest
         };
       }
 
-      // Insert new sports into target season
+      // Insert new sports into target season with placeholder lock_time
+      // Admin will need to edit each sport to set proper lock_time before activating
+      const placeholderLockTime = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days from now
+      
       const insertValues = sportsToCopy.map(sport => [
         targetSeasonId,
         sport.sport_name,
+        placeholderLockTime,
         'draft', // Always start as draft
         new Date() // created_at
       ]);
 
       await connection.query(
-        `INSERT INTO rounds (season_id, sport_name, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?)').join(', ')}`,
+        `INSERT INTO rounds (season_id, sport_name, lock_time, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?, ?)').join(', ')}`,
         insertValues.flat()
       );
 
