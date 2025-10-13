@@ -368,13 +368,6 @@ export default function AdminDashboard() {
           </nav>
         </div>
 
-        {/* Settings Sub-Menu - Show when on settings page */}
-        {location.pathname.startsWith('/admin/settings') && (
-          <div className="mb-6">
-            <Settings isMainAdmin={adminData?.is_main_admin || false} />
-          </div>
-        )}
-
         {/* Email Notifications Disabled Alert - Shown to ALL admins */}
         {!emailNotificationsEnabled && (
           <div className="mb-6 p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-400 dark:border-orange-600 rounded-lg">
@@ -477,9 +470,9 @@ export default function AdminDashboard() {
           <Route path="/seasons" element={<SeasonsManagement />} />
           <Route path="/seasons/:seasonId" element={<SeasonDetail />} />
           <Route path="/manage-picks" element={<AdminPicksManagement />} />
-          <Route path="/settings" element={<div />} />
-          <Route path="/settings/email" element={<div />} />
-          <Route path="/settings/admins" element={<div />} />
+          <Route path="/settings" element={<Settings isMainAdmin={adminData?.is_main_admin || false} />} />
+          <Route path="/settings/email" element={<Settings isMainAdmin={adminData?.is_main_admin || false} />} />
+          <Route path="/settings/admins" element={<Settings isMainAdmin={adminData?.is_main_admin || false} />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </div>
