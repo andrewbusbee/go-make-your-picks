@@ -354,16 +354,16 @@ export default function AdminDashboard() {
               Manage Picks
             </Link>
             <Link
-              to="/admin/getting-started"
-              className={getTabClass('/admin/getting-started')}
-            >
-              Getting Started
-            </Link>
-            <Link
               to="/admin/settings"
               className={getTabClass('/admin/settings')}
             >
               Settings
+            </Link>
+            <Link
+              to="/admin/getting-started"
+              className={getTabClass('/admin/getting-started')}
+            >
+              Getting Started
             </Link>
           </nav>
         </div>
