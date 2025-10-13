@@ -852,3 +852,7 @@ export const completedSportsCardClasses =
 export const activeSectionHeaderClasses = 
   "text-lg font-semibold text-gray-900 dark:text-white mb-4";
 
+// Activation warning message (for incomplete sports)
+export const activationWarningClasses = 
+  "text-xs text-orange-600 dark:text-orange-400 mt-2 flex items-start gap-1";
+

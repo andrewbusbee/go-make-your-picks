@@ -57,7 +57,8 @@ import {
   sectionWithDividerClasses,
   completedSectionHeaderClasses,
   completedSportsCardClasses,
-  activeSectionHeaderClasses
+  activeSectionHeaderClasses,
+  activationWarningClasses
 } from '../../styles/commonClasses';
 
 // Helper function to decode JWT token
@@ -103,6 +104,24 @@ export default function RoundsManagement() {
   const [timezone, setTimezone] = useState('America/New_York');
   const [teamsInput, setTeamsInput] = useState('');
   
+  // Validation function to check if a sport can be activated
+  const canActivateRound = (round: any): boolean => {
+    if (!round) return false;
+    
+    // Check all required fields
+    const hasName = round.sport_name && round.sport_name.trim() !== '';
+    const hasSeason = round.season_id;
+    const hasLockTime = round.lock_time && round.lock_time.trim() !== '';
+    const hasTimezone = round.timezone && round.timezone.trim() !== '';
+    const hasPickType = round.pick_type;
+    
+    // Check teams/picks based on pick type
+    const hasTeamsOrPicks = 
+      (round.pick_type === 'single' && round.teams && round.teams.length > 0) ||
+      (round.pick_type === 'multiple' && round.num_write_in_picks > 0);
+    
+    return hasName && hasSeason && hasLockTime && hasTimezone && hasPickType && hasTeamsOrPicks;
+  };
   
   // Complete form
   const [firstPlaceTeam, setFirstPlaceTeam] = useState('');
@@ -880,12 +899,22 @@ export default function RoundsManagement() {
                     >
                       Edit
                     </button>
-                    <button
-                      onClick={() => handleActivateRound(round.id)}
-                      className={buttonSmallSuccessClasses}
-                    >
-                      Activate & Send Links
-                    </button>
+                    <div className="flex flex-col">
+                      <button
+                        onClick={() => handleActivateRound(round.id)}
+                        disabled={!canActivateRound(round)}
+                        className={buttonSmallSuccessClasses}
+                        title={!canActivateRound(round) ? "Please fill out all required fields before activating" : ""}
+                      >
+                        Activate & Send Links
+                      </button>
+                      {!canActivateRound(round) && (
+                        <div className={activationWarningClasses}>
+                          <span>⚠️</span>
+                          <span>Please edit and fill out all required fields before activating this sport</span>
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
                 {round.status === 'active' && (
