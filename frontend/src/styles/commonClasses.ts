@@ -183,7 +183,8 @@ export const modalBackdropClasses =
   "flex items-center justify-center z-50 p-4";
 
 export const modalClasses = 
-  "bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6";
+  "bg-white dark:bg-gray-800 rounded-lg max-w-md w-full p-6 " +
+  "max-h-[90vh] overflow-y-auto";
 
 export const modalTitleClasses = 
   "text-xl font-bold text-gray-900 dark:text-white mb-4";

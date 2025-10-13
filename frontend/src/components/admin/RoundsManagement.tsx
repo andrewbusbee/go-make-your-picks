@@ -112,7 +112,7 @@ export default function RoundsManagement() {
     // Check all required fields
     const hasName = round.sport_name && round.sport_name.trim() !== '';
     const hasSeason = round.season_id;
-    const hasLockTime = round.lock_time && round.lock_time.trim() !== '';
+    const hasLockTime = round.lock_time && (typeof round.lock_time === 'string' ? round.lock_time.trim() !== '' : round.lock_time instanceof Date);
     const hasTimezone = round.timezone && round.timezone.trim() !== '';
     const hasPickType = round.pick_type;
     
@@ -972,6 +972,12 @@ export default function RoundsManagement() {
                     </div>
                   )}
                 </div>
+                <button
+                  onClick={() => openDeleteModal(round)}
+                  className={buttonSmallDangerLinkClasses}
+                >
+                  Delete
+                </button>
               </div>
             </div>
                     ))}

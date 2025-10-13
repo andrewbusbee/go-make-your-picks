@@ -345,7 +345,7 @@ export default function SeasonsManagement() {
   const handleSoftDelete = async () => {
     if (!seasonToDelete) return;
 
-    if (deleteConfirmText !== seasonToDelete.name) {
+    if (deleteConfirmText.trim() !== seasonToDelete.name.trim()) {
       alert('Season name does not match!');
       return;
     }
@@ -513,7 +513,7 @@ export default function SeasonsManagement() {
                 >
                   Edit Season
                 </button>
-                {season.is_active && (
+                {season.is_active === 1 && (
                   <button
                     onClick={() => handleEndSeason(season.id)}
                     className={`flex-1 min-w-[110px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonSuccessClasses}`}
@@ -1013,7 +1013,7 @@ export default function SeasonsManagement() {
               <div className={`${flexSpaceXClasses} ${pt6Classes}`}>
               <button
                 onClick={handleSoftDelete}
-                disabled={deleteConfirmText !== seasonToDelete.name || !deleteCheckbox}
+                disabled={deleteConfirmText.trim() !== seasonToDelete.name.trim() || !deleteCheckbox}
                 className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Delete Season
