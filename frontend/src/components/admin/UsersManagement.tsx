@@ -280,7 +280,7 @@ export default function UsersManagement() {
                   )}
                 </td>
               </tr>
-            )}
+            ))}
           </tbody>
           </table>
         </div>
