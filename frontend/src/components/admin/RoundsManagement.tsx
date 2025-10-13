@@ -917,6 +917,12 @@ export default function RoundsManagement() {
                 >
                   📧 Remind
                 </button>
+                <button
+                  onClick={() => openDeleteModal(round)}
+                  className={buttonSmallDangerLinkClasses}
+                >
+                  Delete
+                </button>
               </div>
             </div>
                     ))}

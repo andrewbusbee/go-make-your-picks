@@ -550,7 +550,7 @@ router.post('/reset-password', passwordResetLimiter, validateRequest(resetPasswo
   try {
     // Find admin with this reset token and check expiration
     const [admins] = await db.query<RowDataPacket[]>(
-      'SELECT id, username, password_reset_expires FROM admins WHERE password_reset_token = ?',
+      'SELECT id, name, password_reset_expires FROM admins WHERE password_reset_token = ?',
       [token]
     );
 
