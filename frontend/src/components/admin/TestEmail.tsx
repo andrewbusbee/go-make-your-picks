@@ -17,14 +17,20 @@ import {
   loadingTextClasses
 } from '../../styles/commonClasses';
 
-export default function TestEmail() {
+interface TestEmailProps {
+  isMainAdmin: boolean;
+}
+
+export default function TestEmail({ isMainAdmin }: TestEmailProps) {
   const [currentUser, setCurrentUser] = useState<{ name: string; email: string } | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
 
-  // Load current user info on component mount
+  // Load current user info and settings on component mount
   useEffect(() => {
     const loadCurrentUser = async () => {
       try {
@@ -41,7 +47,19 @@ export default function TestEmail() {
       }
     };
 
+    const loadSettings = async () => {
+      try {
+        const response = await api.get('/public/settings');
+        setEmailNotificationsEnabled(response.data.email_notifications_enabled === 'true');
+      } catch (err) {
+        console.error('Failed to load settings:', err);
+      } finally {
+        setLoadingSettings(false);
+      }
+    };
+
     loadCurrentUser();
+    loadSettings();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -63,11 +81,57 @@ export default function TestEmail() {
     }
   };
 
+  const handleToggleEmailNotifications = async () => {
+    setError('');
+    setSuccess('');
+    
+    try {
+      const newValue = !emailNotificationsEnabled;
+      await api.put('/admin/settings/email-notifications', { enabled: newValue });
+      setEmailNotificationsEnabled(newValue);
+      setSuccess(`Email notifications ${newValue ? 'enabled' : 'disabled'} successfully`);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to update email notifications setting');
+    }
+  };
+
   return (
     <div>
       <div className="mb-6">
         <h2 className={headingClasses + " mb-2"}>Email Configuration</h2>
       </div>
+
+      {/* Email Notifications Toggle (Main Admin Only) */}
+      {isMainAdmin && (
+        <div className={cardClasses + " mb-6"}>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className={labelClasses + " font-semibold mb-1"}>User Notification Emails</h3>
+              <p className={helpTextClasses}>
+                {emailNotificationsEnabled 
+                  ? 'Notification emails will be sent to users when rounds are activated or completed.' 
+                  : 'User notifications disabled. Pick reminders and completion emails will not be sent. Admin login and password reset emails will still work.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggleEmailNotifications}
+              disabled={loadingSettings}
+              className={`relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                emailNotificationsEnabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
+              }`}
+              role="switch"
+              aria-checked={emailNotificationsEnabled}
+            >
+              <span
+                className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  emailNotificationsEnabled ? 'translate-x-6' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className={cardClasses}>
         {/* Info Box */}

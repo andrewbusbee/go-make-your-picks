@@ -257,4 +257,36 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Toggle email notifications (main admin only)
+router.put('/email-notifications', authenticateAdmin, requireMainAdmin, async (req: AuthRequest, res: Response) => {
+  const { enabled } = req.body;
+
+  if (typeof enabled !== 'boolean') {
+    return res.status(400).json({ error: 'enabled must be a boolean' });
+  }
+
+  try {
+    // Update or insert the setting
+    await db.query(
+      `INSERT INTO text_settings (setting_key, setting_value) 
+       VALUES ('email_notifications_enabled', ?) 
+       ON DUPLICATE KEY UPDATE setting_value = ?`,
+      [enabled ? 'true' : 'false', enabled ? 'true' : 'false']
+    );
+
+    logger.info('Email notifications toggled', { 
+      adminId: req.adminId, 
+      enabled 
+    });
+
+    res.json({ 
+      message: `Email notifications ${enabled ? 'enabled' : 'disabled'}`,
+      email_notifications_enabled: enabled ? 'true' : 'false'
+    });
+  } catch (error) {
+    logger.error('Toggle email notifications error', { error });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 export default router;

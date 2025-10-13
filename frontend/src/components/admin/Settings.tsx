@@ -71,7 +71,7 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
       {/* Content */}
       <div>
         {activeTab === 'customize' && <AppSettings />}
-        {activeTab === 'email' && <TestEmail />}
+        {activeTab === 'email' && <TestEmail isMainAdmin={isMainAdmin} />}
         {activeTab === 'admins' && !!isMainAdmin && <AdminsManagement />}
       </div>
     </div>

@@ -19,6 +19,28 @@ async function getSettings() {
   };
 }
 
+/**
+ * Check if email notifications are enabled globally
+ * Returns true if enabled, false if disabled
+ */
+async function areEmailNotificationsEnabled(): Promise<boolean> {
+  try {
+    const [settings] = await db.query<RowDataPacket[]>(
+      'SELECT setting_value FROM text_settings WHERE setting_key = ?',
+      ['email_notifications_enabled']
+    );
+    
+    if (settings.length === 0) {
+      return true; // Default to enabled if not set
+    }
+    
+    return settings[0].setting_value === 'true';
+  } catch (error) {
+    logger.error('Error checking email notifications setting', { error });
+    return true; // Default to enabled on error
+  }
+}
+
 function getCommissionerSignature(commissioner?: string): string {
   if (commissioner && commissioner.trim()) {
     return `<p style="text-align: center; margin-top: 30px; color: #666; font-style: italic;">
@@ -121,6 +143,16 @@ export const sendMagicLink = async (
   customMessage?: string,
   commissioner?: string
 ): Promise<void> => {
+  // Check if email notifications are globally enabled
+  const notificationsEnabled = await areEmailNotificationsEnabled();
+  if (!notificationsEnabled) {
+    logger.info('Email notifications disabled - skipping magic link email', { 
+      to: redactEmail(email), 
+      sportName 
+    });
+    return;
+  }
+
   const settings = await getSettings();
   const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
@@ -197,6 +229,16 @@ export const sendLockedNotification = async (
   leaderboardLink: string,
   customMessage?: string
 ): Promise<void> => {
+  // Check if email notifications are globally enabled
+  const notificationsEnabled = await areEmailNotificationsEnabled();
+  if (!notificationsEnabled) {
+    logger.info('Email notifications disabled - skipping locked notification email', { 
+      to: redactEmail(email), 
+      sportName 
+    });
+    return;
+  }
+
   const settings = await getSettings();
   const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
@@ -278,6 +320,16 @@ export const sendSportCompletionEmail = async (
   leaderboardLink: string,
   commissioner?: string
 ): Promise<void> => {
+  // Check if email notifications are globally enabled
+  const notificationsEnabled = await areEmailNotificationsEnabled();
+  if (!notificationsEnabled) {
+    logger.info('Email notifications disabled - skipping completion email', { 
+      to: redactEmail(email), 
+      sportName 
+    });
+    return;
+  }
+
   const settings = await getSettings();
   const pointsSettings = await SettingsService.getPointsSettings();
   const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
@@ -418,6 +470,8 @@ export const sendPasswordResetEmail = async (
   username: string,
   resetLink: string
 ): Promise<void> => {
+  // NOTE: Password reset emails are ALWAYS sent (authentication/security)
+  // They are not affected by the email notifications toggle
   const settings = await getSettings();
   const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
@@ -496,6 +550,8 @@ export const sendAdminMagicLink = async (
   name: string,
   magicLink: string
 ): Promise<void> => {
+  // NOTE: Admin login emails are ALWAYS sent (authentication/security)
+  // They are not affected by the email notifications toggle
   const settings = await getSettings();
   const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';

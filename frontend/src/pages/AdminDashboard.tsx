@@ -38,6 +38,7 @@ export default function AdminDashboard() {
   const [hasSeasons, setHasSeasons] = useState(false);
   const [hasSports, setHasSports] = useState(false);
   const [enableDevTools, setEnableDevTools] = useState(false);
+  const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
   const [customizationState, setCustomizationState] = useState({
     branding: false,
     scoring: false,
@@ -132,6 +133,7 @@ export default function AdminDashboard() {
       const res = await api.get('/admin/settings');
       setAppTitle(res.data.app_title || 'Go Make Your Picks');
       setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
+      setEmailNotificationsEnabled(res.data.email_notifications_enabled === 'true');
       
       // Check customization state
       const defaultTitle = 'Go Make Your Picks';
@@ -365,6 +367,37 @@ export default function AdminDashboard() {
             </Link>
           </nav>
         </div>
+
+        {/* Email Notifications Disabled Alert - Shown to ALL admins */}
+        {!emailNotificationsEnabled && (
+          <div className="mb-6 p-4 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-400 dark:border-orange-600 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <span className="text-2xl flex-shrink-0">⚠️</span>
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold text-orange-900 dark:text-orange-200 mb-1">
+                  User Notification Emails Are Disabled
+                </h3>
+                {adminData?.isMainAdmin ? (
+                  <>
+                    <p className="text-xs text-orange-700 dark:text-orange-400 mb-2">
+                      Pick reminders and completion emails will not be sent to users. Admin login and password reset emails still work. This is useful for adding historical data.
+                    </p>
+                    <button
+                      onClick={() => navigate('/admin/settings/email')}
+                      className="px-3 py-1.5 bg-orange-600 text-white text-xs font-medium rounded-md hover:bg-orange-700 transition-colors"
+                    >
+                      Go to Settings to Enable
+                    </button>
+                  </>
+                ) : (
+                  <p className="text-xs text-orange-700 dark:text-orange-400">
+                    User notification emails are disabled. Pick reminders and completion emails will not be sent. Please contact the main administrator to re-enable before activating new sports.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Development Tools - Only shown when ENABLE_DEV_TOOLS=true */}
         {enableDevTools === true && adminData?.is_main_admin === 1 ? (
