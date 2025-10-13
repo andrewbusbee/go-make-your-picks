@@ -82,6 +82,7 @@ export default function SeasonsManagement() {
   const [yearStart, setYearStart] = useState('');
   const [yearEnd, setYearEnd] = useState('');
   const [commissioner, setCommissioner] = useState('');
+  const [defaultCommissionerName, setDefaultCommissionerName] = useState<string | null>(null);
   const [isDefault, setIsDefault] = useState(true);
   const [selectedParticipants, setSelectedParticipants] = useState<number[]>([]);
   const [error, setError] = useState('');
@@ -96,6 +97,10 @@ export default function SeasonsManagement() {
   const [editIsDefault, setEditIsDefault] = useState(false);
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
+
+  useEffect(() => {
+    loadCommissioner();
+  }, []);
 
   useEffect(() => {
     // Check if user is main admin
@@ -139,11 +144,22 @@ export default function SeasonsManagement() {
     }
   };
 
+  const loadCommissioner = async () => {
+    try {
+      const res = await api.get('/admin/admins/commissioner');
+      setDefaultCommissionerName(res.data.name);
+    } catch (error) {
+      console.error('Error loading commissioner:', error);
+      setDefaultCommissionerName(null);
+    }
+  };
+
   const openModal = () => {
     setName('');
     setYearStart('');
     setYearEnd('');
-    setCommissioner('');
+    // Pre-fill commissioner with current commissioner name
+    setCommissioner(defaultCommissionerName || '');
     setIsDefault(true);
     setSelectedParticipants([]);
     setError('');
@@ -635,7 +651,7 @@ export default function SeasonsManagement() {
                   className={inputClasses}
                 />
                 <p className={`mt-1 ${helpTextClasses}`}>
-                  Appears in email signatures for all sports in this season. Leave blank for generic signature.
+                  This field is pre-filled with the current commissioner from the admin list, but you can change it if needed. Appears in email signatures for all sports in this season.
                 </p>
               </div>
 
@@ -802,7 +818,7 @@ export default function SeasonsManagement() {
                   className={inputClasses}
                 />
                 <p className={`mt-1 ${helpTextClasses}`}>
-                  Appears in email signatures for all sports in this season. Leave blank for generic signature.
+                  This field is pre-filled with the current commissioner from the admin list, but you can change it if needed. Appears in email signatures for all sports in this season.
                 </p>
               </div>
 

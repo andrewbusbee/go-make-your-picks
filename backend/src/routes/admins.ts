@@ -24,6 +24,24 @@ router.get('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Get current commissioner name (all authenticated admins can view)
+router.get('/commissioner', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const [admins] = await db.query<RowDataPacket[]>(
+      'SELECT name FROM admins WHERE is_commissioner = TRUE LIMIT 1'
+    );
+    
+    if (admins.length === 0) {
+      return res.json({ name: null });
+    }
+    
+    res.json({ name: admins[0].name });
+  } catch (error) {
+    logger.error('Get commissioner error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // Get basic admin list for email testing (all authenticated admins)
 router.get('/for-email-test', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   try {
