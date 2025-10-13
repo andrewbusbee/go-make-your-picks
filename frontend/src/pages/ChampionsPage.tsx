@@ -172,26 +172,28 @@ export default function ChampionsPage() {
         {champions.length > 0 ? (
           <div className={championsGridClasses}>
             {(() => {
-              // Group champions by season to handle ties
+              // Group champions by season AND points to handle ties properly
               const groupedChampions = champions.reduce((acc, champion) => {
-                const seasonKey = `${champion.season_id}-${champion.year_start}-${champion.year_end}`;
-                if (!acc[seasonKey]) {
-                  acc[seasonKey] = {
+                // Group by season AND total points - only tie champions together
+                const groupKey = `${champion.season_id}-${champion.year_start}-${champion.year_end}-${champion.total_points}`;
+                if (!acc[groupKey]) {
+                  acc[groupKey] = {
                     season_id: champion.season_id,
                     year_start: champion.year_start,
                     year_end: champion.year_end,
+                    total_points: champion.total_points,
                     champions: []
                   };
                 }
-                acc[seasonKey].champions.push(champion.user_name);
+                acc[groupKey].champions.push(champion.user_name);
                 return acc;
-              }, {} as Record<string, { season_id: number; year_start: number; year_end: number; champions: string[] }>);
+              }, {} as Record<string, { season_id: number; year_start: number; year_end: number; total_points: number; champions: string[] }>);
 
               // Convert to array and sort by season_id (most recent first)
               return Object.values(groupedChampions)
                 .sort((a, b) => b.season_id - a.season_id)
-                .map((group) => (
-                  <div key={`${group.season_id}`} className={championPlateClasses}>
+                .map((group, groupIndex) => (
+                  <div key={`${group.season_id}-${group.total_points}-${groupIndex}`} className={championPlateClasses}>
                     {/* Brass sheen effect */}
                     <div className={brassPlateSheenClasses}></div>
                     
