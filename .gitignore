@@ -8,7 +8,6 @@ dist/
 backend/dist/
 frontend/dist/
 build/
-*.tsbuildinfo
 
 # Vite
 .vite/
@@ -72,7 +71,6 @@ volumes/
 *.tmp
 *.temp
 .cache/
-.turbo/
 
 # Coverage reports
 coverage/
@@ -80,9 +78,6 @@ coverage/
 
 # Optional npm cache directory
 .npm
-
-# Optional eslint cache
-.eslintcache
 
 # TypeScript
 *.tsbuildinfo
@@ -103,8 +98,8 @@ test-results/
 $RECYCLE.BIN/
 ehthumbs_vista.db
 
-# Linux
-*~
+# Linux (covered by IDE section line 54)
+# *~
 
 # Backup files
 *.bak
@@ -137,7 +132,6 @@ storybook-static/
 # prisma/migrations/
 
 # Playwright
-test-results/
 playwright-report/
 playwright/.cache/
 
@@ -194,9 +188,9 @@ docker-compose.override.local.yml
 *.seed
 *.pid.lock
 
-# WebStorm
-*.iml
-.idea/
+# WebStorm (duplicate of line 51)
+# *.iml
+# .idea/
 
 # VS Code workspace settings (keep general settings but ignore workspace-specific)
 .vscode/settings.json
@@ -216,3 +210,61 @@ Icon?
 temp.sql
 scratch.sql
 test.sql
+
+# Test and temporary files in backend
+backend/test-*.js
+backend/test-*.ts
+backend/scratch-*.js
+backend/scratch-*.ts
+
+# TypeScript compiled output (redundant with dist/ but explicit)
+*.js.map
+*.d.ts.map
+
+# Package manager lock files (optional - some teams ignore, we commit)
+# Keeping package-lock.json committed for reproducible builds
+
+# ESLint and Prettier cache
+.eslintcache
+.prettiercache
+
+# Turbo
+.turbo
+
+# Local environment overrides
+.env.*.local
+
+# Frontend build artifacts
+frontend/dist/assets/*.js
+frontend/dist/assets/*.css
+
+# Vite temp files
+vite.config.*.timestamp-*
+
+# Node REPL history
+.node_repl_history
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime data
+pids
+
+# Compiled binary addons
+build/Release
+
+# Dependency directories
+jspm_packages/
+
+# Output of 'npm pack'
+*.tgz
+
+# dotenv environment variable files
+.env.backup
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# Temporary folders
+tmp/
+temp/
