@@ -69,7 +69,7 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
     setLoading(true);
 
     try {
-      const response = await api.post('/admin/test-email');
+      const response = await api.post('/admin/test-email', { email: currentUser?.email });
       setSuccess(`Test email sent successfully to ${response.data.sentTo}! Check your inbox.`);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to send test email. Check your SMTP configuration.');
