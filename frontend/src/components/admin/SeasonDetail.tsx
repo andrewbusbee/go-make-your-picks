@@ -8,6 +8,7 @@ import {
   cardHeaderClasses,
   subheadingClasses,
   tableClasses,
+  tableContainerClasses,
   tableHeadClasses,
   tableHeaderCellClasses,
   tableHeaderCellRightClasses,
@@ -210,7 +211,8 @@ export default function SeasonDetail() {
             <p>No participants yet. Add family members who want to play.</p>
           </div>
         ) : (
-          <table className={tableClasses}>
+          <div className={tableContainerClasses}>
+            <table className={tableClasses}>
             <thead className={tableHeadClasses}>
               <tr>
                 <th className={tableHeaderCellClasses}>
@@ -264,7 +266,8 @@ export default function SeasonDetail() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         )}
       </div>
 

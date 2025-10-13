@@ -195,29 +195,32 @@ export const modalTitleClasses =
 export const tableClasses = 
   "min-w-full divide-y divide-gray-200 dark:divide-gray-700";
 
+export const tableContainerClasses = 
+  "overflow-x-auto -mx-4 sm:mx-0";
+
 export const tableHeadClasses = 
   "bg-gray-50 dark:bg-gray-700";
 
 export const tableHeaderCellClasses = 
-  "px-6 py-3 text-left text-xs font-medium " +
+  "px-3 sm:px-6 py-3 text-left text-xs font-medium " +
   "text-gray-500 dark:text-gray-300 uppercase tracking-wider";
 
 export const tableHeaderCellCenterClasses = 
-  "px-6 py-3 text-center text-xs font-medium " +
+  "px-3 sm:px-6 py-3 text-center text-xs font-medium " +
   "text-gray-500 dark:text-gray-300 uppercase tracking-wider";
 
 export const tableHeaderCellRightClasses = 
-  "px-6 py-3 text-right text-xs font-medium " +
+  "px-3 sm:px-6 py-3 text-right text-xs font-medium " +
   "text-gray-500 dark:text-gray-300 uppercase tracking-wider";
 
 export const tableBodyClasses = 
   "bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700";
 
 export const tableCellClasses = 
-  "px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white";
+  "px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white";
 
 export const tableCellSecondaryClasses = 
-  "px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400";
+  "px-3 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400";
 
 // ============================================================================
 // ALERTS & NOTIFICATIONS

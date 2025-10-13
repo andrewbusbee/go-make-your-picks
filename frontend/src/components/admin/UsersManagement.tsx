@@ -18,6 +18,7 @@ import {
   alertWarningClasses,
   alertWarningTextClasses,
   tableClasses,
+  tableContainerClasses,
   tableHeadClasses,
   tableHeaderCellClasses,
   tableHeaderCellCenterClasses,
@@ -194,7 +195,8 @@ export default function UsersManagement() {
       </div>
 
       <div className={`${cardClasses} shadow-md overflow-hidden`}>
-        <table className={tableClasses}>
+        <div className={tableContainerClasses}>
+          <table className={tableClasses}>
           <thead className={tableHeadClasses}>
             <tr>
               <th className={tableHeaderCellClasses}>
@@ -278,9 +280,10 @@ export default function UsersManagement() {
                   )}
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       {/* Modal */}

@@ -15,6 +15,7 @@ import {
   alertErrorClasses,
   alertErrorTextClasses,
   tableClasses,
+  tableContainerClasses,
   tableHeadClasses,
   tableHeaderCellClasses,
   tableHeaderCellRightClasses,
@@ -247,7 +248,8 @@ export default function AdminsManagement({ isMainAdmin }: AdminsManagementProps)
       </div>
 
       <div className={`${cardClasses} shadow-md overflow-hidden`}>
-        <table className={tableClasses}>
+        <div className={tableContainerClasses}>
+          <table className={tableClasses}>
           <thead className={tableHeadClasses}>
             <tr>
               <th className={tableHeaderCellClasses}>
@@ -324,7 +326,8 @@ export default function AdminsManagement({ isMainAdmin }: AdminsManagementProps)
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       {/* Add Admin Modal */}

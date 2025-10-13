@@ -657,9 +657,9 @@ export const sendAdminReminderSummary = async (
 ): Promise<void> => {
   const settings = await getSettings();
   
-  // Get main admin email
+  // Get main admin and commissioner emails
   const [adminResult] = await db.query<RowDataPacket[]>(
-    'SELECT email FROM admins WHERE is_main_admin = 1 LIMIT 1'
+    'SELECT email, is_commissioner FROM admins WHERE is_main_admin = 1 OR is_commissioner = 1'
   );
   
   if (adminResult.length === 0) {
@@ -667,7 +667,16 @@ export const sendAdminReminderSummary = async (
     return;
   }
   
-  const adminEmail = adminResult[0].email;
+  // Collect unique email addresses (deduplicate if main admin is also commissioner)
+  const recipientEmails = new Set<string>();
+  adminResult.forEach(admin => {
+    recipientEmails.add(admin.email);
+  });
+  
+  if (recipientEmails.size === 0) {
+    logger.warn('No recipient emails found for reminder summary');
+    return;
+  }
   
   // Format lock time
   const lockDate = new Date(lockTime).toLocaleString('en-US', {
@@ -737,34 +746,42 @@ export const sendAdminReminderSummary = async (
     bodyHtml,
   });
 
-  const mailOptions = {
-    from: process.env.SMTP_FROM || 'noreply@example.com',
-    to: adminEmail,
-    subject: `${settings.app_title} Reminder Summary: ${seasonName} — ${sportName} (locks ${lockDate} ${timezone.replace('_', ' ')})`,
-    html,
-  };
+  const subject = `${settings.app_title} Reminder Summary: ${seasonName} — ${sportName} (locks ${lockDate} ${timezone.replace('_', ' ')})`;
 
-  try {
-    await sendEmailWithRetry(mailOptions, 'Admin reminder summary email');
-    logEmailSent(adminEmail, 'Admin Reminder Summary', true);
-    logger.info('Admin reminder summary sent', { 
-      sportName, 
-      seasonName, 
-      totalParticipants, 
-      picksSubmitted, 
-      missingPicks,
-      adminEmail: redactEmail(adminEmail)
-    });
-  } catch (error: any) {
-    logger.error('Error sending admin reminder summary email', { 
-      error: error.message,
-      sportName,
-      seasonName,
-      adminEmail: redactEmail(adminEmail)
-    });
-    logEmailSent(adminEmail, 'Admin Reminder Summary', false);
-    throw new Error(`Failed to send admin reminder summary: ${error.message}`);
-  }
+  // Send to all recipients (main admin and commissioner, deduplicated)
+  const emailPromises = Array.from(recipientEmails).map(async (recipientEmail) => {
+    const mailOptions = {
+      from: process.env.SMTP_FROM || 'noreply@example.com',
+      to: recipientEmail,
+      subject,
+      html,
+    };
+
+    try {
+      await sendEmailWithRetry(mailOptions, 'Admin reminder summary email');
+      logEmailSent(recipientEmail, 'Admin Reminder Summary', true);
+      logger.info('Admin reminder summary sent', { 
+        sportName, 
+        seasonName, 
+        totalParticipants, 
+        picksSubmitted, 
+        missingPicks,
+        recipientEmail: redactEmail(recipientEmail)
+      });
+    } catch (error: any) {
+      logger.error('Error sending admin reminder summary email', { 
+        error: error.message,
+        sportName,
+        seasonName,
+        recipientEmail: redactEmail(recipientEmail)
+      });
+      logEmailSent(recipientEmail, 'Admin Reminder Summary', false);
+      // Don't throw - continue sending to other recipients
+    }
+  });
+
+  // Wait for all emails to be sent
+  await Promise.allSettled(emailPromises);
 };
 
 /**

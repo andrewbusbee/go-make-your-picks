@@ -15,6 +15,7 @@ import {
   buttonCancelClasses,
   formGridTwoColClasses,
   tableClasses,
+  tableContainerClasses,
   tableHeadClasses,
   modalOverlayGrayClasses,
   modalClasses,
@@ -300,7 +301,8 @@ export default function AdminPicksManagement() {
             </p>
           </div>
 
-          <table className={tableClasses}>
+          <div className={tableContainerClasses}>
+            <table className={tableClasses}>
             <thead className={tableHeadClasses}>
               <tr>
                 <th className={tableHeaderCellClasses}>
@@ -347,7 +349,8 @@ export default function AdminPicksManagement() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       ) : (
         <div className={`${cardClasses} shadow-md text-center`}>
