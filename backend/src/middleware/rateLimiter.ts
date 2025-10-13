@@ -70,4 +70,20 @@ export const adminMagicLinkLimiter = rateLimit({
   keyGenerator: (req) => {
     return req.body.email || req.ip;
   },
+  // Skip on successful attempts (handled manually in auth routes)
+  skipSuccessfulRequests: false,
 });
+
+// Helper function to reset rate limit for a specific email after successful login
+export const resetAdminMagicLinkLimit = async (email: string) => {
+  try {
+    // Get the store from the rate limiter
+    const store = (adminMagicLinkLimiter as any).store;
+    if (store && store.resetKey) {
+      await store.resetKey(email);
+    }
+  } catch (error) {
+    // If reset fails, log but don't throw - this is not critical
+    console.error('Failed to reset rate limit:', error);
+  }
+};

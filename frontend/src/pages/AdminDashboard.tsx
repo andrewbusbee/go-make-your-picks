@@ -20,6 +20,7 @@ import SeasonDetail from '../components/admin/SeasonDetail';
 import AdminPicksManagement from '../components/admin/AdminPicksManagement';
 import ChangePassword from '../components/admin/ChangePassword';
 import ChangeEmail from '../components/admin/ChangeEmail';
+import ChangeName from '../components/admin/ChangeName';
 import InitialSetup from '../components/admin/InitialSetup';
 import GettingStarted from '../components/admin/GettingStarted';
 import Settings from '../components/admin/Settings';
@@ -30,6 +31,7 @@ export default function AdminDashboard() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showChangeEmail, setShowChangeEmail] = useState(false);
+  const [showChangeName, setShowChangeName] = useState(false);
   const [appTitle, setAppTitle] = useState('Go Make Your Picks');
   const [appTagline, setAppTagline] = useState('Predict. Compete. Win.');
   const [hasPlayers, setHasPlayers] = useState(false);
@@ -273,13 +275,24 @@ export default function AdminDashboard() {
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl py-1 z-50">
                     <button
                       onClick={() => {
-                        setShowChangePassword(true);
+                        setShowChangeName(true);
                         setShowUserMenu(false);
                       }}
                       className={`block w-full text-left px-4 py-2 text-sm ${labelClasses} hover:bg-gray-100 dark:hover:bg-gray-700`}
                     >
-                      Change Password
+                      Change Name
                     </button>
+                    {adminData?.isMainAdmin && (
+                      <button
+                        onClick={() => {
+                          setShowChangePassword(true);
+                          setShowUserMenu(false);
+                        }}
+                        className={`block w-full text-left px-4 py-2 text-sm ${labelClasses} hover:bg-gray-100 dark:hover:bg-gray-700`}
+                      >
+                        Change Password
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         setShowChangeEmail(true);
@@ -457,6 +470,22 @@ export default function AdminDashboard() {
               }}
               onCancel={() => setShowChangeEmail(false)}
               currentEmail={adminData?.email}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Change Name Modal */}
+      {showChangeName && (
+        <div className={modalBackdropClasses}>
+          <div className={`${modalClasses} max-w-md w-full`}>
+            <ChangeName 
+              onSuccess={() => {
+                setShowChangeName(false);
+                checkAuth();
+              }}
+              onCancel={() => setShowChangeName(false)}
+              currentName={adminData?.name}
             />
           </div>
         </div>

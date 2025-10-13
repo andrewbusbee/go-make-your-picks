@@ -95,3 +95,11 @@ export const changeEmailValidators = [
     .isEmail().withMessage('Invalid email format'),
 ];
 
+export const changeNameValidators = [
+  body('newName')
+    .trim()
+    .escape()
+    .notEmpty().withMessage('Name is required')
+    .isLength({ min: 2, max: 100 }).withMessage('Name must be between 2 and 100 characters'),
+];
+

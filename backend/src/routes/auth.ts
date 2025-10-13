@@ -5,7 +5,7 @@ import { authenticateAdmin, generateToken, AuthRequest } from '../middleware/aut
 import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { sendPasswordResetEmail, sendAdminMagicLink } from '../services/emailService';
-import { loginLimiter, passwordResetLimiter, adminMagicLinkLimiter } from '../middleware/rateLimiter';
+import { loginLimiter, passwordResetLimiter, adminMagicLinkLimiter, resetAdminMagicLinkLimit } from '../middleware/rateLimiter';
 import { validatePasswordBasic } from '../utils/passwordValidator';
 import { validateRequest } from '../middleware/validator';
 import {
@@ -15,6 +15,7 @@ import {
   initialSetupValidators,
   changePasswordValidators,
   changeEmailValidators,
+  changeNameValidators,
   forgotPasswordValidators,
   resetPasswordValidators,
 } from '../validators/authValidators';
@@ -305,6 +306,9 @@ router.post('/verify-magic-link', validateRequest(verifyMagicLinkValidators), as
       emailRedacted: redactEmail(admin.email) 
     });
 
+    // Reset rate limiter for this email after successful login
+    await resetAdminMagicLinkLimit(admin.email);
+
     res.json({
       token: jwtToken,
       admin: {
@@ -456,6 +460,42 @@ router.post('/change-email', authenticateAdmin, validateRequest(changeEmailValid
     res.json({ message: 'Email changed successfully' });
   } catch (error) {
     logger.error('Change email error', { error, adminId: req.adminId });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Change name
+router.post('/change-name', authenticateAdmin, validateRequest(changeNameValidators), async (req: AuthRequest, res: Response) => {
+  const { newName } = req.body;
+
+  try {
+    // Check if admin exists
+    const [admins] = await db.query<RowDataPacket[]>(
+      'SELECT * FROM admins WHERE id = ?',
+      [req.adminId]
+    );
+
+    if (admins.length === 0) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    const admin = admins[0];
+
+    // Check if new name is different from current name
+    if (admin.name === newName) {
+      return res.status(400).json({ error: 'New name must be different from current name' });
+    }
+
+    // Update name
+    await db.query(
+      'UPDATE admins SET name = ? WHERE id = ?',
+      [newName, req.adminId]
+    );
+
+    logger.info('Admin name changed successfully', { adminId: req.adminId });
+    res.json({ message: 'Name changed successfully' });
+  } catch (error) {
+    logger.error('Change name error', { error, adminId: req.adminId });
     res.status(500).json({ error: 'Server error' });
   }
 });

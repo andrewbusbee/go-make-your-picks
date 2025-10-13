@@ -61,7 +61,7 @@ export const DB_CONNECTION_LIMIT = 10;
 export const DB_QUEUE_LIMIT = 0; // Unlimited queue
 
 // Year Validation
-export const MIN_VALID_YEAR = 2020;
+export const MIN_VALID_YEAR = 1990;
 export const MAX_VALID_YEAR = 2100;
 
 // Points Range

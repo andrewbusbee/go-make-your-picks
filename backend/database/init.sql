@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS seasons (
     INDEX idx_default (is_default),
     INDEX idx_ended (ended_at),
     INDEX idx_deleted (deleted_at),
-    CONSTRAINT check_years CHECK (year_start >= 2020 AND year_start <= 2100 AND year_end >= year_start)
+    CONSTRAINT check_years CHECK (year_start >= 1990 AND year_start <= 2100 AND year_end >= year_start AND year_end <= 2100)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Season participants junction table
