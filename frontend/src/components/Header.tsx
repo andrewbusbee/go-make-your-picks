@@ -37,6 +37,7 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
   // Determine which menu items to show based on current route
   const showHomeLink = location.pathname !== '/';
   const showChampionsLink = location.pathname !== '/champions';
+  const showAdminLinkInMenu = showAdminLink && !location.pathname.startsWith('/admin');
 
   useEffect(() => {
     loadSettings();
@@ -170,8 +171,8 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
                   </Link>
                 )}
 
-                {/* Admin Menu Item - always show if showAdminLink is true */}
-                {showAdminLink && (
+                {/* Admin Menu Item - show if showAdminLink is true and not on admin pages */}
+                {showAdminLinkInMenu && (
                   <button 
                     onClick={() => {
                       handleAdminClick();
