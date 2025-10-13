@@ -149,6 +149,18 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
                   </div>
                 </Link>
 
+                {/* Home Menu Item */}
+                <Link 
+                  to="/" 
+                  className={mobileDropdownMenuItemClasses}
+                  onClick={closeMobileMenu}
+                >
+                  <div className={mobileDropdownMenuItemWithIconClasses}>
+                    <span className={mobileDropdownMenuItemIconClasses}>🏠</span>
+                    <span className={mobileDropdownMenuItemTextClasses}>Home</span>
+                  </div>
+                </Link>
+
                 {/* Admin Menu Item */}
                 {showAdminLink && (
                   <button 

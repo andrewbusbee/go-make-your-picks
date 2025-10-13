@@ -231,17 +231,17 @@ export default function UsersManagement() {
                 </td>
                 <td className={`${tableCellClasses} text-center`}>
                   <div className={`${flexColumnGapClasses} items-center`}>
-                    {!user.is_active && (
+                    {user.is_active !== 1 && (
                       <span className={badgeDangerClasses}>
                         Inactive
                       </span>
                     )}
-                    {user.is_active && userDataStatus[user.id] && (
+                    {user.is_active === 1 && userDataStatus[user.id] && (
                       <span className={badgePrimaryClasses}>
                         Has Data
                       </span>
                     )}
-                    {user.is_active && !userDataStatus[user.id] && (
+                    {user.is_active === 1 && !userDataStatus[user.id] && (
                       <span className={tableCellSecondaryClasses}>—</span>
                     )}
                   </div>
@@ -256,7 +256,7 @@ export default function UsersManagement() {
                   >
                     Edit
                   </button>
-                  {!user.is_active ? (
+                  {user.is_active !== 1 ? (
                     <button
                       onClick={() => handleReactivate(user.id, user.name)}
                       className={buttonLinkSuccessClasses}

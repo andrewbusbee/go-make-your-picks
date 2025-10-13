@@ -63,7 +63,7 @@ export default function AdminsManagement({ isMainAdmin }: AdminsManagementProps)
       const res = await api.get('/admin/admins');
       setAdmins(res.data);
       // Find current commissioner
-      const commissioner = res.data.find((admin: any) => admin.is_commissioner);
+      const commissioner = res.data.find((admin: any) => admin.is_commissioner === 1);
       setSelectedCommissioner(commissioner?.id || null);
     } catch (error) {
       console.error('Error loading admins:', error);
@@ -280,7 +280,7 @@ export default function AdminsManagement({ isMainAdmin }: AdminsManagementProps)
                 </td>
                 <td className={tableCellSecondaryClasses}>
                   <div className="flex items-center space-x-2">
-                    {admin.is_main_admin ? (
+                    {admin.is_main_admin === 1 ? (
                       <span className={badgePurpleClasses}>
                         Main Admin
                       </span>
@@ -300,7 +300,7 @@ export default function AdminsManagement({ isMainAdmin }: AdminsManagementProps)
                   {new Date(admin.created_at).toLocaleDateString()}
                 </td>
                 <td className={`${tableCellClasses} text-right`}>
-                  {!admin.is_main_admin && isMainAdmin && (
+                  {admin.is_main_admin !== 1 && isMainAdmin && (
                     <div className={`${flexSpaceXClasses} justify-end`}>
                       <button
                         onClick={() => openChangeNameModal(admin)}
@@ -568,7 +568,7 @@ export default function AdminsManagement({ isMainAdmin }: AdminsManagementProps)
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <span className={bodyTextClasses}>{admin.name}</span>
-                        {admin.is_main_admin && (
+                        {admin.is_main_admin === 1 && (
                           <span className="text-xs text-purple-600 dark:text-purple-400">(Main Admin)</span>
                         )}
                         {admin.is_commissioner === 1 && (
