@@ -289,7 +289,7 @@ export default function AdminsManagement({ isMainAdmin }: AdminsManagementProps)
                         Admin
                       </span>
                     )}
-                    {admin.is_commissioner && (
+                    {admin.is_commissioner === 1 && (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                         👑 Commissioner
                       </span>
@@ -571,7 +571,7 @@ export default function AdminsManagement({ isMainAdmin }: AdminsManagementProps)
                         {admin.is_main_admin && (
                           <span className="text-xs text-purple-600 dark:text-purple-400">(Main Admin)</span>
                         )}
-                        {admin.is_commissioner && (
+                        {admin.is_commissioner === 1 && (
                           <span className="text-xs">👑</span>
                         )}
                       </div>
