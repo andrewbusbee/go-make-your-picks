@@ -293,7 +293,7 @@ export default function AdminDashboard() {
                     >
                       Change Email
                     </button>
-                    {adminData?.isMainAdmin && (
+                    {adminData?.is_main_admin === 1 && (
                       <button
                         onClick={() => {
                           setShowChangePassword(true);
@@ -377,7 +377,7 @@ export default function AdminDashboard() {
                 <h3 className="text-sm font-semibold text-orange-900 dark:text-orange-200 mb-1">
                   User Notification Emails Are Disabled
                 </h3>
-                {adminData?.isMainAdmin ? (
+                {adminData?.is_main_admin === 1 ? (
                   <>
                     <p className="text-xs text-orange-700 dark:text-orange-400 mb-2">
                       Pick reminders and completion emails will not be sent to users. Admin login and password reset emails still work. This is useful for adding historical data.
