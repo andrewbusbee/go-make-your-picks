@@ -754,8 +754,8 @@ export default function RoundsManagement() {
                 {getStatusBadge(round.status)}
               </div>
 
-              {/* Participants list for draft and active rounds */}
-              {(round.status === 'draft' || round.status === 'active') && round.participants && (
+              {/* Participants list - hidden for draft rounds */}
+              {(round.status === 'active') && round.participants && (
                 <div className={participantSectionClasses}>
                   <p className={participantHeaderClasses}>
                     👥 Participants {round.status === 'active' ? `(${round.pickedCount}/${round.totalParticipants} picked)` : `(${round.totalParticipants} players)`}:
