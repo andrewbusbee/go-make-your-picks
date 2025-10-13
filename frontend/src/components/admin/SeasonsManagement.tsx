@@ -46,7 +46,10 @@ import {
   pt6Classes,
   checkboxLabelClasses,
   interactiveListItemClasses,
-  flexSpaceXClasses
+  flexSpaceXClasses,
+  copySportsSectionClasses,
+  copySportsDropdownClasses,
+  copySportsWarningClasses
 } from '../../styles/commonClasses';
 
 // Helper function to decode JWT token
@@ -98,8 +101,16 @@ export default function SeasonsManagement() {
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
 
+  // Copy sports state
+  const [copySourceSeasons, setCopySourceSeasons] = useState<any[]>([]);
+  const [copySports, setCopySports] = useState(false);
+  const [sourceSeasonId, setSourceSeasonId] = useState('');
+  const [editCopySports, setEditCopySports] = useState(false);
+  const [editSourceSeasonId, setEditSourceSeasonId] = useState('');
+
   useEffect(() => {
     loadCommissioner();
+    loadCopySourceSeasons();
   }, []);
 
   useEffect(() => {
@@ -154,6 +165,16 @@ export default function SeasonsManagement() {
     }
   };
 
+  const loadCopySourceSeasons = async () => {
+    try {
+      const res = await api.get('/admin/seasons/copy-sources');
+      setCopySourceSeasons(res.data);
+    } catch (error) {
+      console.error('Error loading copy source seasons:', error);
+      setCopySourceSeasons([]);
+    }
+  };
+
   const openModal = () => {
     setName('');
     setYearStart('');
@@ -163,6 +184,8 @@ export default function SeasonsManagement() {
     setIsDefault(true);
     setSelectedParticipants([]);
     setError('');
+    setCopySports(false);
+    setSourceSeasonId('');
     setShowModal(true);
   };
 
@@ -200,7 +223,9 @@ export default function SeasonsManagement() {
         yearEnd: parseInt(yearEnd),
         commissioner: commissioner || null,
         isDefault,
-        participantIds: selectedParticipants
+        participantIds: selectedParticipants,
+        copySports,
+        sourceSeasonId: copySports ? parseInt(sourceSeasonId) : undefined
       });
       
       await loadSeasons();
@@ -220,6 +245,8 @@ export default function SeasonsManagement() {
     setEditCommissioner(season.commissioner || '');
     setEditIsDefault(season.is_default === 1);
     setEditError('');
+    setEditCopySports(false);
+    setEditSourceSeasonId('');
     setShowEditModal(true);
   };
 
@@ -232,6 +259,8 @@ export default function SeasonsManagement() {
     setEditCommissioner('');
     setEditIsDefault(false);
     setEditError('');
+    setEditCopySports(false);
+    setEditSourceSeasonId('');
   };
 
   const handleEditSeason = async (e: React.FormEvent) => {
@@ -246,7 +275,9 @@ export default function SeasonsManagement() {
         yearStart: parseInt(editYearStart),
         yearEnd: parseInt(editYearEnd),
         commissioner: editCommissioner || null,
-        isDefault: editIsDefault
+        isDefault: editIsDefault,
+        copySports: editCopySports,
+        sourceSeasonId: editCopySports ? parseInt(editSourceSeasonId) : undefined
       });
       
       await loadSeasons();
@@ -671,6 +702,45 @@ export default function SeasonsManagement() {
                 The report default season is shown on the main homepage. Only one season can be the default at a time.
               </p>
 
+              {/* Copy Sports Section */}
+              <div className={flexItemsGapClasses}>
+                <input
+                  type="checkbox"
+                  id="copySports"
+                  checked={copySports}
+                  onChange={(e) => setCopySports(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                />
+                <label htmlFor="copySports" className={labelClasses + " mb-0"}>
+                  Copy sports from previous season
+                </label>
+              </div>
+
+              {copySports && (
+                <div className={copySportsSectionClasses}>
+                  <label className={labelClasses}>
+                    📋 Select Season to Copy From
+                  </label>
+                  <select
+                    value={sourceSeasonId}
+                    onChange={(e) => setSourceSeasonId(e.target.value)}
+                    className={copySportsDropdownClasses}
+                    required={copySports}
+                  >
+                    <option value="">Choose a season...</option>
+                    {copySourceSeasons.map((season) => (
+                      <option key={season.id} value={season.id}>
+                        {season.display_name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className={copySportsWarningClasses}>
+                    <span>⚠️</span>
+                    <span>This will create sports with the same names only. No existing data will be copied. Duplicates will be skipped.</span>
+                  </div>
+                </div>
+              )}
+
               {/* Participants Selection */}
               <div>
                 <label className={labelClasses}>
@@ -837,6 +907,45 @@ export default function SeasonsManagement() {
               <p className={`${helpTextClasses} ml-7`}>
                 The report default season is shown on the main homepage. Only one season can be the default at a time.
               </p>
+
+              {/* Copy Sports Section */}
+              <div className={flexItemsGapClasses}>
+                <input
+                  type="checkbox"
+                  id="editCopySports"
+                  checked={editCopySports}
+                  onChange={(e) => setEditCopySports(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                />
+                <label htmlFor="editCopySports" className={labelClasses + " mb-0"}>
+                  Copy sports from previous season
+                </label>
+              </div>
+
+              {editCopySports && (
+                <div className={copySportsSectionClasses}>
+                  <label className={labelClasses}>
+                    📋 Select Season to Copy From
+                  </label>
+                  <select
+                    value={editSourceSeasonId}
+                    onChange={(e) => setEditSourceSeasonId(e.target.value)}
+                    className={copySportsDropdownClasses}
+                    required={editCopySports}
+                  >
+                    <option value="">Choose a season...</option>
+                    {copySourceSeasons.map((season) => (
+                      <option key={season.id} value={season.id}>
+                        {season.display_name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className={copySportsWarningClasses}>
+                    <span>⚠️</span>
+                    <span>Only creates sports that don't already exist in this season.</span>
+                  </div>
+                </div>
+              )}
 
               <div className={flexSpaceXPtClasses}>
                 <button

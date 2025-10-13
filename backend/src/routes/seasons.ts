@@ -157,7 +157,7 @@ router.get('/:id/winners', async (req, res) => {
 
 // Create new season (admin only)
 router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
-  const { name, yearStart, yearEnd, commissioner, isDefault, participantIds } = req.body;
+  const { name, yearStart, yearEnd, commissioner, isDefault, participantIds, copySports, sourceSeasonId } = req.body;
 
   if (!name || !yearStart || !yearEnd) {
     return res.status(400).json({ error: 'Name, year start, and year end are required' });
@@ -179,20 +179,25 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ error: yearValidationError });
   }
 
+  // Validate copy sports parameters
+  if (copySports && !sourceSeasonId) {
+    return res.status(400).json({ error: 'Source season ID is required when copying sports' });
+  }
+
   try {
-    const seasonId = await withTransaction(async (connection) => {
+    const result = await withTransaction(async (connection) => {
       // New season is always active
       // If setting as default, unset all other defaults first
       if (isDefault) {
         await connection.query('UPDATE seasons SET is_default = FALSE');
       }
 
-      const [result] = await connection.query<ResultSetHeader>(
+      const [seasonResult] = await connection.query<ResultSetHeader>(
         'INSERT INTO seasons (name, year_start, year_end, commissioner, is_active, is_default) VALUES (?, ?, ?, ?, ?, ?)',
         [name, yearStart, yearEnd, commissioner || null, true, isDefault || false]
       );
 
-      const seasonId = result.insertId;
+      const seasonId = seasonResult.insertId;
 
       // Add participants if provided
       if (participantIds && Array.isArray(participantIds) && participantIds.length > 0) {
@@ -203,18 +208,77 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
         );
       }
 
-      return seasonId;
+      // Copy sports if requested
+      let copyResult = null;
+      if (copySports && sourceSeasonId) {
+        // Verify source season exists and is not deleted
+        const [sourceSeasons] = await connection.query<RowDataPacket[]>(
+          'SELECT id, name FROM seasons WHERE id = ? AND deleted_at IS NULL',
+          [sourceSeasonId]
+        );
+
+        if (sourceSeasons.length === 0) {
+          throw new Error('Source season not found');
+        }
+
+        const sourceSeason = sourceSeasons[0];
+
+        // Get sports from source season
+        const [sourceSports] = await connection.query<RowDataPacket[]>(
+          'SELECT sport_name FROM rounds WHERE season_id = ? AND deleted_at IS NULL',
+          [sourceSeasonId]
+        );
+
+        if (sourceSports.length > 0) {
+          // Insert new sports into target season
+          const insertValues = sourceSports.map(sport => [
+            seasonId,
+            sport.sport_name,
+            'draft', // Always start as draft
+            new Date() // created_at
+          ]);
+
+          await connection.query(
+            `INSERT INTO rounds (season_id, sport_name, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?)').join(', ')}`,
+            insertValues.flat()
+          );
+
+          copyResult = {
+            copied_count: sourceSports.length,
+            source_season: sourceSeason.name
+          };
+        } else {
+          copyResult = {
+            copied_count: 0,
+            source_season: sourceSeason.name,
+            message: 'No sports found in source season'
+          };
+        }
+      }
+
+      return { seasonId, copyResult };
     });
 
     // Invalidate seasons cache after creation
     QueryCacheService.invalidatePattern('seasons:');
     
-    res.status(201).json({
+    const response: any = {
       message: 'Season created successfully',
-      id: seasonId
-    });
-  } catch (error) {
+      id: result.seasonId
+    };
+
+    if (result.copyResult) {
+      response.copy_sports = result.copyResult;
+    }
+    
+    res.status(201).json(response);
+  } catch (error: any) {
     logger.error('Create season error', { error });
+    
+    if (error.message === 'Source season not found') {
+      return res.status(404).json({ error: error.message });
+    }
+    
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -222,7 +286,7 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
 // Edit season (admin only)
 router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   const seasonId = parseInt(req.params.id);
-  const { name, yearStart, yearEnd, commissioner, isDefault } = req.body;
+  const { name, yearStart, yearEnd, commissioner, isDefault, copySports, sourceSeasonId } = req.body;
 
   // Validate required fields
   if (!name || !yearStart || !yearEnd) {
@@ -245,8 +309,13 @@ router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) =>
     return res.status(400).json({ error: yearValidationError });
   }
 
+  // Validate copy sports parameters
+  if (copySports && !sourceSeasonId) {
+    return res.status(400).json({ error: 'Source season ID is required when copying sports' });
+  }
+
   try {
-    await withTransaction(async (connection) => {
+    const result = await withTransaction(async (connection) => {
       // Check if season exists
       const [existingSeasons] = await connection.query<RowDataPacket[]>(
         'SELECT id, is_active FROM seasons WHERE id = ? AND deleted_at IS NULL',
@@ -272,12 +341,92 @@ router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) =>
         'UPDATE seasons SET name = ?, year_start = ?, year_end = ?, commissioner = ?, is_default = ? WHERE id = ?',
         [name, yearStart, yearEnd, commissioner || null, isDefault || false, seasonId]
       );
+
+      // Copy sports if requested
+      let copyResult = null;
+      if (copySports && sourceSeasonId) {
+        // Verify source season exists and is not deleted
+        const [sourceSeasons] = await connection.query<RowDataPacket[]>(
+          'SELECT id, name FROM seasons WHERE id = ? AND deleted_at IS NULL',
+          [sourceSeasonId]
+        );
+
+        if (sourceSeasons.length === 0) {
+          throw new Error('Source season not found');
+        }
+
+        const sourceSeason = sourceSeasons[0];
+
+        // Get sports from source season
+        const [sourceSports] = await connection.query<RowDataPacket[]>(
+          'SELECT sport_name FROM rounds WHERE season_id = ? AND deleted_at IS NULL',
+          [sourceSeasonId]
+        );
+
+        if (sourceSports.length > 0) {
+          // Get existing sports in target season to prevent duplicates
+          const [existingSports] = await connection.query<RowDataPacket[]>(
+            'SELECT sport_name FROM rounds WHERE season_id = ? AND deleted_at IS NULL',
+            [seasonId]
+          );
+
+          const existingSportNames = new Set(existingSports.map(s => s.sport_name));
+
+          // Filter out sports that already exist in target season
+          const sportsToCopy = sourceSports.filter(s => !existingSportNames.has(s.sport_name));
+
+          if (sportsToCopy.length > 0) {
+            // Insert new sports into target season
+            const insertValues = sportsToCopy.map(sport => [
+              seasonId,
+              sport.sport_name,
+              'draft', // Always start as draft
+              new Date() // created_at
+            ]);
+
+            await connection.query(
+              `INSERT INTO rounds (season_id, sport_name, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?)').join(', ')}`,
+              insertValues.flat()
+            );
+
+            copyResult = {
+              copied_count: sportsToCopy.length,
+              skipped_count: sourceSports.length - sportsToCopy.length,
+              source_season: sourceSeason.name
+            };
+          } else {
+            copyResult = {
+              copied_count: 0,
+              skipped_count: sourceSports.length,
+              source_season: sourceSeason.name,
+              message: 'All sports already exist in this season'
+            };
+          }
+        } else {
+          copyResult = {
+            copied_count: 0,
+            skipped_count: 0,
+            source_season: sourceSeason.name,
+            message: 'No sports found in source season'
+          };
+        }
+      }
+
+      return { copyResult };
     });
 
     // Invalidate seasons cache after update
     QueryCacheService.invalidatePattern('seasons:');
     
-    res.json({ message: 'Season updated successfully' });
+    const response: any = {
+      message: 'Season updated successfully'
+    };
+
+    if (result.copyResult) {
+      response.copy_sports = result.copyResult;
+    }
+    
+    res.json(response);
   } catch (error: any) {
     logger.error('Edit season error', { error, seasonId });
     
@@ -285,6 +434,8 @@ router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) =>
       return res.status(404).json({ error: 'Season not found' });
     } else if (error.message === 'Only active seasons can be set as default') {
       return res.status(400).json({ error: error.message });
+    } else if (error.message === 'Source season not found') {
+      return res.status(404).json({ error: error.message });
     }
     
     res.status(500).json({ error: 'Server error' });
@@ -685,6 +836,131 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
     res.json({ message: 'Season permanently deleted' });
   } catch (error) {
     logger.error('Permanent delete season error', { error, seasonId });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get seasons closed in past 24 months with sport counts (admin only)
+router.get('/copy-sources', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const [seasons] = await db.query<RowDataPacket[]>(
+      `SELECT s.id, s.name, s.year_start, s.year_end, COUNT(r.id) as sport_count
+       FROM seasons s
+       LEFT JOIN rounds r ON s.id = r.season_id AND r.deleted_at IS NULL
+       WHERE s.ended_at IS NOT NULL 
+       AND s.ended_at >= DATE_SUB(NOW(), INTERVAL 24 MONTH)
+       AND s.deleted_at IS NULL
+       GROUP BY s.id, s.name, s.year_start, s.year_end
+       HAVING sport_count > 0
+       ORDER BY s.ended_at DESC`,
+      []
+    );
+
+    const formattedSeasons = seasons.map(season => ({
+      id: season.id,
+      name: season.name,
+      year_start: season.year_start,
+      year_end: season.year_end,
+      sport_count: season.sport_count,
+      display_name: `${season.name} (${season.year_start}${season.year_start !== season.year_end ? `-${season.year_end}` : ''}) - ${season.sport_count} sport${season.sport_count !== 1 ? 's' : ''}`
+    }));
+
+    res.json(formattedSeasons);
+  } catch (error) {
+    logger.error('Get copy source seasons error', { error });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Copy sports from source season to target season (admin only)
+router.post('/:targetId/copy-sports', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+  const targetSeasonId = parseInt(req.params.targetId);
+  const { sourceSeasonId } = req.body;
+
+  // Validate required fields
+  if (!sourceSeasonId) {
+    return res.status(400).json({ error: 'Source season ID is required' });
+  }
+
+  try {
+    const result = await withTransaction(async (connection) => {
+      // Verify both seasons exist and are not deleted
+      const [seasons] = await connection.query<RowDataPacket[]>(
+        'SELECT id, name FROM seasons WHERE id IN (?, ?) AND deleted_at IS NULL',
+        [targetSeasonId, sourceSeasonId]
+      );
+
+      if (seasons.length !== 2) {
+        throw new Error('One or both seasons not found');
+      }
+
+      const targetSeason = seasons.find(s => s.id === targetSeasonId);
+      const sourceSeason = seasons.find(s => s.id === sourceSeasonId);
+
+      if (!targetSeason || !sourceSeason) {
+        throw new Error('One or both seasons not found');
+      }
+
+      // Get sports from source season
+      const [sourceSports] = await connection.query<RowDataPacket[]>(
+        'SELECT sport_name FROM rounds WHERE season_id = ? AND deleted_at IS NULL',
+        [sourceSeasonId]
+      );
+
+      if (sourceSports.length === 0) {
+        return { copied_count: 0, skipped_count: 0, message: 'No sports found in source season' };
+      }
+
+      // Get existing sports in target season to prevent duplicates
+      const [existingSports] = await connection.query<RowDataPacket[]>(
+        'SELECT sport_name FROM rounds WHERE season_id = ? AND deleted_at IS NULL',
+        [targetSeasonId]
+      );
+
+      const existingSportNames = new Set(existingSports.map(s => s.sport_name));
+
+      // Filter out sports that already exist in target season
+      const sportsToCopy = sourceSports.filter(s => !existingSportNames.has(s.sport_name));
+
+      if (sportsToCopy.length === 0) {
+        return { 
+          copied_count: 0, 
+          skipped_count: sourceSports.length, 
+          message: 'All sports already exist in target season' 
+        };
+      }
+
+      // Insert new sports into target season
+      const insertValues = sportsToCopy.map(sport => [
+        targetSeasonId,
+        sport.sport_name,
+        'draft', // Always start as draft
+        new Date() // created_at
+      ]);
+
+      await connection.query(
+        `INSERT INTO rounds (season_id, sport_name, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?)').join(', ')}`,
+        insertValues.flat()
+      );
+
+      return {
+        copied_count: sportsToCopy.length,
+        skipped_count: sourceSports.length - sportsToCopy.length,
+        message: `Successfully copied ${sportsToCopy.length} sport(s) from "${sourceSeason.name}" to "${targetSeason.name}"`
+      };
+    });
+
+    // Invalidate seasons cache after copying sports
+    QueryCacheService.invalidatePattern('seasons:');
+    
+    res.json(result);
+  } catch (error: any) {
+    logger.error('Copy sports error', { error, targetSeasonId, sourceSeasonId });
+    
+    if (error.message === 'One or both seasons not found') {
+      return res.status(404).json({ error: error.message });
+    }
+    
     res.status(500).json({ error: 'Server error' });
   }
 });
