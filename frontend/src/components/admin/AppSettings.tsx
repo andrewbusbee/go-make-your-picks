@@ -63,6 +63,7 @@ export default function AppSettings() {
   const [pointsFourthPlace, setPointsFourthPlace] = useState(3);
   const [pointsFifthPlace, setPointsFifthPlace] = useState(2);
   const [pointsSixthPlusPlace, setPointsSixthPlusPlace] = useState(1);
+  const [pointsNoPick, setPointsNoPick] = useState(0);
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalTagline, setOriginalTagline] = useState('');
   const [originalFooterMessage, setOriginalFooterMessage] = useState('');
@@ -72,6 +73,7 @@ export default function AppSettings() {
   const [originalPointsThirdPlace, setOriginalPointsThirdPlace] = useState(4);
   const [originalPointsFourthPlace, setOriginalPointsFourthPlace] = useState(3);
   const [originalPointsFifthPlace, setOriginalPointsFifthPlace] = useState(2);
+  const [originalPointsNoPick, setOriginalPointsNoPick] = useState(0);
   const [originalPointsSixthPlusPlace, setOriginalPointsSixthPlusPlace] = useState(1);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -95,6 +97,7 @@ export default function AppSettings() {
       setPointsFourthPlace(parseInt(res.data.points_fourth_place) || 3);
       setPointsFifthPlace(parseInt(res.data.points_fifth_place) || 2);
       setPointsSixthPlusPlace(parseInt(res.data.points_sixth_plus_place) || 1);
+      setPointsNoPick(parseInt(res.data.points_no_pick) || 0);
       
       setOriginalTitle(res.data.app_title || 'Go Make Your Picks');
       setOriginalTagline(res.data.app_tagline || 'Predict. Compete. Win.');
@@ -106,6 +109,7 @@ export default function AppSettings() {
       setOriginalPointsFourthPlace(parseInt(res.data.points_fourth_place) || 3);
       setOriginalPointsFifthPlace(parseInt(res.data.points_fifth_place) || 2);
       setOriginalPointsSixthPlusPlace(parseInt(res.data.points_sixth_plus_place) || 1);
+      setOriginalPointsNoPick(parseInt(res.data.points_no_pick) || 0);
       
       setLoadingSettings(false);
     } catch (error) {
@@ -121,17 +125,18 @@ export default function AppSettings() {
 
     // Validate point values
     const pointValues = [
-      { name: 'First place', value: pointsFirstPlace },
-      { name: 'Second place', value: pointsSecondPlace },
-      { name: 'Third place', value: pointsThirdPlace },
-      { name: 'Fourth place', value: pointsFourthPlace },
-      { name: 'Fifth place', value: pointsFifthPlace },
-      { name: 'Sixth place and below', value: pointsSixthPlusPlace }
+      { name: 'First place', value: pointsFirstPlace, min: 0 },
+      { name: 'Second place', value: pointsSecondPlace, min: 0 },
+      { name: 'Third place', value: pointsThirdPlace, min: 0 },
+      { name: 'Fourth place', value: pointsFourthPlace, min: 0 },
+      { name: 'Fifth place', value: pointsFifthPlace, min: 0 },
+      { name: 'Sixth place and below', value: pointsSixthPlusPlace, min: 0 },
+      { name: 'No pick', value: pointsNoPick, min: -10 }
     ];
 
     for (const point of pointValues) {
-      if (point.value < 0 || point.value > 20) {
-        setError(`${point.name} points must be between 0 and 20`);
+      if (point.value < point.min || point.value > 20) {
+        setError(`${point.name} points must be between ${point.min} and 20`);
         return;
       }
     }
@@ -149,7 +154,8 @@ export default function AppSettings() {
         pointsThirdPlace,
         pointsFourthPlace,
         pointsFifthPlace,
-        pointsSixthPlusPlace
+        pointsSixthPlusPlace,
+        pointsNoPick
       });
       
       setSuccess('Settings updated successfully! Leaderboard scores will update automatically. Refresh the page to see the new scores.');
@@ -163,6 +169,7 @@ export default function AppSettings() {
       setOriginalPointsFourthPlace(pointsFourthPlace);
       setOriginalPointsFifthPlace(pointsFifthPlace);
       setOriginalPointsSixthPlusPlace(pointsSixthPlusPlace);
+      setOriginalPointsNoPick(pointsNoPick);
       
       // Force reload leaderboard data by triggering a re-render
       setTimeout(() => {
@@ -186,12 +193,13 @@ export default function AppSettings() {
     setPointsFourthPlace(originalPointsFourthPlace);
     setPointsFifthPlace(originalPointsFifthPlace);
     setPointsSixthPlusPlace(originalPointsSixthPlusPlace);
+    setPointsNoPick(originalPointsNoPick);
     setError('');
     setSuccess('');
   };
 
   const hasChanges = 
-    appTitle !== originalTitle || 
+    appTitle !== originalTitle ||
     appTagline !== originalTagline ||
     footerMessage !== originalFooterMessage ||
     themeMode !== originalThemeMode ||
@@ -200,7 +208,8 @@ export default function AppSettings() {
     pointsThirdPlace !== originalPointsThirdPlace ||
     pointsFourthPlace !== originalPointsFourthPlace ||
     pointsFifthPlace !== originalPointsFifthPlace ||
-    pointsSixthPlusPlace !== originalPointsSixthPlusPlace;
+    pointsSixthPlusPlace !== originalPointsSixthPlusPlace ||
+    pointsNoPick !== originalPointsNoPick;
 
   if (loadingSettings) {
     return (
@@ -516,6 +525,28 @@ export default function AppSettings() {
                   />
                   <p className={`mt-1 ${helpTextClasses}`}>
                     Points for all other players (0-20)
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="pointsNoPick" className={labelClasses}>
+                    No Pick Points
+                  </label>
+                  <input
+                    type="number"
+                    id="pointsNoPick"
+                    value={pointsNoPick}
+                    onChange={(e) => setPointsNoPick(parseInt(e.target.value) || 0)}
+                    min="-10"
+                    max="20"
+                    className={inputClasses}
+                    required
+                  />
+                  <p className={`mt-1 ${helpTextClasses}`}>
+                    Points for players who didn't make a pick (-10 to 20)
+                  </p>
+                  <p className={`mt-1 ${helpTextClasses} text-yellow-600 dark:text-yellow-400`}>
+                    💡 Use negative values to penalize non-participation (e.g., -2 for penalty)
                   </p>
                 </div>
               </div>

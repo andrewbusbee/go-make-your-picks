@@ -65,7 +65,7 @@ const prepareCompletionEmailData = async (roundId: number, seasonId: number) => 
 
     // Get leaderboard data for all participants (single query)
     const [leaderboardData] = await db.query<RowDataPacket[]>(
-      `SELECT u.name, u.id, s.round_id, s.first_place, s.second_place, s.third_place, s.fourth_place, s.fifth_place, s.sixth_plus_place
+      `SELECT u.name, u.id, s.round_id, s.first_place, s.second_place, s.third_place, s.fourth_place, s.fifth_place, s.sixth_plus_place, s.no_pick
        FROM users u
        LEFT JOIN scores s ON u.id = s.user_id AND s.round_id IN (${completedRoundIds.map(() => '?').join(',')})
        JOIN season_participants sp ON u.id = sp.user_id AND sp.season_id = ?
@@ -89,7 +89,8 @@ const prepareCompletionEmailData = async (roundId: number, seasonId: number) => 
           (entry.third_place || 0) * pointsSettings.pointsThird +
           (entry.fourth_place || 0) * pointsSettings.pointsFourth +
           (entry.fifth_place || 0) * pointsSettings.pointsFifth +
-          (entry.sixth_plus_place || 0) * pointsSettings.pointsSixthPlus;
+          (entry.sixth_plus_place || 0) * pointsSettings.pointsSixthPlus +
+          (entry.no_pick || 0) * pointsSettings.pointsNoPick;
         
         userTotals.get(entry.id)!.points += roundPoints;
       }
@@ -718,15 +719,16 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
 
           // Insert or update score (flags only, points calculated dynamically)
           await connection.query(
-            `INSERT INTO scores (user_id, round_id, first_place, second_place, third_place, fourth_place, fifth_place, sixth_plus_place)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `INSERT INTO scores (user_id, round_id, first_place, second_place, third_place, fourth_place, fifth_place, sixth_plus_place, no_pick)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
              ON DUPLICATE KEY UPDATE 
              first_place = VALUES(first_place),
              second_place = VALUES(second_place),
              third_place = VALUES(third_place),
              fourth_place = VALUES(fourth_place),
              fifth_place = VALUES(fifth_place),
-             sixth_plus_place = VALUES(sixth_plus_place)`,
+             sixth_plus_place = VALUES(sixth_plus_place),
+             no_pick = 0`,
             [pick.user_id, roundId, first, second, third, fourth, fifth, sixthPlus]
           );
         }
@@ -752,18 +754,52 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
           }
 
           await connection.query(
-            `INSERT INTO scores (user_id, round_id, first_place, second_place, third_place, fourth_place, fifth_place, sixth_plus_place)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            `INSERT INTO scores (user_id, round_id, first_place, second_place, third_place, fourth_place, fifth_place, sixth_plus_place, no_pick)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
              ON DUPLICATE KEY UPDATE 
              first_place = VALUES(first_place),
              second_place = VALUES(second_place),
              third_place = VALUES(third_place),
              fourth_place = VALUES(fourth_place),
              fifth_place = VALUES(fifth_place),
-             sixth_plus_place = VALUES(sixth_plus_place)`,
+             sixth_plus_place = VALUES(sixth_plus_place),
+             no_pick = 0`,
             [userId, roundId, first, second, third, fourth, fifth, sixthPlus]
           );
         }
+      }
+
+      // Handle participants who didn't make picks (for both single and multiple pick types)
+      // Get all season participants
+      const [allParticipants] = await connection.query<RowDataPacket[]>(
+        `SELECT u.id
+         FROM users u
+         JOIN season_participants sp ON u.id = sp.user_id
+         WHERE sp.season_id = ? AND u.is_active = TRUE`,
+        [round.season_id]
+      );
+
+      // Get user IDs who made picks
+      const userIdsWithPicks = picks.map(p => p.user_id);
+
+      // Find participants who didn't make picks
+      const nonPickers = allParticipants.filter(p => !userIdsWithPicks.includes(p.id));
+
+      // Create score records for non-pickers with no_pick = 1
+      for (const nonPicker of nonPickers) {
+        await connection.query(
+          `INSERT INTO scores (user_id, round_id, first_place, second_place, third_place, fourth_place, fifth_place, sixth_plus_place, no_pick)
+           VALUES (?, ?, 0, 0, 0, 0, 0, 0, 1)
+           ON DUPLICATE KEY UPDATE 
+           first_place = 0,
+           second_place = 0,
+           third_place = 0,
+           fourth_place = 0,
+           fifth_place = 0,
+           sixth_plus_place = 0,
+           no_pick = 1`,
+          [nonPicker.id, roundId]
+        );
       }
     });
 

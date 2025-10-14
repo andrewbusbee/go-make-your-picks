@@ -15,6 +15,7 @@ export interface PointsSettings {
   pointsFourth: number;
   pointsFifth: number;
   pointsSixthPlus: number;
+  pointsNoPick: number;
 }
 
 export interface TextSettings {
@@ -97,6 +98,7 @@ export class SettingsService {
         pointsFourth: settingsRows.find(s => s.setting_key === 'points_fourth_place')?.setting_value || 3,
         pointsFifth: settingsRows.find(s => s.setting_key === 'points_fifth_place')?.setting_value || 2,
         pointsSixthPlus: settingsRows.find(s => s.setting_key === 'points_sixth_plus_place')?.setting_value || 1,
+        pointsNoPick: settingsRows.find(s => s.setting_key === 'points_no_pick')?.setting_value || 0,
       };
 
       // Update cache
@@ -114,6 +116,7 @@ export class SettingsService {
         pointsFourth: 3,
         pointsFifth: 2,
         pointsSixthPlus: 1,
+        pointsNoPick: 0,
       };
     }
   }
@@ -286,6 +289,7 @@ export class SettingsService {
           pointsFourth: season.points_fourth_place,
           pointsFifth: season.points_fifth_place,
           pointsSixthPlus: season.points_sixth_plus_place,
+          pointsNoPick: 0, // Historical seasons default to 0 for no-pick (feature didn't exist)
         };
       }
 

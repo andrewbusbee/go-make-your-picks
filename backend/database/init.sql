@@ -200,6 +200,7 @@ CREATE TABLE IF NOT EXISTS scores (
     fourth_place TINYINT DEFAULT 0,
     fifth_place TINYINT DEFAULT 0,
     sixth_plus_place TINYINT DEFAULT 0,
+    no_pick TINYINT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -214,7 +215,8 @@ CREATE TABLE IF NOT EXISTS scores (
         third_place IN (0, 1, 2) AND
         fourth_place IN (0, 1, 2) AND
         fifth_place IN (0, 1, 2) AND
-        sixth_plus_place IN (0, 1, 2)
+        sixth_plus_place IN (0, 1, 2) AND
+        no_pick IN (0, 1)
     )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -313,6 +315,7 @@ INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) 
 ('points_fourth_place', 3, 0, 20),
 ('points_fifth_place', 2, 0, 20),
 ('points_sixth_plus_place', 1, 0, 20),
+('points_no_pick', 0, -10, 20),
 ('reminder_first_hours', 48, 2, 168),
 ('reminder_final_hours', 6, 1, 45)
 ON DUPLICATE KEY UPDATE setting_key=setting_key;

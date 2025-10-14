@@ -136,6 +136,7 @@ export default function RoundsManagement() {
   
   // Settings for dynamic display
   const [pointsSixthPlusPlace, setPointsSixthPlusPlace] = useState(1);
+  const [pointsNoPick, setPointsNoPick] = useState(0);
   const defaultTimezone = 'America/New_York';
   
   const [error, setError] = useState('');
@@ -197,6 +198,7 @@ export default function RoundsManagement() {
     try {
       const res = await api.get('/admin/settings');
       setPointsSixthPlusPlace(parseInt(res.data.points_sixth_plus_place) || 1);
+      setPointsNoPick(parseInt(res.data.points_no_pick) || 0);
     } catch (error) {
       console.error('Error loading settings:', error);
     }
@@ -1694,103 +1696,118 @@ export default function RoundsManagement() {
                         </tr>
                       </thead>
                       <tbody className={tableBodyClasses}>
-                        {participants.map((participant) => (
-                          <tr key={participant.userId} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td className={`${tableCellClasses} font-medium`}>
-                              {participant.userName}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
-                              {participant.picks?.pickItems?.length > 0 ? (
-                                participant.picks.pickItems.map((item: any, i: number) => (
-                                  <span key={i}>
-                                    {item.pickValue}
-                                    {i < participant.picks.pickItems.length - 1 ? ', ' : ''}
+                        {participants.map((participant) => {
+                          const hasPicks = participant.picks?.pickItems?.length > 0;
+                          const rowClassName = hasPicks 
+                            ? "hover:bg-gray-50 dark:hover:bg-gray-700"
+                            : "bg-gray-100 dark:bg-gray-800 opacity-60";
+                          
+                          return (
+                            <tr key={participant.userId} className={rowClassName}>
+                              <td className={`${tableCellClasses} font-medium ${!hasPicks ? 'text-gray-500 dark:text-gray-500' : ''}`}>
+                                {participant.userName}
+                              </td>
+                              <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                                {hasPicks ? (
+                                  participant.picks.pickItems.map((item: any, i: number) => (
+                                    <span key={i}>
+                                      {item.pickValue}
+                                      {i < participant.picks.pickItems.length - 1 ? ', ' : ''}
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="text-gray-500 dark:text-gray-500 italic font-semibold">
+                                    No picks ({pointsNoPick > 0 ? `+${pointsNoPick}` : pointsNoPick} {Math.abs(pointsNoPick) === 1 ? 'pt' : 'pts'})
                                   </span>
-                                ))
-                              ) : (
-                                <span className="text-gray-400 dark:text-gray-500 italic">No picks</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <input
-                                type="radio"
-                                name={`placement-${participant.userId}`}
-                                checked={manualScores[participant.userId] === 'first'}
-                                onChange={() => setManualScores({
-                                  ...manualScores,
-                                  [participant.userId]: 'first'
-                                })}
-                                className="w-5 h-5 text-blue-600 focus:ring-blue-500"
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <input
-                                type="radio"
-                                name={`placement-${participant.userId}`}
-                                checked={manualScores[participant.userId] === 'second'}
-                                onChange={() => setManualScores({
-                                  ...manualScores,
-                                  [participant.userId]: 'second'
-                                })}
-                                className="w-5 h-5 text-blue-600 focus:ring-blue-500"
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <input
-                                type="radio"
-                                name={`placement-${participant.userId}`}
-                                checked={manualScores[participant.userId] === 'third'}
-                                onChange={() => setManualScores({
-                                  ...manualScores,
-                                  [participant.userId]: 'third'
-                                })}
-                                className="w-5 h-5 text-blue-600 focus:ring-blue-500"
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <input
-                                type="radio"
-                                name={`placement-${participant.userId}`}
-                                checked={manualScores[participant.userId] === 'fourth'}
-                                onChange={() => setManualScores({
-                                  ...manualScores,
-                                  [participant.userId]: 'fourth'
-                                })}
-                                className="w-5 h-5 text-blue-600 focus:ring-blue-500"
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <input
-                                type="radio"
-                                name={`placement-${participant.userId}`}
-                                checked={manualScores[participant.userId] === 'fifth'}
-                                onChange={() => setManualScores({
-                                  ...manualScores,
-                                  [participant.userId]: 'fifth'
-                                })}
-                                className="w-5 h-5 text-blue-600 focus:ring-blue-500"
-                              />
-                            </td>
-                            <td className="px-4 py-3 text-center">
-                              <input
-                                type="radio"
-                                name={`placement-${participant.userId}`}
-                                checked={manualScores[participant.userId] === 'sixth_plus'}
-                                onChange={() => setManualScores({
-                                  ...manualScores,
-                                  [participant.userId]: 'sixth_plus'
-                                })}
-                                className="w-5 h-5 text-blue-600 focus:ring-blue-500"
-                              />
-                            </td>
-                          </tr>
-                        ))}
+                                )}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <input
+                                  type="radio"
+                                  name={`placement-${participant.userId}`}
+                                  checked={manualScores[participant.userId] === 'first'}
+                                  onChange={() => setManualScores({
+                                    ...manualScores,
+                                    [participant.userId]: 'first'
+                                  })}
+                                  disabled={!hasPicks}
+                                  className="w-5 h-5 text-blue-600 focus:ring-blue-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                />
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <input
+                                  type="radio"
+                                  name={`placement-${participant.userId}`}
+                                  checked={manualScores[participant.userId] === 'second'}
+                                  onChange={() => setManualScores({
+                                    ...manualScores,
+                                    [participant.userId]: 'second'
+                                  })}
+                                  disabled={!hasPicks}
+                                  className="w-5 h-5 text-blue-600 focus:ring-blue-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                />
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <input
+                                  type="radio"
+                                  name={`placement-${participant.userId}`}
+                                  checked={manualScores[participant.userId] === 'third'}
+                                  onChange={() => setManualScores({
+                                    ...manualScores,
+                                    [participant.userId]: 'third'
+                                  })}
+                                  disabled={!hasPicks}
+                                  className="w-5 h-5 text-blue-600 focus:ring-blue-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                />
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <input
+                                  type="radio"
+                                  name={`placement-${participant.userId}`}
+                                  checked={manualScores[participant.userId] === 'fourth'}
+                                  onChange={() => setManualScores({
+                                    ...manualScores,
+                                    [participant.userId]: 'fourth'
+                                  })}
+                                  disabled={!hasPicks}
+                                  className="w-5 h-5 text-blue-600 focus:ring-blue-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                />
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <input
+                                  type="radio"
+                                  name={`placement-${participant.userId}`}
+                                  checked={manualScores[participant.userId] === 'fifth'}
+                                  onChange={() => setManualScores({
+                                    ...manualScores,
+                                    [participant.userId]: 'fifth'
+                                  })}
+                                  disabled={!hasPicks}
+                                  className="w-5 h-5 text-blue-600 focus:ring-blue-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                />
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <input
+                                  type="radio"
+                                  name={`placement-${participant.userId}`}
+                                  checked={manualScores[participant.userId] === 'sixth_plus'}
+                                  onChange={() => setManualScores({
+                                    ...manualScores,
+                                    [participant.userId]: 'sixth_plus'
+                                  })}
+                                  disabled={!hasPicks}
+                                  className="w-5 h-5 text-blue-600 focus:ring-blue-500 disabled:opacity-30 disabled:cursor-not-allowed"
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
                   <div className={`${alertInfoClasses} p-3 m-4`}>
                     <p className={`${alertInfoTextClasses} text-sm`}>
-                      ℹ️ Players not assigned any placement will receive 0 points (typically for players who didn't make a pick)
+                      ℹ️ Players without picks are shown but cannot be assigned placement (they will receive {pointsNoPick > 0 ? `+${pointsNoPick}` : pointsNoPick} {Math.abs(pointsNoPick) === 1 ? 'point' : 'points'})
                     </p>
                   </div>
                 </div>

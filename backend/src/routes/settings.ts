@@ -37,6 +37,7 @@ router.get('/', async (req, res) => {
       points_fourth_place: 3,
       points_fifth_place: 2,
       points_sixth_plus_place: 1,
+      points_no_pick: 0,
       reminder_type: 'daily',
       daily_reminder_time: '10:00:00',
       reminder_timezone: 'America/New_York',
@@ -79,6 +80,7 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     pointsFourthPlace,
     pointsFifthPlace,
     pointsSixthPlusPlace,
+    pointsNoPick,
     reminderType,
     dailyReminderTime,
     reminderTimezone,
@@ -107,14 +109,16 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     { name: 'Third place', value: pointsThirdPlace },
     { name: 'Fourth place', value: pointsFourthPlace },
     { name: 'Fifth place', value: pointsFifthPlace },
-    { name: 'Sixth place and below', value: pointsSixthPlusPlace }
+    { name: 'Sixth place and below', value: pointsSixthPlusPlace },
+    { name: 'No pick', value: pointsNoPick, allowNegative: true }
   ];
 
   for (const field of pointFields) {
     if (field.value !== undefined) {
       const points = parseInt(field.value);
-      if (isNaN(points) || points < 0 || points > 20) {
-        return res.status(400).json({ error: `${field.name} points must be between 0 and 20` });
+      const minValue = field.allowNegative ? -10 : 0;
+      if (isNaN(points) || points < minValue || points > 20) {
+        return res.status(400).json({ error: `${field.name} points must be between ${minValue} and 20` });
       }
     }
   }
@@ -226,7 +230,8 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
         { key: 'points_third_place', value: pointsThirdPlace },
         { key: 'points_fourth_place', value: pointsFourthPlace },
         { key: 'points_fifth_place', value: pointsFifthPlace },
-        { key: 'points_sixth_plus_place', value: pointsSixthPlusPlace }
+        { key: 'points_sixth_plus_place', value: pointsSixthPlusPlace },
+        { key: 'points_no_pick', value: pointsNoPick }
       ];
 
       for (const setting of pointSettings) {
@@ -286,7 +291,8 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
         points_third_place: pointsThirdPlace,
         points_fourth_place: pointsFourthPlace,
         points_fifth_place: pointsFifthPlace,
-        points_sixth_plus_place: pointsSixthPlusPlace
+        points_sixth_plus_place: pointsSixthPlusPlace,
+        points_no_pick: pointsNoPick
       }
     });
   } catch (error) {
