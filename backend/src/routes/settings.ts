@@ -21,6 +21,11 @@ router.get('/', async (req, res) => {
       'SELECT setting_key, setting_value FROM numeric_settings'
     );
 
+    // Get send_admin_summary from settings table
+    const [settingsRows] = await db.query<RowDataPacket[]>(
+      'SELECT send_admin_summary FROM settings LIMIT 1'
+    );
+
     // Convert to key-value object with defaults
     const settingsObj: any = {
       app_title: 'Go Make Your Picks',
@@ -36,7 +41,8 @@ router.get('/', async (req, res) => {
       daily_reminder_time: '10:00:00',
       reminder_timezone: 'America/New_York',
       reminder_first_hours: 48,
-      reminder_final_hours: 6
+      reminder_final_hours: 6,
+      send_admin_summary: true
     };
     
     textSettings.forEach((setting) => {
@@ -46,6 +52,11 @@ router.get('/', async (req, res) => {
     numericSettings.forEach((setting) => {
       settingsObj[setting.setting_key] = setting.setting_value; // Already INT
     });
+
+    // Add send_admin_summary from settings table
+    if (settingsRows.length > 0) {
+      settingsObj.send_admin_summary = settingsRows[0].send_admin_summary === 1;
+    }
 
     res.json(settingsObj);
   } catch (error) {
@@ -70,7 +81,8 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     dailyReminderTime,
     reminderTimezone,
     reminderFirstHours,
-    reminderFinalHours
+    reminderFinalHours,
+    sendAdminSummary
   } = req.body;
 
   if (!appTitle || !appTagline || !footerMessage) {
@@ -226,6 +238,14 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
           `INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) VALUES ('reminder_final_hours', ?, 1, 48)
            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
           [intValue]
+        );
+      }
+
+      // Update send_admin_summary if provided
+      if (sendAdminSummary !== undefined) {
+        await connection.query(
+          `UPDATE settings SET send_admin_summary = ?`,
+          [sendAdminSummary ? 1 : 0]
         );
       }
     });

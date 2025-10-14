@@ -74,6 +74,7 @@ export default function AppSettings() {
   const [reminderTimezone, setReminderTimezone] = useState('America/New_York');
   const [reminderFirstHours, setReminderFirstHours] = useState(48);
   const [reminderFinalHours, setReminderFinalHours] = useState(6);
+  const [sendAdminSummary, setSendAdminSummary] = useState(true);
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalTagline, setOriginalTagline] = useState('');
   const [originalFooterMessage, setOriginalFooterMessage] = useState('');
@@ -88,6 +89,7 @@ export default function AppSettings() {
   const [originalReminderTimezone, setOriginalReminderTimezone] = useState('America/New_York');
   const [originalReminderFirstHours, setOriginalReminderFirstHours] = useState(48);
   const [originalReminderFinalHours, setOriginalReminderFinalHours] = useState(6);
+  const [originalSendAdminSummary, setOriginalSendAdminSummary] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -116,6 +118,7 @@ export default function AppSettings() {
       setReminderTimezone(res.data.reminder_timezone || 'America/New_York');
       setReminderFirstHours(parseInt(res.data.reminder_first_hours) || 48);
       setReminderFinalHours(parseInt(res.data.reminder_final_hours) || 6);
+      setSendAdminSummary(res.data.send_admin_summary !== undefined ? res.data.send_admin_summary : true);
       
       setOriginalTitle(res.data.app_title || 'Go Make Your Picks');
       setOriginalTagline(res.data.app_tagline || 'Predict. Compete. Win.');
@@ -134,6 +137,7 @@ export default function AppSettings() {
       setOriginalReminderTimezone(res.data.reminder_timezone || 'America/New_York');
       setOriginalReminderFirstHours(parseInt(res.data.reminder_first_hours) || 48);
       setOriginalReminderFinalHours(parseInt(res.data.reminder_final_hours) || 6);
+      setOriginalSendAdminSummary(res.data.send_admin_summary !== undefined ? res.data.send_admin_summary : true);
       
       setLoadingSettings(false);
     } catch (error) {
@@ -206,7 +210,8 @@ export default function AppSettings() {
         dailyReminderTime: reminderType === 'daily' ? dailyReminderTime + ':00' : undefined,
         reminderTimezone: reminderType === 'daily' ? reminderTimezone : undefined,
         reminderFirstHours: reminderType === 'before_lock' ? reminderFirstHours : undefined,
-        reminderFinalHours: reminderType === 'before_lock' ? reminderFinalHours : undefined
+        reminderFinalHours: reminderType === 'before_lock' ? reminderFinalHours : undefined,
+        sendAdminSummary
       });
       
       setSuccess('Settings updated successfully! Leaderboard scores will update automatically. Refresh the page to see the new scores.');
@@ -224,6 +229,7 @@ export default function AppSettings() {
       setOriginalReminderTimezone(reminderTimezone);
       setOriginalReminderFirstHours(reminderFirstHours);
       setOriginalReminderFinalHours(reminderFinalHours);
+      setOriginalSendAdminSummary(sendAdminSummary);
       
       // Force reload leaderboard data by triggering a re-render
       setTimeout(() => {
@@ -251,6 +257,7 @@ export default function AppSettings() {
     setReminderTimezone(originalReminderTimezone);
     setReminderFirstHours(originalReminderFirstHours);
     setReminderFinalHours(originalReminderFinalHours);
+    setSendAdminSummary(originalSendAdminSummary);
     setError('');
     setSuccess('');
   };
@@ -269,7 +276,8 @@ export default function AppSettings() {
     dailyReminderTime !== originalDailyReminderTime ||
     reminderTimezone !== originalReminderTimezone ||
     reminderFirstHours !== originalReminderFirstHours ||
-    reminderFinalHours !== originalReminderFinalHours;
+    reminderFinalHours !== originalReminderFinalHours ||
+    sendAdminSummary !== originalSendAdminSummary;
 
   if (loadingSettings) {
     return (
@@ -536,6 +544,23 @@ export default function AppSettings() {
                   </p>
                 </div>
               )}
+
+              {/* Admin Summary Email Checkbox */}
+              <div className={`${mb4Classes} ${pt6Classes}`}>
+                <label className={`${radioLabelClasses} cursor-pointer`}>
+                  <input
+                    type="checkbox"
+                    checked={sendAdminSummary}
+                    onChange={(e) => setSendAdminSummary(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className={radioTextClasses}>Send admin summary when reminders go out</span>
+                </label>
+                <p className={`mt-2 ml-6 ${helpTextClasses}`}>
+                  When enabled, admins will receive a summary email showing who has picked and who hasn't when player 
+                  reminders are sent. This does not affect player reminder emails.
+                </p>
+              </div>
             </div>
 
             <hr className={dividerClasses} />

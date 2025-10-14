@@ -32,6 +32,7 @@ export interface ReminderSettings {
   reminderTimezone: string;
   firstReminderHours: number;
   finalReminderHours: number;
+  sendAdminSummary: boolean;
 }
 
 export interface AllSettings extends PointsSettings, TextSettings {}
@@ -209,6 +210,11 @@ export class SettingsService {
         ['reminder_type', 'daily_reminder_time', 'reminder_timezone']
       );
 
+      // Get send_admin_summary from settings table
+      const [settingsRows] = await db.query<RowDataPacket[]>(
+        'SELECT send_admin_summary FROM settings LIMIT 1'
+      );
+
       const numericMap = new Map(numericRows.map(s => [s.setting_key, s.setting_value]));
       const textMap = new Map(textRows.map(s => [s.setting_key, s.setting_value]));
 
@@ -218,6 +224,7 @@ export class SettingsService {
         reminderTimezone: textMap.get('reminder_timezone') || 'America/New_York',
         firstReminderHours: numericMap.get('reminder_first_hours') || 48,
         finalReminderHours: numericMap.get('reminder_final_hours') || 6,
+        sendAdminSummary: settingsRows.length > 0 ? settingsRows[0].send_admin_summary === 1 : true,
       };
 
       // Update cache
@@ -234,6 +241,7 @@ export class SettingsService {
         reminderTimezone: 'America/New_York',
         firstReminderHours: 48,
         finalReminderHours: 6,
+        sendAdminSummary: true,
       };
     }
   }

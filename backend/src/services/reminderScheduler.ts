@@ -334,34 +334,41 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
 
       logger.debug(`📊 Admin summary stats: ${participantsWithPicks.length} picked, ${participantsMissingPicks.length} missing`);
 
-      // Get season name
-      const [seasonResult] = await db.query<RowDataPacket[]>(
-        'SELECT name FROM seasons WHERE id = ?',
-        [round.season_id]
-      );
+      // Check if admin summary emails are enabled
+      const reminderSettings = await SettingsService.getReminderSettings();
       
-      const seasonName = seasonResult.length > 0 ? seasonResult[0].name : 'Unknown Season';
+      if (reminderSettings.sendAdminSummary) {
+        // Get season name
+        const [seasonResult] = await db.query<RowDataPacket[]>(
+          'SELECT name FROM seasons WHERE id = ?',
+          [round.season_id]
+        );
+        
+        const seasonName = seasonResult.length > 0 ? seasonResult[0].name : 'Unknown Season';
 
-      // Send admin summary
-      logger.debug(`📧 Sending admin summary email for round ${round.id}...`);
-      const adminEmailStartTime = Date.now();
-      const summaryResult = await sendAdminReminderSummary(
-        round.sport_name,
-        seasonName,
-        round.lock_time,
-        round.timezone,
-        participantsWithPicks,
-        participantsMissingPicks
-      );
-      const adminEmailDuration = Date.now() - adminEmailStartTime;
-      
-      if (summaryResult.success) {
-        logger.info(`📊 Admin summary sent for "${round.sport_name}" (${participantsWithPicks.length} picked, ${participantsMissingPicks.length} missing)`);
+        // Send admin summary
+        logger.debug(`📧 Sending admin summary email for round ${round.id}...`);
+        const adminEmailStartTime = Date.now();
+        const summaryResult = await sendAdminReminderSummary(
+          round.sport_name,
+          seasonName,
+          round.lock_time,
+          round.timezone,
+          participantsWithPicks,
+          participantsMissingPicks
+        );
+        const adminEmailDuration = Date.now() - adminEmailStartTime;
+        
+        if (summaryResult.success) {
+          logger.info(`📊 Admin summary sent for "${round.sport_name}" (${participantsWithPicks.length} picked, ${participantsMissingPicks.length} missing)`);
+        } else {
+          logger.error('Failed to send admin reminder summary', {
+            roundId: round.id,
+            error: summaryResult.error
+          });
+        }
       } else {
-        logger.error('Failed to send admin reminder summary', {
-          roundId: round.id,
-          error: summaryResult.error
-        });
+        logger.debug(`⏭️ Admin summary emails disabled, skipping for round ${round.id}`);
       }
     } catch (summaryError) {
       logger.error('Failed to send admin reminder summary', {
@@ -572,37 +579,44 @@ export const manualSendGenericReminder = async (roundId: number) => {
         .filter(p => !p.hasPicked)
         .map(p => ({ name: p.name }));
 
-      // Get season name
-      const [seasonResult] = await db.query<RowDataPacket[]>(
-        'SELECT name FROM seasons WHERE id = ?',
-        [round.season_id]
-      );
+      // Check if admin summary emails are enabled
+      const reminderSettings = await SettingsService.getReminderSettings();
       
-      const seasonName = seasonResult.length > 0 ? seasonResult[0].name : 'Unknown Season';
+      if (reminderSettings.sendAdminSummary) {
+        // Get season name
+        const [seasonResult] = await db.query<RowDataPacket[]>(
+          'SELECT name FROM seasons WHERE id = ?',
+          [round.season_id]
+        );
+        
+        const seasonName = seasonResult.length > 0 ? seasonResult[0].name : 'Unknown Season';
 
-      // Send admin summary
-      const summaryResult = await sendAdminReminderSummary(
-        round.sport_name,
-        seasonName,
-        round.lock_time,
-        round.timezone,
-        participantsWithPicks,
-        participantsMissingPicks
-      );
-
-      if (summaryResult.success) {
-        logger.info('Admin reminder summary sent (manual)', {
-          roundId: round.id,
-          sportName: round.sport_name,
+        // Send admin summary
+        const summaryResult = await sendAdminReminderSummary(
+          round.sport_name,
           seasonName,
-          participantsWithPicks: participantsWithPicks.length,
-          participantsMissingPicks: participantsMissingPicks.length
-        });
+          round.lock_time,
+          round.timezone,
+          participantsWithPicks,
+          participantsMissingPicks
+        );
+
+        if (summaryResult.success) {
+          logger.info('Admin reminder summary sent (manual)', {
+            roundId: round.id,
+            sportName: round.sport_name,
+            seasonName,
+            participantsWithPicks: participantsWithPicks.length,
+            participantsMissingPicks: participantsMissingPicks.length
+          });
+        } else {
+          logger.error('Failed to send admin reminder summary (manual)', {
+            roundId: round.id,
+            error: summaryResult.error
+          });
+        }
       } else {
-        logger.error('Failed to send admin reminder summary (manual)', {
-          roundId: round.id,
-          error: summaryResult.error
-        });
+        logger.debug(`⏭️ Admin summary emails disabled, skipping for round ${round.id} (manual)`);
       }
     } catch (summaryError) {
       logger.error('Failed to send admin reminder summary (manual)', {
