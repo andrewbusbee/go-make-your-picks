@@ -525,12 +525,21 @@ export default function SeasonsManagement() {
 
               {/* Second Row of Buttons */}
               <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => openDeleteModal(season)}
-                  className={`flex-1 min-w-[120px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonDangerClasses}`}
-                >
-                  Delete Season
-                </button>
+                {!season.ended_at && (!season.completed_rounds_count || season.completed_rounds_count === 0) ? (
+                  <button
+                    onClick={() => openDeleteModal(season)}
+                    className={`flex-1 min-w-[120px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonDangerClasses}`}
+                  >
+                    Delete Season
+                  </button>
+                ) : (
+                  <div className="flex-1 min-w-[120px] text-xs py-2 px-3 text-gray-500 dark:text-gray-400 italic text-center">
+                    {season.ended_at 
+                      ? '🔒 Cannot delete: Season has ended (preserving history)'
+                      : '⚠️ Cannot delete: Season has completed rounds'
+                    }
+                  </div>
+                )}
                 <button
                   onClick={(e) => handleToggleActive(season.id, e)}
                   className={`flex-1 min-w-[120px] text-xs py-2 px-3 rounded-md transition font-medium ${
@@ -591,12 +600,9 @@ export default function SeasonsManagement() {
 
                 {/* Second Row of Buttons */}
                 <div className={flexWrapGapClasses}>
-                  <button
-                    onClick={() => openDeleteModal(season)}
-                    className={`flex-1 min-w-[120px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonDangerClasses}`}
-                  >
-                    Delete Season
-                  </button>
+                  <div className="flex-1 min-w-[120px] text-xs py-2 px-3 text-gray-500 dark:text-gray-400 italic text-center">
+                    🔒 Cannot delete: Season has ended (preserving history)
+                  </div>
                 </div>
               </div>
             ))}

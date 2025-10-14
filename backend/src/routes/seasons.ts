@@ -41,7 +41,11 @@ router.get('/', async (req, res) => {
       cacheKey,
       async () => {
         const [seasons] = await db.query<RowDataPacket[]>(
-          'SELECT * FROM seasons WHERE deleted_at IS NULL ORDER BY year_start DESC'
+          `SELECT s.*, 
+           (SELECT COUNT(*) FROM rounds r WHERE r.season_id = s.id AND r.status = 'completed' AND r.deleted_at IS NULL) as completed_rounds_count
+           FROM seasons s 
+           WHERE s.deleted_at IS NULL 
+           ORDER BY s.year_start DESC`
         );
         
         // Optimize: Calculate leaderboards in parallel (if needed) instead of sequentially

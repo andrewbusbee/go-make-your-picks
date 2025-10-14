@@ -837,12 +837,18 @@ export default function RoundsManagement() {
                   </>
                 )}
                 {(round.status === 'locked') && (
-                  <button
-                    onClick={() => openDeleteModal(round)}
-                    className={buttonSmallDangerLinkClasses}
-                  >
-                    Delete
-                  </button>
+                  currentSeason && currentSeason.ended_at ? (
+                    <div className="text-xs py-2 px-3 text-gray-500 dark:text-gray-400 italic">
+                      🔒 Cannot delete: Season has ended (preserving history)
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => openDeleteModal(round)}
+                      className={buttonSmallDangerLinkClasses}
+                    >
+                      Delete
+                    </button>
+                  )
                 )}
               </div>
             </div>
@@ -918,12 +924,18 @@ export default function RoundsManagement() {
                 >
                   📧 Remind
                 </button>
-                <button
-                  onClick={() => openDeleteModal(round)}
-                  className={buttonSmallDangerLinkClasses}
-                >
-                  Delete
-                </button>
+                {currentSeason && currentSeason.ended_at ? (
+                  <div className="text-xs py-2 px-3 text-gray-500 dark:text-gray-400 italic">
+                    🔒 Cannot delete: Season has ended (preserving history)
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => openDeleteModal(round)}
+                    className={buttonSmallDangerLinkClasses}
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
             </div>
                     ))}
@@ -986,12 +998,18 @@ export default function RoundsManagement() {
                     </div>
                   )}
                 </div>
-                <button
-                  onClick={() => openDeleteModal(round)}
-                  className={buttonSmallDangerLinkClasses}
-                >
-                  Delete
-                </button>
+                {currentSeason && currentSeason.ended_at ? (
+                  <div className="text-xs py-2 px-3 text-gray-500 dark:text-gray-400 italic">
+                    🔒 Cannot delete: Season has ended (preserving history)
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => openDeleteModal(round)}
+                    className={buttonSmallDangerLinkClasses}
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
             </div>
                     ))}
@@ -1043,13 +1061,24 @@ export default function RoundsManagement() {
                         )}
 
                         <div className={`${flexWrapGapClasses} ${mt4Classes}`}>
-                          <button
-                            onClick={() => handleUnlockRound(round.id)}
-                            className={`${buttonSmallYellowClasses} ${flexItemsGap1Classes}`}
-                            title="Unlock round for editing"
-                          >
-                            🔓 Unlock
-                          </button>
+                          {currentSeason && currentSeason.ended_at ? (
+                            <div className="text-xs py-2 px-3 text-gray-500 dark:text-gray-400 italic">
+                              🔒 Cannot unlock: Season has ended
+                            </div>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleUnlockRound(round.id)}
+                                className={`${buttonSmallYellowClasses} ${flexItemsGap1Classes}`}
+                                title="Unlock round for editing"
+                              >
+                                🔓 Unlock
+                              </button>
+                              <div className="text-xs py-2 px-3 text-gray-500 dark:text-gray-400 italic">
+                                🔒 Cannot delete: Sport has scores (preserving history)
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     ))}
