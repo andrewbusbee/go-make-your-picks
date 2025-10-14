@@ -240,7 +240,7 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
     setForceSuccess('');
 
     try {
-      const response = await api.post('/rounds/force-send-daily-reminders');
+      const response = await api.post('/admin/rounds/force-send-daily-reminders');
       setForceSuccess(response.data.message);
       setTimeout(() => setForceSuccess(''), 8000);
     } catch (err: any) {
