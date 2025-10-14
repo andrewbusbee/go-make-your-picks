@@ -898,8 +898,199 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
       return res.status(400).json({ error: 'Invalid confirmation. Must type "PERMANENT DELETE" exactly.' });
     }
 
+    // Log pre-delete counts for verification (direct and CASCADE chain)
+    const [participantCounts] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM season_participants WHERE season_id = ?',
+      [seasonId]
+    );
+    const [roundCounts] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM rounds WHERE season_id = ?',
+      [seasonId]
+    );
+    const [winnerCounts] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM season_winners WHERE season_id = ?',
+      [seasonId]
+    );
+    
+    // Count data that should cascade from rounds deletion
+    const [roundIds] = await db.query<RowDataPacket[]>(
+      'SELECT id FROM rounds WHERE season_id = ?',
+      [seasonId]
+    );
+    
+    let pickCounts = [{ count: 0 }];
+    let scoreCounts = [{ count: 0 }];
+    let teamCounts = [{ count: 0 }];
+    let linkCounts = [{ count: 0 }];
+    let reminderCounts = [{ count: 0 }];
+    let pickItemCounts = [{ count: 0 }];
+    
+    if (roundIds.length > 0) {
+      const roundIdList = roundIds.map(r => r.id);
+      
+      [pickCounts] = await db.query<RowDataPacket[]>(
+        `SELECT COUNT(*) as count FROM picks WHERE round_id IN (?)`,
+        [roundIdList]
+      );
+      [scoreCounts] = await db.query<RowDataPacket[]>(
+        `SELECT COUNT(*) as count FROM scores WHERE round_id IN (?)`,
+        [roundIdList]
+      );
+      [teamCounts] = await db.query<RowDataPacket[]>(
+        `SELECT COUNT(*) as count FROM round_teams WHERE round_id IN (?)`,
+        [roundIdList]
+      );
+      [linkCounts] = await db.query<RowDataPacket[]>(
+        `SELECT COUNT(*) as count FROM magic_links WHERE round_id IN (?)`,
+        [roundIdList]
+      );
+      [reminderCounts] = await db.query<RowDataPacket[]>(
+        `SELECT COUNT(*) as count FROM reminder_log WHERE round_id IN (?)`,
+        [roundIdList]
+      );
+      
+      // Count pick_items (cascades from picks)
+      if (pickCounts[0].count > 0) {
+        [pickItemCounts] = await db.query<RowDataPacket[]>(
+          `SELECT COUNT(*) as count FROM pick_items pi 
+           JOIN picks p ON pi.pick_id = p.id 
+           WHERE p.round_id IN (?)`,
+          [roundIdList]
+        );
+      }
+    }
+
+    logger.info('Pre-delete data counts for season', {
+      seasonId,
+      seasonName: seasons[0].name,
+      directDeletes: {
+        participants: participantCounts[0].count,
+        rounds: roundCounts[0].count,
+        winners: winnerCounts[0].count
+      },
+      cascadeDeletes: {
+        picks: pickCounts[0].count,
+        pickItems: pickItemCounts[0].count,
+        scores: scoreCounts[0].count,
+        teams: teamCounts[0].count,
+        magicLinks: linkCounts[0].count,
+        reminders: reminderCounts[0].count
+      }
+    });
+
     // Permanently delete (CASCADE will handle all related data)
-    await db.query('DELETE FROM seasons WHERE id = ?', [seasonId]);
+    const [result] = await db.query<ResultSetHeader>(
+      'DELETE FROM seasons WHERE id = ?',
+      [seasonId]
+    );
+
+    if (result.affectedRows === 0) {
+      logger.error('Permanent delete failed - no rows affected', { seasonId });
+      return res.status(500).json({ error: 'Delete operation failed - season may have already been deleted' });
+    }
+
+    // Verify CASCADE deleted all related data
+    const [participantCountsAfter] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM season_participants WHERE season_id = ?',
+      [seasonId]
+    );
+    const [roundCountsAfter] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM rounds WHERE season_id = ?',
+      [seasonId]
+    );
+    const [winnerCountsAfter] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM season_winners WHERE season_id = ?',
+      [seasonId]
+    );
+    
+    // Verify cascade from rounds
+    let pickCountsAfter = [{ count: 0 }];
+    let scoreCountsAfter = [{ count: 0 }];
+    let teamCountsAfter = [{ count: 0 }];
+    let linkCountsAfter = [{ count: 0 }];
+    let reminderCountsAfter = [{ count: 0 }];
+    let pickItemCountsAfter = [{ count: 0 }];
+    
+    if (roundIds.length > 0) {
+      const roundIdList = roundIds.map(r => r.id);
+      
+      [pickCountsAfter] = await db.query<RowDataPacket[]>(
+        `SELECT COUNT(*) as count FROM picks WHERE round_id IN (?)`,
+        [roundIdList]
+      );
+      [scoreCountsAfter] = await db.query<RowDataPacket[]>(
+        `SELECT COUNT(*) as count FROM scores WHERE round_id IN (?)`,
+        [roundIdList]
+      );
+      [teamCountsAfter] = await db.query<RowDataPacket[]>(
+        `SELECT COUNT(*) as count FROM round_teams WHERE round_id IN (?)`,
+        [roundIdList]
+      );
+      [linkCountsAfter] = await db.query<RowDataPacket[]>(
+        `SELECT COUNT(*) as count FROM magic_links WHERE round_id IN (?)`,
+        [roundIdList]
+      );
+      [reminderCountsAfter] = await db.query<RowDataPacket[]>(
+        `SELECT COUNT(*) as count FROM reminder_log WHERE round_id IN (?)`,
+        [roundIdList]
+      );
+      
+      if (pickCounts[0].count > 0) {
+        [pickItemCountsAfter] = await db.query<RowDataPacket[]>(
+          `SELECT COUNT(*) as count FROM pick_items pi 
+           JOIN picks p ON pi.pick_id = p.id 
+           WHERE p.round_id IN (?)`,
+          [roundIdList]
+        );
+      }
+    }
+
+    const cascadeSuccess = 
+      participantCountsAfter[0].count === 0 &&
+      roundCountsAfter[0].count === 0 &&
+      winnerCountsAfter[0].count === 0 &&
+      pickCountsAfter[0].count === 0 &&
+      scoreCountsAfter[0].count === 0 &&
+      teamCountsAfter[0].count === 0 &&
+      linkCountsAfter[0].count === 0 &&
+      reminderCountsAfter[0].count === 0 &&
+      pickItemCountsAfter[0].count === 0;
+
+    if (!cascadeSuccess) {
+      logger.error('CASCADE DELETE failed - orphaned data detected!', {
+        seasonId,
+        orphanedParticipants: participantCountsAfter[0].count,
+        orphanedRounds: roundCountsAfter[0].count,
+        orphanedWinners: winnerCountsAfter[0].count,
+        orphanedPicks: pickCountsAfter[0].count,
+        orphanedPickItems: pickItemCountsAfter[0].count,
+        orphanedScores: scoreCountsAfter[0].count,
+        orphanedTeams: teamCountsAfter[0].count,
+        orphanedLinks: linkCountsAfter[0].count,
+        orphanedReminders: reminderCountsAfter[0].count
+      });
+      return res.status(500).json({ 
+        error: 'CASCADE DELETE failed - orphaned data remains. Database constraints may not be configured correctly.' 
+      });
+    }
+
+    logger.info('Season permanently deleted successfully', {
+      seasonId,
+      seasonName: seasons[0].name,
+      deletedRows: result.affectedRows,
+      cascadeSuccess: true,
+      deletedData: {
+        participants: participantCounts[0].count,
+        rounds: roundCounts[0].count,
+        winners: winnerCounts[0].count,
+        picks: pickCounts[0].count,
+        pickItems: pickItemCounts[0].count,
+        scores: scoreCounts[0].count,
+        teams: teamCounts[0].count,
+        magicLinks: linkCounts[0].count,
+        reminders: reminderCounts[0].count
+      }
+    });
 
     // Invalidate seasons cache after permanent delete
     QueryCacheService.invalidatePattern('seasons:');
