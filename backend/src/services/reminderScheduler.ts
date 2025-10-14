@@ -179,18 +179,9 @@ export const checkAndSendDailyReminder = async (round: any, now: Date, reminderS
     const oneHourInMs = 60 * 60 * 1000;
     
     if (timeDiff <= oneHourInMs) {
-      // Check if we already sent a daily reminder today (in reminder timezone)
-      const todayStart = todayInReminderTz.clone().startOf('day').toDate();
-      
-      const [existingToday] = await db.query<RowDataPacket[]>(
-        'SELECT id FROM reminder_log WHERE round_id = ? AND reminder_type = ? AND sent_at >= ?',
-        [round.id, 'daily', todayStart]
-      );
-      
-      if (existingToday.length === 0) {
-        // Send daily reminder
-        await sendReminderIfNotSent(round, 'daily', 0);
-      }
+      // Within the time window - attempt to send
+      // sendReminderIfNotSent will handle deduplication (prevents duplicate sends within 1 hour)
+      await sendReminderIfNotSent(round, 'daily', 0);
     }
   } catch (error) {
     logger.error('Error checking daily reminder', { roundId: round.id, error });
@@ -202,15 +193,30 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
   try {
     logger.debug(`📧 sendReminderIfNotSent: Starting ${reminderType} reminder for round ${round.id}`);
     
-    // Check if this reminder was already sent
-    const [existing] = await db.query<RowDataPacket[]>(
-      'SELECT id FROM reminder_log WHERE round_id = ? AND reminder_type = ?',
-      [round.id, reminderType]
-    );
+    // For daily reminders: only block if sent within the last hour (prevents duplicates from cron)
+    // For first/final reminders: block if ever sent for this round (send only once)
+    if (reminderType === 'daily') {
+      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const [recentDaily] = await db.query<RowDataPacket[]>(
+        'SELECT id, sent_at FROM reminder_log WHERE round_id = ? AND reminder_type = ? AND sent_at >= ?',
+        [round.id, reminderType, oneHourAgo]
+      );
 
-    if (existing.length > 0) {
-      logger.debug(`⏭️ ${reminderType} reminder already sent for round ${round.id}, skipping`);
-      return; // Already sent
+      if (recentDaily.length > 0) {
+        logger.debug(`⏭️ Daily reminder sent within last hour for round ${round.id}, skipping to prevent duplicate`);
+        return; // Already sent recently
+      }
+    } else {
+      // For first/final reminders, check if ever sent (one-time reminders)
+      const [existing] = await db.query<RowDataPacket[]>(
+        'SELECT id FROM reminder_log WHERE round_id = ? AND reminder_type = ?',
+        [round.id, reminderType]
+      );
+
+      if (existing.length > 0) {
+        logger.debug(`⏭️ ${reminderType} reminder already sent for round ${round.id}, skipping`);
+        return; // Already sent
+      }
     }
 
     // Get users who are in this season but haven't made picks yet, excluding deactivated players
