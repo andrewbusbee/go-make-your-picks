@@ -520,7 +520,7 @@ export const manualSendReminder = async (roundId: number, reminderType: 'first' 
 export const manualSendGenericReminder = async (roundId: number) => {
   try {
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, s.commissioner FROM rounds r JOIN seasons s ON r.season_id = s.id WHERE r.id = ?',
+      'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status, s.commissioner FROM rounds r JOIN seasons s ON r.season_id = s.id WHERE r.id = ?',
       [roundId]
     );
 
