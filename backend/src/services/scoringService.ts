@@ -177,9 +177,15 @@ export class ScoringService {
       // Sort by total points descending
       leaderboard.sort((a, b) => b.totalPoints - a.totalPoints);
 
-      // Add rank
+      // Add rank with proper tie handling
+      let currentRank = 1;
       leaderboard.forEach((entry, index) => {
-        entry.rank = index + 1;
+        // If this is not the first entry and points are different from previous entry
+        // then the rank should be the current position (index + 1)
+        if (index > 0 && leaderboard[index - 1].totalPoints !== entry.totalPoints) {
+          currentRank = index + 1;
+        }
+        entry.rank = currentRank;
       });
 
       return {
