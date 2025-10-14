@@ -63,7 +63,6 @@ export default function AppSettings() {
   const [appTitle, setAppTitle] = useState('');
   const [appTagline, setAppTagline] = useState('');
   const [footerMessage, setFooterMessage] = useState('');
-  const [defaultTimezone, setDefaultTimezone] = useState('America/New_York');
   const [pointsFirstPlace, setPointsFirstPlace] = useState(6);
   const [pointsSecondPlace, setPointsSecondPlace] = useState(5);
   const [pointsThirdPlace, setPointsThirdPlace] = useState(4);
@@ -72,12 +71,12 @@ export default function AppSettings() {
   const [pointsSixthPlusPlace, setPointsSixthPlusPlace] = useState(1);
   const [reminderType, setReminderType] = useState<'daily' | 'before_lock' | 'none'>('daily');
   const [dailyReminderTime, setDailyReminderTime] = useState('10:00');
+  const [reminderTimezone, setReminderTimezone] = useState('America/New_York');
   const [reminderFirstHours, setReminderFirstHours] = useState(48);
   const [reminderFinalHours, setReminderFinalHours] = useState(6);
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalTagline, setOriginalTagline] = useState('');
   const [originalFooterMessage, setOriginalFooterMessage] = useState('');
-  const [originalDefaultTimezone, setOriginalDefaultTimezone] = useState('America/New_York');
   const [originalPointsFirstPlace, setOriginalPointsFirstPlace] = useState(6);
   const [originalPointsSecondPlace, setOriginalPointsSecondPlace] = useState(5);
   const [originalPointsThirdPlace, setOriginalPointsThirdPlace] = useState(4);
@@ -86,6 +85,7 @@ export default function AppSettings() {
   const [originalPointsSixthPlusPlace, setOriginalPointsSixthPlusPlace] = useState(1);
   const [originalReminderType, setOriginalReminderType] = useState<'daily' | 'before_lock' | 'none'>('daily');
   const [originalDailyReminderTime, setOriginalDailyReminderTime] = useState('10:00');
+  const [originalReminderTimezone, setOriginalReminderTimezone] = useState('America/New_York');
   const [originalReminderFirstHours, setOriginalReminderFirstHours] = useState(48);
   const [originalReminderFinalHours, setOriginalReminderFinalHours] = useState(6);
   const [error, setError] = useState('');
@@ -103,7 +103,6 @@ export default function AppSettings() {
       setAppTitle(res.data.app_title || 'Go Make Your Picks');
       setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
       setFooterMessage(res.data.footer_message || 'Built for Sports Fans');
-      setDefaultTimezone(res.data.default_timezone || 'America/New_York');
       setPointsFirstPlace(parseInt(res.data.points_first_place) || 6);
       setPointsSecondPlace(parseInt(res.data.points_second_place) || 5);
       setPointsThirdPlace(parseInt(res.data.points_third_place) || 4);
@@ -114,13 +113,13 @@ export default function AppSettings() {
       // Convert HH:MM:SS format to HH:MM format for the time input
       const timeValue = res.data.daily_reminder_time || '10:00:00';
       setDailyReminderTime(timeValue.substring(0, 5)); // Remove seconds part
+      setReminderTimezone(res.data.reminder_timezone || 'America/New_York');
       setReminderFirstHours(parseInt(res.data.reminder_first_hours) || 48);
       setReminderFinalHours(parseInt(res.data.reminder_final_hours) || 6);
       
       setOriginalTitle(res.data.app_title || 'Go Make Your Picks');
       setOriginalTagline(res.data.app_tagline || 'Predict. Compete. Win.');
       setOriginalFooterMessage(res.data.footer_message || 'Built for Sports Fans');
-      setOriginalDefaultTimezone(res.data.default_timezone || 'America/New_York');
       setOriginalPointsFirstPlace(parseInt(res.data.points_first_place) || 6);
       setOriginalPointsSecondPlace(parseInt(res.data.points_second_place) || 5);
       setOriginalPointsThirdPlace(parseInt(res.data.points_third_place) || 4);
@@ -132,6 +131,7 @@ export default function AppSettings() {
       const originalTimeValue = res.data.daily_reminder_time || '10:00:00';
       setOriginalReminderType(res.data.reminder_type || 'daily');
       setOriginalDailyReminderTime(originalTimeValue.substring(0, 5)); // Remove seconds part
+      setOriginalReminderTimezone(res.data.reminder_timezone || 'America/New_York');
       setOriginalReminderFirstHours(parseInt(res.data.reminder_first_hours) || 48);
       setOriginalReminderFinalHours(parseInt(res.data.reminder_final_hours) || 6);
       
@@ -196,7 +196,6 @@ export default function AppSettings() {
         appTitle,
         appTagline,
         footerMessage,
-        defaultTimezone,
         pointsFirstPlace,
         pointsSecondPlace,
         pointsThirdPlace,
@@ -205,6 +204,7 @@ export default function AppSettings() {
         pointsSixthPlusPlace,
         reminderType,
         dailyReminderTime: reminderType === 'daily' ? dailyReminderTime + ':00' : undefined,
+        reminderTimezone: reminderType === 'daily' ? reminderTimezone : undefined,
         reminderFirstHours: reminderType === 'before_lock' ? reminderFirstHours : undefined,
         reminderFinalHours: reminderType === 'before_lock' ? reminderFinalHours : undefined
       });
@@ -213,13 +213,17 @@ export default function AppSettings() {
       setOriginalTitle(appTitle);
       setOriginalTagline(appTagline);
       setOriginalFooterMessage(footerMessage);
-      setOriginalDefaultTimezone(defaultTimezone);
       setOriginalPointsFirstPlace(pointsFirstPlace);
       setOriginalPointsSecondPlace(pointsSecondPlace);
       setOriginalPointsThirdPlace(pointsThirdPlace);
       setOriginalPointsFourthPlace(pointsFourthPlace);
       setOriginalPointsFifthPlace(pointsFifthPlace);
       setOriginalPointsSixthPlusPlace(pointsSixthPlusPlace);
+      setOriginalReminderType(reminderType);
+      setOriginalDailyReminderTime(dailyReminderTime);
+      setOriginalReminderTimezone(reminderTimezone);
+      setOriginalReminderFirstHours(reminderFirstHours);
+      setOriginalReminderFinalHours(reminderFinalHours);
       
       // Force reload leaderboard data by triggering a re-render
       setTimeout(() => {
@@ -236,7 +240,6 @@ export default function AppSettings() {
     setAppTitle(originalTitle);
     setAppTagline(originalTagline);
     setFooterMessage(originalFooterMessage);
-    setDefaultTimezone(originalDefaultTimezone);
     setPointsFirstPlace(originalPointsFirstPlace);
     setPointsSecondPlace(originalPointsSecondPlace);
     setPointsThirdPlace(originalPointsThirdPlace);
@@ -245,6 +248,7 @@ export default function AppSettings() {
     setPointsSixthPlusPlace(originalPointsSixthPlusPlace);
     setReminderType(originalReminderType);
     setDailyReminderTime(originalDailyReminderTime);
+    setReminderTimezone(originalReminderTimezone);
     setReminderFirstHours(originalReminderFirstHours);
     setReminderFinalHours(originalReminderFinalHours);
     setError('');
@@ -255,7 +259,6 @@ export default function AppSettings() {
     appTitle !== originalTitle || 
     appTagline !== originalTagline ||
     footerMessage !== originalFooterMessage ||
-    defaultTimezone !== originalDefaultTimezone ||
     pointsFirstPlace !== originalPointsFirstPlace ||
     pointsSecondPlace !== originalPointsSecondPlace ||
     pointsThirdPlace !== originalPointsThirdPlace ||
@@ -264,6 +267,7 @@ export default function AppSettings() {
     pointsSixthPlusPlace !== originalPointsSixthPlusPlace ||
     reminderType !== originalReminderType ||
     dailyReminderTime !== originalDailyReminderTime ||
+    reminderTimezone !== originalReminderTimezone ||
     reminderFirstHours !== originalReminderFirstHours ||
     reminderFinalHours !== originalReminderFinalHours;
 
@@ -395,21 +399,6 @@ export default function AppSettings() {
               </p>
             </div>
 
-            <div>
-              <label htmlFor="defaultTimezone" className={labelClasses}>
-                Default Timezone
-              </label>
-              <TimezoneSelector
-                value={defaultTimezone}
-                onChange={setDefaultTimezone}
-                required
-              />
-              <p className={`mt-1 ${helpTextClasses}`}>
-                This timezone will be used as the default when creating new sports. 
-                You can change it for each individual sport if needed.
-              </p>
-            </div>
-
           </div>
 
             <hr className={dividerClasses} />
@@ -466,7 +455,7 @@ export default function AppSettings() {
 
             {/* Daily Reminder Settings */}
             {reminderType === 'daily' && (
-              <div className={gridThreeColMdClasses}>
+              <div className={gridTwoColLgClasses}>
                 <div>
                   <label htmlFor="dailyReminderTime" className={labelClasses}>
                     Time of day to send
@@ -480,10 +469,21 @@ export default function AppSettings() {
                     required
                   />
                   <p className={`mt-1 ${helpTextClasses}`}>
-                    Daily reminders will be sent at this time in each round's timezone
+                    Daily reminders will be sent at this time
                   </p>
-                  <p className={`${helpTextClasses}`}>
-                    Default: 10:00 AM. Reminders start immediately when a round is activated.
+                </div>
+                
+                <div>
+                  <label htmlFor="reminderTimezone" className={labelClasses}>
+                    Daily Reminder Timezone
+                  </label>
+                  <TimezoneSelector
+                    value={reminderTimezone}
+                    onChange={setReminderTimezone}
+                    required
+                  />
+                  <p className={`mt-1 ${helpTextClasses}`}>
+                    Daily reminders will use this timezone
                   </p>
                 </div>
               </div>
@@ -491,44 +491,49 @@ export default function AppSettings() {
 
             {/* Before Lock Reminder Settings */}
             {reminderType === 'before_lock' && (
-              <div className={gridTwoColMdClasses}>
-                <div>
-                  <label htmlFor="reminderFirstHours" className={labelClasses}>
-                    First Reminder (hours before lock time)
-                  </label>
-                  <input
-                    type="number"
-                    id="reminderFirstHours"
-                    value={reminderFirstHours}
-                    onChange={(e) => setReminderFirstHours(parseInt(e.target.value) || 0)}
-                    min="2"
-                    max="168"
-                    className={inputClasses}
-                    required
-                  />
-                  <p className={`mt-1 ${helpTextClasses}`}>
-                    Default: 48 hours. Users receive first reminder this many hours before picks lock (2-168 hours)
-                  </p>
-                </div>
+              <div>
+                <div className={gridTwoColMdClasses}>
+                  <div>
+                    <label htmlFor="reminderFirstHours" className={labelClasses}>
+                      First Reminder (hours before lock time)
+                    </label>
+                    <input
+                      type="number"
+                      id="reminderFirstHours"
+                      value={reminderFirstHours}
+                      onChange={(e) => setReminderFirstHours(parseInt(e.target.value) || 0)}
+                      min="2"
+                      max="168"
+                      className={inputClasses}
+                      required
+                    />
+                    <p className={`mt-1 ${helpTextClasses}`}>
+                      Default: 48 hours. Users receive first reminder this many hours before picks lock (2-168 hours)
+                    </p>
+                  </div>
 
-                <div>
-                  <label htmlFor="reminderFinalHours" className={labelClasses}>
-                    Final Reminder (hours before lock time)
-                  </label>
-                  <input
-                    type="number"
-                    id="reminderFinalHours"
-                    value={reminderFinalHours}
-                    onChange={(e) => setReminderFinalHours(parseInt(e.target.value) || 0)}
-                    min="1"
-                    max="45"
-                    className={inputClasses}
-                    required
-                  />
-                  <p className={`mt-1 ${helpTextClasses}`}>
-                    Default: 6 hours. Users receive final reminder this many hours before picks lock (1-45 hours)
-                  </p>
+                  <div>
+                    <label htmlFor="reminderFinalHours" className={labelClasses}>
+                      Final Reminder (hours before lock time)
+                    </label>
+                    <input
+                      type="number"
+                      id="reminderFinalHours"
+                      value={reminderFinalHours}
+                      onChange={(e) => setReminderFinalHours(parseInt(e.target.value) || 0)}
+                      min="1"
+                      max="45"
+                      className={inputClasses}
+                      required
+                    />
+                    <p className={`mt-1 ${helpTextClasses}`}>
+                      Default: 6 hours. Users receive final reminder this many hours before picks lock (1-45 hours)
+                    </p>
+                  </div>
                 </div>
+                <p className={`mt-3 ${helpTextClasses}`}>
+                  <strong>Note:</strong> Before-lock reminders use each sport's individual timezone from the lock time settings.
+                </p>
               </div>
             )}
             </div>

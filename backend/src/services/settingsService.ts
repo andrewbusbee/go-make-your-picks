@@ -21,14 +21,15 @@ export interface TextSettings {
   appTitle: string;
   appTagline: string;
   footerMessage: string;
-  defaultTimezone: string;
   reminderType: string;
   dailyReminderTime: string;
+  reminderTimezone: string;
 }
 
 export interface ReminderSettings {
   reminderType: string;
   dailyReminderTime: string;
+  reminderTimezone: string;
   firstReminderHours: number;
   finalReminderHours: number;
 }
@@ -134,9 +135,9 @@ export class SettingsService {
         appTitle: settingsMap.get('app_title') || 'Go Make Your Picks',
         appTagline: settingsMap.get('app_tagline') || 'Predict. Compete. Win.',
         footerMessage: settingsMap.get('footer_message') || 'Built for Sports Fans',
-        defaultTimezone: settingsMap.get('default_timezone') || 'America/New_York',
         reminderType: settingsMap.get('reminder_type') || 'daily',
         dailyReminderTime: settingsMap.get('daily_reminder_time') || '10:00:00',
+        reminderTimezone: settingsMap.get('reminder_timezone') || 'America/New_York',
       };
 
       // Update cache
@@ -151,9 +152,9 @@ export class SettingsService {
         appTitle: 'Go Make Your Picks',
         appTagline: 'Predict. Compete. Win.',
         footerMessage: 'Built for Sports Fans',
-        defaultTimezone: 'America/New_York',
         reminderType: 'daily',
         dailyReminderTime: '10:00:00',
+        reminderTimezone: 'America/New_York',
       };
     }
   }
@@ -204,8 +205,8 @@ export class SettingsService {
 
       // Get text reminder settings
       const [textRows] = await db.query<RowDataPacket[]>(
-        'SELECT setting_key, setting_value FROM text_settings WHERE setting_key IN (?, ?)',
-        ['reminder_type', 'daily_reminder_time']
+        'SELECT setting_key, setting_value FROM text_settings WHERE setting_key IN (?, ?, ?)',
+        ['reminder_type', 'daily_reminder_time', 'reminder_timezone']
       );
 
       const numericMap = new Map(numericRows.map(s => [s.setting_key, s.setting_value]));
@@ -214,6 +215,7 @@ export class SettingsService {
       const settings: ReminderSettings = {
         reminderType: textMap.get('reminder_type') || 'daily',
         dailyReminderTime: textMap.get('daily_reminder_time') || '10:00:00',
+        reminderTimezone: textMap.get('reminder_timezone') || 'America/New_York',
         firstReminderHours: numericMap.get('reminder_first_hours') || 48,
         finalReminderHours: numericMap.get('reminder_final_hours') || 6,
       };
@@ -229,6 +231,7 @@ export class SettingsService {
       return {
         reminderType: 'daily',
         dailyReminderTime: '10:00:00',
+        reminderTimezone: 'America/New_York',
         firstReminderHours: 48,
         finalReminderHours: 6,
       };
@@ -303,7 +306,6 @@ export class SettingsService {
       app_title: settings.appTitle,
       app_tagline: settings.appTagline,
       footer_message: settings.footerMessage,
-      default_timezone: settings.defaultTimezone,
       points_first_place: settings.pointsFirst,
       points_second_place: settings.pointsSecond,
       points_third_place: settings.pointsThird,

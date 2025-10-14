@@ -36,7 +36,7 @@ export const checkAndSendReminders = async () => {
     // Get reminder settings
     logger.debug('⚙️ Loading reminder settings...');
     const reminderSettings = await SettingsService.getReminderSettings();
-    logger.debug(`⚙️ Reminder settings loaded: type=${reminderSettings.reminderType}, firstHours=${reminderSettings.firstReminderHours}, finalHours=${reminderSettings.finalReminderHours}, dailyTime=${reminderSettings.dailyReminderTime}`);
+    logger.debug(`⚙️ Reminder settings loaded: type=${reminderSettings.reminderType}, firstHours=${reminderSettings.firstReminderHours}, finalHours=${reminderSettings.finalReminderHours}, dailyTime=${reminderSettings.dailyReminderTime}, timezone=${reminderSettings.reminderTimezone}`);
     
     // Get all active rounds that haven't been completed (with commissioner from season)
     logger.debug('🔍 Querying active rounds...');
@@ -163,23 +163,24 @@ export const autoLockExpiredRounds = async () => {
 export const checkAndSendDailyReminder = async (round: any, now: Date, reminderSettings: any) => {
   try {
     const dailyReminderTime = reminderSettings.dailyReminderTime || '10:00:00';
+    const reminderTimezone = reminderSettings.reminderTimezone || 'America/New_York';
     const lockTime = new Date(round.lock_time);
     
     // Parse the daily reminder time (e.g., "10:00:00")
     const [hours, minutes, seconds] = dailyReminderTime.split(':').map(Number);
     
-    // Create today's reminder time in UTC
-    const today = new Date(now);
-    today.setUTCHours(hours, minutes, seconds, 0);
+    // Create today's reminder time in the reminder timezone
+    const moment = require('moment-timezone');
+    const todayInReminderTz = moment.tz(now, reminderTimezone);
+    const todayReminderTime = todayInReminderTz.clone().hour(hours).minute(minutes).second(seconds).millisecond(0);
     
-    // Check if we're within 1 hour of the daily reminder time
-    const timeDiff = Math.abs(today.getTime() - now.getTime());
+    // Check if we're within 1 hour of the daily reminder time in the reminder timezone
+    const timeDiff = Math.abs(todayReminderTime.diff(now));
     const oneHourInMs = 60 * 60 * 1000;
     
     if (timeDiff <= oneHourInMs) {
-      // Check if we already sent a daily reminder today
-      const todayStart = new Date(now);
-      todayStart.setUTCHours(0, 0, 0, 0);
+      // Check if we already sent a daily reminder today (in reminder timezone)
+      const todayStart = todayInReminderTz.clone().startOf('day').toDate();
       
       const [existingToday] = await db.query<RowDataPacket[]>(
         'SELECT id FROM reminder_log WHERE round_id = ? AND reminder_type = ? AND sent_at >= ?',

@@ -245,7 +245,6 @@ export interface AppSettings {
   app_title: string;
   app_tagline: string;
   footer_message: string;
-  default_timezone: string;
   points_first_place: number;
   points_second_place: number;
   points_third_place: number;

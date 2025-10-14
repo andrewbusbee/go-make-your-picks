@@ -136,7 +136,7 @@ export default function RoundsManagement() {
   
   // Settings for dynamic display
   const [pointsSixthPlusPlace, setPointsSixthPlusPlace] = useState(1);
-  const [defaultTimezone, setDefaultTimezone] = useState('America/New_York');
+  const defaultTimezone = 'America/New_York';
   
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -197,7 +197,6 @@ export default function RoundsManagement() {
     try {
       const res = await api.get('/admin/settings');
       setPointsSixthPlusPlace(parseInt(res.data.points_sixth_plus_place) || 1);
-      setDefaultTimezone(res.data.default_timezone || 'America/New_York');
     } catch (error) {
       console.error('Error loading settings:', error);
     }

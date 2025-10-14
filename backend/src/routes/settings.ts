@@ -26,7 +26,6 @@ router.get('/', async (req, res) => {
       app_title: 'Go Make Your Picks',
       app_tagline: 'Predict. Compete. Win.',
       footer_message: 'Built for Sports Fans',
-      default_timezone: 'America/New_York',
       points_first_place: 6,
       points_second_place: 5,
       points_third_place: 4,
@@ -35,6 +34,7 @@ router.get('/', async (req, res) => {
       points_sixth_plus_place: 1,
       reminder_type: 'daily',
       daily_reminder_time: '10:00:00',
+      reminder_timezone: 'America/New_York',
       reminder_first_hours: 48,
       reminder_final_hours: 6
     };
@@ -60,7 +60,6 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     appTitle, 
     appTagline, 
     footerMessage,
-    defaultTimezone,
     pointsFirstPlace,
     pointsSecondPlace,
     pointsThirdPlace,
@@ -69,6 +68,7 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     pointsSixthPlusPlace,
     reminderType,
     dailyReminderTime,
+    reminderTimezone,
     reminderFirstHours,
     reminderFinalHours
   } = req.body;
@@ -81,9 +81,9 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     return res.status(400).json({ error: 'Title, tagline, or footer message is too long' });
   }
 
-  // Validate timezone if provided
-  if (defaultTimezone && !isValidTimezone(defaultTimezone)) {
-    return res.status(400).json({ error: 'Invalid timezone. Please select a valid IANA timezone.' });
+  // Validate reminder timezone if provided
+  if (reminderTimezone && !isValidTimezone(reminderTimezone)) {
+    return res.status(400).json({ error: 'Invalid reminder timezone. Please select a valid IANA timezone.' });
   }
 
   // Validate point values if provided
@@ -162,12 +162,12 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
         [footerMessage]
       );
 
-      // Update default timezone if provided
-      if (defaultTimezone) {
+      // Update reminder timezone if provided
+      if (reminderTimezone) {
         await connection.query(
-          `INSERT INTO text_settings (setting_key, setting_value) VALUES ('default_timezone', ?)
+          `INSERT INTO text_settings (setting_key, setting_value) VALUES ('reminder_timezone', ?)
            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
-          [defaultTimezone]
+          [reminderTimezone]
         );
       }
 
@@ -242,7 +242,7 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
         app_title: appTitle,
         app_tagline: appTagline,
         footer_message: footerMessage,
-        default_timezone: defaultTimezone,
+        reminder_timezone: reminderTimezone,
         points_first_place: pointsFirstPlace,
         points_second_place: pointsSecondPlace,
         points_third_place: pointsThirdPlace,
