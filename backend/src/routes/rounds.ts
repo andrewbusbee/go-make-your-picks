@@ -1124,8 +1124,103 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
       return res.status(400).json({ error: 'Invalid confirmation. Must type "PERMANENT DELETE" exactly.' });
     }
 
+    // Log pre-delete counts for verification
+    const [pickCounts] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM picks WHERE round_id = ?',
+      [roundId]
+    );
+    const [scoreCounts] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM scores WHERE round_id = ?',
+      [roundId]
+    );
+    const [teamCounts] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM round_teams WHERE round_id = ?',
+      [roundId]
+    );
+    const [linkCounts] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM magic_links WHERE round_id = ?',
+      [roundId]
+    );
+    const [reminderCounts] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM reminder_log WHERE round_id = ?',
+      [roundId]
+    );
+
+    logger.info('Pre-delete data counts', {
+      roundId,
+      sportName: rounds[0].sport_name,
+      picks: pickCounts[0].count,
+      scores: scoreCounts[0].count,
+      teams: teamCounts[0].count,
+      magicLinks: linkCounts[0].count,
+      reminders: reminderCounts[0].count
+    });
+
     // Permanently delete (CASCADE will handle all related data)
-    await db.query('DELETE FROM rounds WHERE id = ?', [roundId]);
+    const [result] = await db.query<ResultSetHeader>(
+      'DELETE FROM rounds WHERE id = ?',
+      [roundId]
+    );
+
+    if (result.affectedRows === 0) {
+      logger.error('Permanent delete failed - no rows affected', { roundId });
+      return res.status(500).json({ error: 'Delete operation failed - round may have already been deleted' });
+    }
+
+    // Verify CASCADE deleted related data
+    const [pickCountsAfter] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM picks WHERE round_id = ?',
+      [roundId]
+    );
+    const [scoreCountsAfter] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM scores WHERE round_id = ?',
+      [roundId]
+    );
+    const [teamCountsAfter] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM round_teams WHERE round_id = ?',
+      [roundId]
+    );
+    const [linkCountsAfter] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM magic_links WHERE round_id = ?',
+      [roundId]
+    );
+    const [reminderCountsAfter] = await db.query<RowDataPacket[]>(
+      'SELECT COUNT(*) as count FROM reminder_log WHERE round_id = ?',
+      [roundId]
+    );
+
+    const cascadeSuccess = 
+      pickCountsAfter[0].count === 0 &&
+      scoreCountsAfter[0].count === 0 &&
+      teamCountsAfter[0].count === 0 &&
+      linkCountsAfter[0].count === 0 &&
+      reminderCountsAfter[0].count === 0;
+
+    if (!cascadeSuccess) {
+      logger.error('CASCADE DELETE failed - orphaned data detected!', {
+        roundId,
+        orphanedPicks: pickCountsAfter[0].count,
+        orphanedScores: scoreCountsAfter[0].count,
+        orphanedTeams: teamCountsAfter[0].count,
+        orphanedLinks: linkCountsAfter[0].count,
+        orphanedReminders: reminderCountsAfter[0].count
+      });
+      return res.status(500).json({ 
+        error: 'CASCADE DELETE failed - orphaned data remains. Database constraints may not be configured correctly.' 
+      });
+    }
+
+    logger.info('Sport permanently deleted successfully', {
+      roundId,
+      sportName: rounds[0].sport_name,
+      deletedRows: result.affectedRows,
+      cascadeSuccess: true,
+      deletedPicks: pickCounts[0].count,
+      deletedScores: scoreCounts[0].count,
+      deletedTeams: teamCounts[0].count,
+      deletedLinks: linkCounts[0].count,
+      deletedReminders: reminderCounts[0].count
+    });
 
     res.json({ message: 'Sport permanently deleted' });
   } catch (error) {

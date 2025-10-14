@@ -49,10 +49,11 @@ CREATE TABLE IF NOT EXISTS admin_magic_links (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Users (family members) table
+-- Note: email is NOT unique to allow multiple family members to share one email address
 CREATE TABLE IF NOT EXISTS users (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
+    email VARCHAR(255) NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -159,10 +160,15 @@ CREATE TABLE IF NOT EXISTS picks (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     round_id INT NOT NULL,
+    admin_edited BOOLEAN DEFAULT FALSE NOT NULL,
+    original_pick VARCHAR(255) NULL,
+    edited_by_admin_id INT NULL,
+    edited_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (round_id) REFERENCES rounds(id) ON DELETE CASCADE,
+    FOREIGN KEY (edited_by_admin_id) REFERENCES admins(id) ON DELETE SET NULL,
     UNIQUE KEY unique_user_round_pick (user_id, round_id),
     INDEX idx_user (user_id),
     INDEX idx_round (round_id),
@@ -287,7 +293,8 @@ INSERT INTO text_settings (setting_key, setting_value) VALUES
 ('footer_message', 'Built for Sports Fans'),
 ('reminder_type', 'daily'),
 ('daily_reminder_time', '10:00:00'),
-('email_notifications_enabled', 'true')
+('email_notifications_enabled', 'true'),
+('send_admin_summary', 'true')
 ON DUPLICATE KEY UPDATE setting_key=setting_key;
 
 -- Insert default numeric settings
