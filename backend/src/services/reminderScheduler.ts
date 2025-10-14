@@ -44,7 +44,12 @@ export const checkAndSendReminders = async () => {
       `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status, s.commissioner 
        FROM rounds r
        JOIN seasons s ON r.season_id = s.id 
-       WHERE r.status = 'active' AND r.lock_time > NOW()`,
+       WHERE r.status = 'active' 
+       AND r.lock_time > NOW()
+       AND r.deleted_at IS NULL
+       AND s.is_active = TRUE
+       AND s.deleted_at IS NULL
+       AND s.ended_at IS NULL`,
       []
     );
     
@@ -98,7 +103,11 @@ export const checkAndSendReminders = async () => {
        JOIN seasons s ON r.season_id = s.id 
        WHERE r.status = 'locked' 
        AND r.lock_time <= NOW() 
-       AND r.lock_time >= DATE_SUB(NOW(), INTERVAL 1 HOUR)`,
+       AND r.lock_time >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+       AND r.deleted_at IS NULL
+       AND s.is_active = TRUE
+       AND s.deleted_at IS NULL
+       AND s.ended_at IS NULL`,
       []
     );
 
@@ -123,7 +132,12 @@ export const autoLockExpiredRounds = async () => {
       `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status, s.commissioner 
        FROM rounds r
        JOIN seasons s ON r.season_id = s.id 
-       WHERE r.status = 'active' AND r.lock_time <= NOW()`,
+       WHERE r.status = 'active' 
+       AND r.lock_time <= NOW()
+       AND r.deleted_at IS NULL
+       AND s.is_active = TRUE
+       AND s.deleted_at IS NULL
+       AND s.ended_at IS NULL`,
       []
     );
 
