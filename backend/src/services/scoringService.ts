@@ -320,6 +320,17 @@ export class ScoringService {
         };
       });
 
+      logger.info('Cumulative graph data with Start point', {
+        seasonId,
+        userCount: graphData.length,
+        sampleUser: graphData[0] ? {
+          userName: graphData[0].userName,
+          pointsCount: graphData[0].points.length,
+          firstPoint: graphData[0].points[0],
+          secondPoint: graphData[0].points[1]
+        } : null
+      });
+
       return graphData;
     } catch (error) {
       logger.error('ScoringService.calculateCumulativeGraph error', { error, seasonId });

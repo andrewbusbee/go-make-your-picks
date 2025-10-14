@@ -212,13 +212,29 @@ export default function CumulativeGraph({ data }: CumulativeGraphProps) {
     );
   }
 
+  // Ensure all user data starts at 0 by prepending a Start point if not present
+  const normalizedData = data.map(user => {
+    const hasStartPoint = user.points.length > 0 && 
+                          user.points[0].roundName === 'Start' && 
+                          user.points[0].points === 0;
+    
+    if (!hasStartPoint) {
+      return {
+        ...user,
+        points: [{ roundId: 0, roundName: 'Start', points: 0 }, ...user.points]
+      };
+    }
+    
+    return user;
+  });
+
   // Transform data for recharts
-  const chartData = data[0].points.map((_, index) => {
+  const chartData = normalizedData[0].points.map((_, index) => {
     const point: any = {
-      round: data[0].points[index].roundName,
+      round: normalizedData[0].points[index].roundName,
     };
     
-    data.forEach(user => {
+    normalizedData.forEach(user => {
       point[user.userName] = user.points[index].points;
     });
     
@@ -248,7 +264,7 @@ export default function CumulativeGraph({ data }: CumulativeGraphProps) {
       
       {/* Horizontal legend below the heading - hidden on mobile */}
       <div className="hidden sm:block">
-        <HorizontalLegend data={data} />
+        <HorizontalLegend data={normalizedData} />
       </div>
       
       <div className="relative">
@@ -278,7 +294,7 @@ export default function CumulativeGraph({ data }: CumulativeGraphProps) {
               stroke="#888"
             />
             <Tooltip content={<CustomTooltip />} />
-            {data.map((user, index) => (
+            {normalizedData.map((user, index) => (
               <Line
                 key={user.userId}
                 type="monotone"
