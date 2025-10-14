@@ -657,6 +657,7 @@ export const sendAdminReminderSummary = async (
 ): Promise<{ success: boolean; error?: string }> => {
   try {
     const settings = await getSettings();
+    const reminderSettings = await SettingsService.getReminderSettings();
     
     // Get main admin and commissioner emails
     const [adminResult] = await db.query<RowDataPacket[]>(
@@ -691,9 +692,12 @@ export const sendAdminReminderSummary = async (
       return { success: false, error: 'No recipient emails found' };
     }
   
+  // Use system reminder timezone as fallback if round doesn't have one
+  const effectiveTimezone = timezone || reminderSettings.reminderTimezone || 'America/New_York';
+  
   // Format lock time
   const lockDate = new Date(lockTime).toLocaleString('en-US', {
-    timeZone: timezone,
+    timeZone: effectiveTimezone,
     dateStyle: 'short',
     timeStyle: 'short'
   });
@@ -708,7 +712,7 @@ export const sendAdminReminderSummary = async (
   
   const bodyHtml = `
     <h2>Reminder Summary for ${sportName}</h2>
-    <p style=\"margin-top: -6px; color: #666;\">Lock time: ${lockDate} (${timezone.replace('_', ' ')})</p>
+    <p style=\"margin-top: -6px; color: #666;\">Lock time: ${lockDate} (${effectiveTimezone.replace('_', ' ')})</p>
     <div class=\"stats-container\">
       <h3 style=\"margin: 0 0 15px 0; color: #333; font-size: 16px;\">Quick Stats</h3>
       <div style=\"display: flex; justify-content: space-around; text-align: center;\">
