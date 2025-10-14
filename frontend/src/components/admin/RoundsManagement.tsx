@@ -1688,6 +1688,9 @@ export default function RoundsManagement() {
                           <th className={tableHeaderCellCenterClasses}>
                             5th
                           </th>
+                          <th className={tableHeaderCellCenterClasses}>
+                            6th+
+                          </th>
                         </tr>
                       </thead>
                       <tbody className={tableBodyClasses}>
@@ -1768,6 +1771,18 @@ export default function RoundsManagement() {
                                 className="w-5 h-5 text-blue-600 focus:ring-blue-500"
                               />
                             </td>
+                            <td className="px-4 py-3 text-center">
+                              <input
+                                type="radio"
+                                name={`placement-${participant.userId}`}
+                                checked={manualScores[participant.userId] === 'sixth_plus'}
+                                onChange={() => setManualScores({
+                                  ...manualScores,
+                                  [participant.userId]: 'sixth_plus'
+                                })}
+                                className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                              />
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1775,7 +1790,7 @@ export default function RoundsManagement() {
                   </div>
                   <div className={`${alertInfoClasses} p-3 m-4`}>
                     <p className={`${alertInfoTextClasses} text-sm`}>
-                      ℹ️ Players not selected in top 5 will receive {pointsSixthPlusPlace} point{pointsSixthPlusPlace !== 1 ? 's' : ''}
+                      ℹ️ Players not assigned any placement will receive 0 points (typically for players who didn't make a pick)
                     </p>
                   </div>
                 </div>
@@ -1789,7 +1804,7 @@ export default function RoundsManagement() {
                 <ul className="text-sm text-blue-800 dark:text-blue-300 list-disc list-inside space-y-1">
                   <li>Points awarded based on placement: 1st, 2nd, 3rd, 4th, 5th, and 6th+ place</li>
                   <li><strong>Point values can be customized in App Settings</strong></li>
-                  <li>Players not in top 5 receive the 6th+ place points ({pointsSixthPlusPlace} {pointsSixthPlusPlace === 1 ? 'point' : 'points'})</li>
+                  <li>6th+ placement awards {pointsSixthPlusPlace} {pointsSixthPlusPlace === 1 ? 'point' : 'points'} (Sixth Place & below)</li>
                 </ul>
                 {selectedRound.pick_type === 'single' && (
                   <p className="text-xs text-blue-700 dark:text-blue-400 mt-2">

@@ -747,7 +747,8 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
             case 'third': third = 1; break;
             case 'fourth': fourth = 1; break;
             case 'fifth': fifth = 1; break;
-            default: sixthPlus = 1; break;
+            case 'sixth_plus': sixthPlus = 1; break;
+            default: sixthPlus = 1; break; // Fallback for legacy or undefined
           }
 
           await connection.query(
