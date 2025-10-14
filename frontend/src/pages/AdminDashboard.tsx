@@ -44,7 +44,7 @@ export default function AdminDashboard() {
     scoring: false,
     reminders: false
   });
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, showToggle } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -313,13 +313,15 @@ export default function AdminDashboard() {
                   </div>
                 )}
               </div>
-              <button
-                onClick={toggleTheme}
-                className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full w-12 h-12 flex items-center justify-center transition-all duration-200 text-2xl"
-                aria-label="Toggle theme"
-              >
-                {theme === 'light' ? '🌙' : '☀️'}
-              </button>
+              {showToggle && (
+                <button
+                  onClick={toggleTheme}
+                  className="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full w-12 h-12 flex items-center justify-center transition-all duration-200 text-2xl"
+                  aria-label="Toggle theme"
+                >
+                  {theme === 'light' ? '🌙' : '☀️'}
+                </button>
+              )}
             </div>
           </div>
         </div>
