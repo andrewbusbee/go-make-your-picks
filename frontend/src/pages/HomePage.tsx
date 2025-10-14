@@ -339,7 +339,7 @@ export default function HomePage() {
                 {/* Champions Button */}
                 <div className="text-center mt-6">
                   <Link to="/champions" className={championsButtonClasses}>
-                    🏆 View Champions Wall
+                    🏆 View Hall of Fame
                   </Link>
                 </div>
               </div>
