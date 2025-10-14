@@ -66,6 +66,11 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
   const [reminderError, setReminderError] = useState('');
   const [savingReminder, setSavingReminder] = useState(false);
 
+  // Force send daily reminders state (main admin only)
+  const [forceSending, setForceSending] = useState(false);
+  const [forceSuccess, setForceSuccess] = useState('');
+  const [forceError, setForceError] = useState('');
+
   // Load current user info and settings on component mount
   useEffect(() => {
     const loadCurrentUser = async () => {
@@ -228,6 +233,24 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
     reminderFirstHours !== originalReminderFirstHours ||
     reminderFinalHours !== originalReminderFinalHours ||
     sendAdminSummary !== originalSendAdminSummary;
+
+  const handleForceSendDailyReminders = async () => {
+    setForceSending(true);
+    setForceError('');
+    setForceSuccess('');
+
+    try {
+      const response = await api.post('/rounds/force-send-daily-reminders');
+      setForceSuccess(response.data.message);
+      setTimeout(() => setForceSuccess(''), 8000);
+    } catch (err: any) {
+      const errorMsg = err.response?.data?.error || 'Failed to force send daily reminders';
+      setForceError(errorMsg);
+      setTimeout(() => setForceError(''), 8000);
+    } finally {
+      setForceSending(false);
+    }
+  };
 
   return (
     <div>
@@ -591,6 +614,82 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
           </ul>
         </div>
       </div>
+
+      {/* Force Send Daily Reminders (Main Admin Only) */}
+      {isMainAdmin && reminderType === 'daily' && (
+        <div className={cardClasses}>
+          <h3 className={`${subheadingClasses} ${mb4Classes}`}>Testing: Force Send Daily Reminders</h3>
+          
+          {/* Info Box */}
+          <div className={`${alertInfoClasses} ${mb4Classes}`}>
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <div className="text-sm">
+                <p className={`${alertInfoTextClasses} font-medium mb-1`}>Testing Override:</p>
+                <p className={alertInfoTextClasses}>
+                  This will immediately send daily reminders to all active rounds, bypassing the "already sent today" check. 
+                  Use this for testing purposes only. Users will receive real reminder emails.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Success Message */}
+          {forceSuccess && (
+            <div className={`${alertSuccessClasses} ${mb4Classes}`}>
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                <p className={alertSuccessTextClasses}>{forceSuccess}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {forceError && (
+            <div className={`${alertErrorClasses} ${mb4Classes}`}>
+              <div className="flex items-start">
+                <svg className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <p className={alertErrorTextClasses}>{forceError}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Force Send Button */}
+          <button
+            type="button"
+            onClick={handleForceSendDailyReminders}
+            disabled={forceSending}
+            className={`w-full py-3 flex items-center justify-center ${buttonPrimaryClasses} ${disabledOpacityClasses} bg-orange-600 hover:bg-orange-700 focus:ring-orange-500`}
+          >
+            {forceSending ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Sending Reminders...
+              </>
+            ) : (
+              <>
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Force Send Daily Reminders Now
+              </>
+            )}
+          </button>
+
+          <p className={`mt-3 ${helpTextClasses}`}>
+            <strong>Warning:</strong> This is for testing only. It will send actual emails to all users who haven't picked for active rounds.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

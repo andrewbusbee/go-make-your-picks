@@ -1,7 +1,7 @@
 import express, { Response } from 'express';
 import crypto from 'crypto';
 import moment from 'moment-timezone';
-import { authenticateAdmin, AuthRequest } from '../middleware/auth';
+import { authenticateAdmin, requireMainAdmin, AuthRequest } from '../middleware/auth';
 import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { sendMagicLink, sendSportCompletionEmail } from '../services/emailService';
@@ -1143,6 +1143,61 @@ router.post('/:id/send-reminder', authenticateAdmin, async (req: AuthRequest, re
     res.json(result);
   } catch (error: any) {
     logger.error('Send reminder error', { error, roundId });
+    res.status(500).json({ error: error.message || 'Server error' });
+  }
+});
+
+// Force send daily reminder (main admin only) - for testing
+router.post('/force-send-daily-reminders', authenticateAdmin, requireMainAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { checkAndSendReminders } = await import('../services/reminderScheduler');
+    const { SettingsService } = await import('../services/settingsService');
+    
+    // Get all active rounds
+    const [rounds] = await db.query<RowDataPacket[]>(
+      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status, s.commissioner 
+       FROM rounds r
+       JOIN seasons s ON r.season_id = s.id 
+       WHERE r.status = 'active' AND r.lock_time > NOW()`,
+      []
+    );
+    
+    if (rounds.length === 0) {
+      return res.json({ message: 'No active rounds found', sent: 0 });
+    }
+    
+    // Get reminder settings
+    const reminderSettings = await SettingsService.getReminderSettings();
+    
+    if (reminderSettings.reminderType !== 'daily') {
+      return res.status(400).json({ error: 'Reminder type must be set to "daily" to force send daily reminders' });
+    }
+    
+    // Force send daily reminders for all active rounds
+    const { checkAndSendDailyReminder } = await import('../services/reminderScheduler');
+    const now = new Date();
+    let sentCount = 0;
+    
+    for (const round of rounds) {
+      try {
+        await checkAndSendDailyReminder(round, now, reminderSettings, true); // force = true
+        sentCount++;
+      } catch (error) {
+        logger.error('Error forcing daily reminder', { roundId: round.id, error });
+      }
+    }
+    
+    logger.info('Forced daily reminders sent', { 
+      adminId: req.adminId, 
+      roundCount: sentCount 
+    });
+    
+    res.json({ 
+      message: `Force sent daily reminders to ${sentCount} active round(s)`,
+      sent: sentCount
+    });
+  } catch (error: any) {
+    logger.error('Force send daily reminders error:', error);
     res.status(500).json({ error: error.message || 'Server error' });
   }
 });

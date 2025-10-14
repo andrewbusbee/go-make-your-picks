@@ -160,11 +160,26 @@ export const autoLockExpiredRounds = async () => {
 };
 
 // Check and send daily reminder if it's time
-export const checkAndSendDailyReminder = async (round: any, now: Date, reminderSettings: any) => {
+export const checkAndSendDailyReminder = async (round: any, now: Date, reminderSettings: any, forceOverride: boolean = false) => {
   try {
     const dailyReminderTime = reminderSettings.dailyReminderTime || '10:00:00';
     const reminderTimezone = reminderSettings.reminderTimezone || 'America/New_York';
     const lockTime = new Date(round.lock_time);
+    
+    // Check 1: Already sent today? (Skip check if forcing)
+    if (!forceOverride) {
+      const [sentToday] = await db.query<RowDataPacket[]>(
+        'SELECT id FROM reminder_log WHERE round_id = ? AND reminder_type = ? AND DATE(sent_at) = CURDATE()',
+        [round.id, 'daily']
+      );
+      
+      if (sentToday.length > 0) {
+        logger.debug(`Daily reminder already sent today for round ${round.id}`);
+        return;
+      }
+    } else {
+      logger.debug(`Force override enabled for round ${round.id}, bypassing sent-today check`);
+    }
     
     // Parse the daily reminder time (e.g., "10:00:00")
     const [hours, minutes, seconds] = dailyReminderTime.split(':').map(Number);
@@ -172,51 +187,62 @@ export const checkAndSendDailyReminder = async (round: any, now: Date, reminderS
     // Create today's reminder time in the reminder timezone
     const moment = require('moment-timezone');
     const todayInReminderTz = moment.tz(now, reminderTimezone);
-    const todayReminderTime = todayInReminderTz.clone().hour(hours).minute(minutes).second(seconds).millisecond(0);
+    const scheduledTimeToday = todayInReminderTz.clone().hour(hours).minute(minutes).second(seconds).millisecond(0);
     
-    // Check if we're within 1 hour of the daily reminder time in the reminder timezone
-    const timeDiff = Math.abs(todayReminderTime.diff(now));
-    const oneHourInMs = 60 * 60 * 1000;
-    
-    if (timeDiff <= oneHourInMs) {
-      // Within the time window - attempt to send
-      // sendReminderIfNotSent will handle deduplication (prevents duplicate sends within 1 hour)
-      await sendReminderIfNotSent(round, 'daily', 0);
+    // Check 2: Is current time past the scheduled reminder time?
+    if (now < scheduledTimeToday.toDate()) {
+      logger.debug(`Not yet time for daily reminder (scheduled: ${scheduledTimeToday.format()}, now: ${moment(now).format()})`);
+      return;
     }
+    
+    // Check 3: Is current time BEFORE lock time?
+    if (now >= lockTime) {
+      logger.debug(`Round ${round.id} already locked at ${lockTime}, skipping daily reminder`);
+      return;
+    }
+    
+    // All checks passed - send reminder
+    logger.debug(`All checks passed, sending daily reminder for round ${round.id}`);
+    await sendReminderIfNotSent(round, 'daily', 0, forceOverride);
+    
   } catch (error) {
     logger.error('Error checking daily reminder', { roundId: round.id, error });
   }
 };
 
 // Send reminder to users who haven't picked yet
-export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 'final' | 'daily', reminderHours?: number) => {
+export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 'final' | 'daily', reminderHours?: number, forceOverride: boolean = false) => {
   try {
     logger.debug(`📧 sendReminderIfNotSent: Starting ${reminderType} reminder for round ${round.id}`);
     
-    // For daily reminders: only block if sent within the last hour (prevents duplicates from cron)
-    // For first/final reminders: block if ever sent for this round (send only once)
-    if (reminderType === 'daily') {
-      const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-      const [recentDaily] = await db.query<RowDataPacket[]>(
-        'SELECT id, sent_at FROM reminder_log WHERE round_id = ? AND reminder_type = ? AND sent_at >= ?',
-        [round.id, reminderType, oneHourAgo]
-      );
+    // Skip duplicate checks if forcing (for testing)
+    if (!forceOverride) {
+      // For daily reminders: check if sent today (date-based)
+      // For first/final reminders: block if ever sent for this round (send only once)
+      if (reminderType === 'daily') {
+        const [sentToday] = await db.query<RowDataPacket[]>(
+          'SELECT id FROM reminder_log WHERE round_id = ? AND reminder_type = ? AND DATE(sent_at) = CURDATE()',
+          [round.id, 'daily']
+        );
 
-      if (recentDaily.length > 0) {
-        logger.debug(`⏭️ Daily reminder sent within last hour for round ${round.id}, skipping to prevent duplicate`);
-        return; // Already sent recently
+        if (sentToday.length > 0) {
+          logger.debug(`⏭️ Daily reminder already sent today for round ${round.id}, skipping`);
+          return; // Already sent today
+        }
+      } else {
+        // For first/final reminders, check if ever sent (one-time reminders)
+        const [existing] = await db.query<RowDataPacket[]>(
+          'SELECT id FROM reminder_log WHERE round_id = ? AND reminder_type = ?',
+          [round.id, reminderType]
+        );
+
+        if (existing.length > 0) {
+          logger.debug(`⏭️ ${reminderType} reminder already sent for round ${round.id}, skipping`);
+          return; // Already sent
+        }
       }
     } else {
-      // For first/final reminders, check if ever sent (one-time reminders)
-      const [existing] = await db.query<RowDataPacket[]>(
-        'SELECT id FROM reminder_log WHERE round_id = ? AND reminder_type = ?',
-        [round.id, reminderType]
-      );
-
-      if (existing.length > 0) {
-        logger.debug(`⏭️ ${reminderType} reminder already sent for round ${round.id}, skipping`);
-        return; // Already sent
-      }
+      logger.info(`🔧 Force override active - bypassing duplicate checks for ${reminderType} reminder on round ${round.id}`);
     }
 
     // Get users who are in this season but haven't made picks yet, excluding deactivated players
