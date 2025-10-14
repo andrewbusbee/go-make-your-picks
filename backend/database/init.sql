@@ -288,8 +288,8 @@ CREATE TABLE IF NOT EXISTS season_winners (
 
 -- Insert default admin (email: admin@example.com, password: password)
 -- Password hash for "password" using bcrypt with salt rounds = 10
-INSERT INTO admins (name, email, password_hash, is_main_admin, must_change_password) 
-VALUES ('Main Administrator', 'admin@example.com', '$2b$10$sYvBpErqTeSuAEB5OOHML.N.W6yT3YNiHLhu91ffcCt.qJW5mqFHq', TRUE, TRUE)
+INSERT INTO admins (name, email, password_hash, is_main_admin, is_commissioner, must_change_password) 
+VALUES ('Main Administrator', 'admin@example.com', '$2b$10$sYvBpErqTeSuAEB5OOHML.N.W6yT3YNiHLhu91ffcCt.qJW5mqFHq', TRUE, TRUE, TRUE)
 ON DUPLICATE KEY UPDATE email=email;
 
 -- Default seasons will be created by admin through the UI

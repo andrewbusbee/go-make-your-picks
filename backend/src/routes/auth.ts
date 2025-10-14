@@ -359,7 +359,7 @@ router.post('/initial-setup', authenticateAdmin, validateRequest(initialSetupVal
 
     const newPasswordHash = await bcrypt.hash(newPassword, PASSWORD_SALT_ROUNDS);
     await db.query(
-      'UPDATE admins SET name = ?, email = ?, password_hash = ?, must_change_password = FALSE WHERE id = ?',
+      'UPDATE admins SET name = ?, email = ?, password_hash = ?, is_commissioner = TRUE, must_change_password = FALSE WHERE id = ?',
       [newName, newEmail, newPasswordHash, req.adminId]
     );
 
