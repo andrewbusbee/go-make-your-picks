@@ -918,12 +918,12 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
       [seasonId]
     );
     
-    let pickCounts = [{ count: 0 }];
-    let scoreCounts = [{ count: 0 }];
-    let teamCounts = [{ count: 0 }];
-    let linkCounts = [{ count: 0 }];
-    let reminderCounts = [{ count: 0 }];
-    let pickItemCounts = [{ count: 0 }];
+    let pickCounts: any[] = [{ count: 0 }];
+    let scoreCounts: any[] = [{ count: 0 }];
+    let teamCounts: any[] = [{ count: 0 }];
+    let linkCounts: any[] = [{ count: 0 }];
+    let reminderCounts: any[] = [{ count: 0 }];
+    let pickItemCounts: any[] = [{ count: 0 }];
     
     if (roundIds.length > 0) {
       const roundIdList = roundIds.map(r => r.id);
@@ -1004,12 +1004,12 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
     );
     
     // Verify cascade from rounds
-    let pickCountsAfter = [{ count: 0 }];
-    let scoreCountsAfter = [{ count: 0 }];
-    let teamCountsAfter = [{ count: 0 }];
-    let linkCountsAfter = [{ count: 0 }];
-    let reminderCountsAfter = [{ count: 0 }];
-    let pickItemCountsAfter = [{ count: 0 }];
+    let pickCountsAfter: any[] = [{ count: 0 }];
+    let scoreCountsAfter: any[] = [{ count: 0 }];
+    let teamCountsAfter: any[] = [{ count: 0 }];
+    let linkCountsAfter: any[] = [{ count: 0 }];
+    let reminderCountsAfter: any[] = [{ count: 0 }];
+    let pickItemCountsAfter: any[] = [{ count: 0 }];
     
     if (roundIds.length > 0) {
       const roundIdList = roundIds.map(r => r.id);
