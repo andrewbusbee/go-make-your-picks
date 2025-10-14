@@ -211,7 +211,8 @@ export class ScoringService {
           SUM(COALESCE(s.third_place, 0) * ?) +
           SUM(COALESCE(s.fourth_place, 0) * ?) +
           SUM(COALESCE(s.fifth_place, 0) * ?) +
-          SUM(COALESCE(s.sixth_plus_place, 0) * ?) as total_points
+          SUM(COALESCE(s.sixth_plus_place, 0) * ?) +
+          SUM(COALESCE(s.no_pick, 0) * ?) as total_points
         FROM users u
         JOIN season_participants sp ON u.id = sp.user_id
         LEFT JOIN scores s ON u.id = s.user_id
@@ -219,7 +220,7 @@ export class ScoringService {
         WHERE sp.season_id = ?
         GROUP BY u.id, u.name
         ORDER BY total_points DESC`,
-        [points.pointsFirst, points.pointsSecond, points.pointsThird, points.pointsFourth, points.pointsFifth, points.pointsSixthPlus, seasonId, seasonId]
+        [points.pointsFirst, points.pointsSecond, points.pointsThird, points.pointsFourth, points.pointsFifth, points.pointsSixthPlus, points.pointsNoPick, seasonId, seasonId]
       );
 
       logger.debug('Final standings calculated', { 
@@ -230,7 +231,8 @@ export class ScoringService {
           third: points.pointsThird,
           fourth: points.pointsFourth,
           fifth: points.pointsFifth,
-          sixthPlus: points.pointsSixthPlus
+          sixthPlus: points.pointsSixthPlus,
+          noPick: points.pointsNoPick
         }
       });
 
@@ -298,7 +300,8 @@ export class ScoringService {
               (score.third_place || 0) * points.pointsThird +
               (score.fourth_place || 0) * points.pointsFourth +
               (score.fifth_place || 0) * points.pointsFifth +
-              (score.sixth_plus_place || 0) * points.pointsSixthPlus;
+              (score.sixth_plus_place || 0) * points.pointsSixthPlus +
+              (score.no_pick || 0) * points.pointsNoPick;
             cumulative += dynamicTotal;
           }
           return {
@@ -338,11 +341,12 @@ export class ScoringService {
           SUM(COALESCE(s.third_place, 0) * ?) +
           SUM(COALESCE(s.fourth_place, 0) * ?) +
           SUM(COALESCE(s.fifth_place, 0) * ?) +
-          SUM(COALESCE(s.sixth_plus_place, 0) * ?) as total_points
+          SUM(COALESCE(s.sixth_plus_place, 0) * ?) +
+          SUM(COALESCE(s.no_pick, 0) * ?) as total_points
         FROM scores s
         JOIN rounds r ON s.round_id = r.id
         WHERE s.user_id = ? AND r.season_id = ?`,
-        [points.pointsFirst, points.pointsSecond, points.pointsThird, points.pointsFourth, points.pointsFifth, points.pointsSixthPlus, userId, seasonId]
+        [points.pointsFirst, points.pointsSecond, points.pointsThird, points.pointsFourth, points.pointsFifth, points.pointsSixthPlus, points.pointsNoPick, userId, seasonId]
       );
 
       return result[0]?.total_points || 0;
