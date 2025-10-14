@@ -759,7 +759,8 @@ export const sendAdminReminderSummary = async (
     bodyHtml,
   });
 
-  const subject = `${settings.app_title} Reminder Summary: ${seasonName} — ${sportName} (locks ${lockDate} ${timezone.replace('_', ' ')})`;
+  const timezoneDisplay = timezone ? timezone.replace('_', ' ') : 'Unknown';
+  const subject = `${settings.app_title} Reminder Summary: ${seasonName} — ${sportName} (locks ${lockDate} ${timezoneDisplay})`;
 
   // Send to all recipients (main admin and commissioner, deduplicated)
   logger.debug('Starting to send admin reminder summary emails', {

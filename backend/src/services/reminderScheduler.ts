@@ -41,7 +41,7 @@ export const checkAndSendReminders = async () => {
     // Get all active rounds that haven't been completed (with commissioner from season)
     logger.debug('🔍 Querying active rounds...');
     const [rounds] = await db.query<RowDataPacket[]>(
-      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, s.commissioner 
+      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status, s.commissioner 
        FROM rounds r
        JOIN seasons s ON r.season_id = s.id 
        WHERE r.status = 'active' AND r.lock_time > NOW()`,
@@ -93,7 +93,7 @@ export const checkAndSendReminders = async () => {
     // Check for rounds that just locked (locked in the last hour)
     logger.debug('🔐 Checking for recently locked rounds...');
     const [lockedRounds] = await db.query<RowDataPacket[]>(
-      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, s.commissioner 
+      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status, s.commissioner 
        FROM rounds r
        JOIN seasons s ON r.season_id = s.id 
        WHERE r.status = 'locked' 
@@ -120,7 +120,7 @@ export const autoLockExpiredRounds = async () => {
   try {
     // Find active rounds that have passed their lock time (with commissioner from season)
     const [expiredRounds] = await db.query<RowDataPacket[]>(
-      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, s.commissioner 
+      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status, s.commissioner 
        FROM rounds r
        JOIN seasons s ON r.season_id = s.id 
        WHERE r.status = 'active' AND r.lock_time <= NOW()`,
