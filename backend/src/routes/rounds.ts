@@ -224,19 +224,22 @@ router.get('/season/:seasonId', async (req, res) => {
     }
     
     // Get all teams for all rounds in this season (single query)
-    const [allTeams] = await db.query<RowDataPacket[]>(
-      'SELECT round_id, team_name FROM round_teams WHERE round_id IN (?)',
-      [rounds.map(r => r.id)]
-    );
-    
-    // Build teams map for O(1) lookup
     const teamsMap = new Map<number, any[]>();
-    allTeams.forEach(team => {
-      if (!teamsMap.has(team.round_id)) {
-        teamsMap.set(team.round_id, []);
-      }
-      teamsMap.get(team.round_id)!.push(team);
-    });
+    
+    if (rounds.length > 0) {
+      const [allTeams] = await db.query<RowDataPacket[]>(
+        'SELECT round_id, team_name FROM round_teams WHERE round_id IN (?)',
+        [rounds.map(r => r.id)]
+      );
+      
+      // Build teams map for O(1) lookup
+      allTeams.forEach(team => {
+        if (!teamsMap.has(team.round_id)) {
+          teamsMap.set(team.round_id, []);
+        }
+        teamsMap.get(team.round_id)!.push(team);
+      });
+    }
     
     // Build response with O(1) lookups (no queries in loop)
     const roundsWithParticipants = rounds.map(round => {

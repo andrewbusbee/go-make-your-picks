@@ -406,136 +406,136 @@ export default function AppSettings() {
             {/* Reminder Settings */}
             <div className={pt6Classes}>
               <h3 className={subheadingClasses}>Reminder Email Settings</h3>
-            <p className={`${bodyTextClasses} ${mt1Classes} ${mb4Classes}`}>
-              These settings control how and when reminder emails are sent to users who have not made their picks.
-              Only one reminder type can be active at a time.
-            </p>
-            
-            {/* Reminder Type Selection */}
-            <div className={mb4Classes}>
-              <label className={labelClasses}>
-                Reminder Type
-              </label>
-              <div className={radioGroupClasses}>
-                <label className={radioLabelClasses}>
-                  <input
-                    type="radio"
-                    name="reminderType"
-                    value="daily"
-                    checked={reminderType === 'daily'}
-                    onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock' | 'none')}
-                    className={radioInputClasses}
-                  />
-                  <span className={radioTextClasses}>Send reminder every day</span>
+              <p className={`${bodyTextClasses} ${mt1Classes} ${mb4Classes}`}>
+                These settings control how and when reminder emails are sent to users who have not made their picks.
+                Only one reminder type can be active at a time.
+              </p>
+              
+              {/* Reminder Type Selection */}
+              <div className={mb4Classes}>
+                <label className={labelClasses}>
+                  Reminder Type
                 </label>
-                <label className={radioLabelClasses}>
-                  <input
-                    type="radio"
-                    name="reminderType"
-                    value="before_lock"
-                    checked={reminderType === 'before_lock'}
-                    onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock' | 'none')}
-                    className={radioInputClasses}
-                  />
-                  <span className={radioTextClasses}>Send reminders before lock time</span>
-                </label>
-                <label className={radioLabelClasses}>
-                  <input
-                    type="radio"
-                    name="reminderType"
-                    value="none"
-                    checked={reminderType === 'none'}
-                    onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock' | 'none')}
-                    className={radioInputClasses}
-                  />
-                  <span className={radioTextClasses}>Do not send reminder emails</span>
-                </label>
-              </div>
-            </div>
-
-            {/* Daily Reminder Settings */}
-            {reminderType === 'daily' && (
-              <div className={gridTwoColLgClasses}>
-                <div>
-                  <label htmlFor="dailyReminderTime" className={labelClasses}>
-                    Time of day to send
+                <div className={radioGroupClasses}>
+                  <label className={radioLabelClasses}>
+                    <input
+                      type="radio"
+                      name="reminderType"
+                      value="daily"
+                      checked={reminderType === 'daily'}
+                      onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock' | 'none')}
+                      className={radioInputClasses}
+                    />
+                    <span className={radioTextClasses}>Send reminder every day</span>
                   </label>
-                  <input
-                    type="time"
-                    id="dailyReminderTime"
-                    value={dailyReminderTime}
-                    onChange={(e) => setDailyReminderTime(e.target.value)}
-                    className={timeInputClasses}
-                    required
-                  />
-                  <p className={`mt-1 ${helpTextClasses}`}>
-                    Daily reminders will be sent at this time
-                  </p>
-                </div>
-                
-                <div>
-                  <label htmlFor="reminderTimezone" className={labelClasses}>
-                    Daily Reminder Timezone
+                  <label className={radioLabelClasses}>
+                    <input
+                      type="radio"
+                      name="reminderType"
+                      value="before_lock"
+                      checked={reminderType === 'before_lock'}
+                      onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock' | 'none')}
+                      className={radioInputClasses}
+                    />
+                    <span className={radioTextClasses}>Send reminders before lock time</span>
                   </label>
-                  <TimezoneSelector
-                    value={reminderTimezone}
-                    onChange={setReminderTimezone}
-                    required
-                  />
-                  <p className={`mt-1 ${helpTextClasses}`}>
-                    Daily reminders will use this timezone
-                  </p>
+                  <label className={radioLabelClasses}>
+                    <input
+                      type="radio"
+                      name="reminderType"
+                      value="none"
+                      checked={reminderType === 'none'}
+                      onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock' | 'none')}
+                      className={radioInputClasses}
+                    />
+                    <span className={radioTextClasses}>Do not send reminder emails</span>
+                  </label>
                 </div>
               </div>
-            )}
 
-            {/* Before Lock Reminder Settings */}
-            {reminderType === 'before_lock' && (
-              <div>
-                <div className={gridTwoColMdClasses}>
+              {/* Daily Reminder Settings */}
+              {reminderType === 'daily' && (
+                <div className={gridTwoColLgClasses}>
                   <div>
-                    <label htmlFor="reminderFirstHours" className={labelClasses}>
-                      First Reminder (hours before lock time)
+                    <label htmlFor="dailyReminderTime" className={labelClasses}>
+                      Time of day to send
                     </label>
                     <input
-                      type="number"
-                      id="reminderFirstHours"
-                      value={reminderFirstHours}
-                      onChange={(e) => setReminderFirstHours(parseInt(e.target.value) || 0)}
-                      min="2"
-                      max="168"
-                      className={inputClasses}
+                      type="time"
+                      id="dailyReminderTime"
+                      value={dailyReminderTime}
+                      onChange={(e) => setDailyReminderTime(e.target.value)}
+                      className={timeInputClasses}
                       required
                     />
                     <p className={`mt-1 ${helpTextClasses}`}>
-                      Default: 48 hours. Users receive first reminder this many hours before picks lock (2-168 hours)
+                      Daily reminders will be sent at this time
                     </p>
                   </div>
-
+                  
                   <div>
-                    <label htmlFor="reminderFinalHours" className={labelClasses}>
-                      Final Reminder (hours before lock time)
+                    <label htmlFor="reminderTimezone" className={labelClasses}>
+                      Daily Reminder Timezone
                     </label>
-                    <input
-                      type="number"
-                      id="reminderFinalHours"
-                      value={reminderFinalHours}
-                      onChange={(e) => setReminderFinalHours(parseInt(e.target.value) || 0)}
-                      min="1"
-                      max="45"
-                      className={inputClasses}
+                    <TimezoneSelector
+                      value={reminderTimezone}
+                      onChange={setReminderTimezone}
                       required
                     />
                     <p className={`mt-1 ${helpTextClasses}`}>
-                      Default: 6 hours. Users receive final reminder this many hours before picks lock (1-45 hours)
+                      Daily reminders will use this timezone
                     </p>
                   </div>
                 </div>
-                <p className={`mt-3 ${helpTextClasses}`}>
-                  <strong>Note:</strong> Before-lock reminders use each sport's individual timezone from the lock time settings.
-                </p>
-              </div>
-            )}
+              )}
+
+              {/* Before Lock Reminder Settings */}
+              {reminderType === 'before_lock' && (
+                <div>
+                  <div className={gridTwoColMdClasses}>
+                    <div>
+                      <label htmlFor="reminderFirstHours" className={labelClasses}>
+                        First Reminder (hours before lock time)
+                      </label>
+                      <input
+                        type="number"
+                        id="reminderFirstHours"
+                        value={reminderFirstHours}
+                        onChange={(e) => setReminderFirstHours(parseInt(e.target.value) || 0)}
+                        min="2"
+                        max="168"
+                        className={inputClasses}
+                        required
+                      />
+                      <p className={`mt-1 ${helpTextClasses}`}>
+                        Default: 48 hours. Users receive first reminder this many hours before picks lock (2-168 hours)
+                      </p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="reminderFinalHours" className={labelClasses}>
+                        Final Reminder (hours before lock time)
+                      </label>
+                      <input
+                        type="number"
+                        id="reminderFinalHours"
+                        value={reminderFinalHours}
+                        onChange={(e) => setReminderFinalHours(parseInt(e.target.value) || 0)}
+                        min="1"
+                        max="45"
+                        className={inputClasses}
+                        required
+                      />
+                      <p className={`mt-1 ${helpTextClasses}`}>
+                        Default: 6 hours. Users receive final reminder this many hours before picks lock (1-45 hours)
+                      </p>
+                    </div>
+                  </div>
+                  <p className={`mt-3 ${helpTextClasses}`}>
+                    <strong>Note:</strong> Before-lock reminders use each sport's individual timezone from the lock time settings.
+                  </p>
+                </div>
+              )}
             </div>
 
             <hr className={dividerClasses} />

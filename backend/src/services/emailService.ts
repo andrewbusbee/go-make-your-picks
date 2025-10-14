@@ -654,29 +654,42 @@ export const sendAdminReminderSummary = async (
   timezone: string,
   participantsWithPicks: Array<{ name: string }>,
   participantsMissingPicks: Array<{ name: string }>
-): Promise<void> => {
-  const settings = await getSettings();
-  
-  // Get main admin and commissioner emails
-  const [adminResult] = await db.query<RowDataPacket[]>(
-    'SELECT email, is_commissioner FROM admins WHERE is_main_admin = 1 OR is_commissioner = 1'
-  );
-  
-  if (adminResult.length === 0) {
-    logger.warn('No main admin found to send reminder summary');
-    return;
-  }
-  
-  // Collect unique email addresses (deduplicate if main admin is also commissioner)
-  const recipientEmails = new Set<string>();
-  adminResult.forEach(admin => {
-    recipientEmails.add(admin.email);
-  });
-  
-  if (recipientEmails.size === 0) {
-    logger.warn('No recipient emails found for reminder summary');
-    return;
-  }
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const settings = await getSettings();
+    
+    // Get main admin and commissioner emails
+    const [adminResult] = await db.query<RowDataPacket[]>(
+      'SELECT email, is_commissioner FROM admins WHERE is_main_admin = 1 OR is_commissioner = 1'
+    );
+    
+    logger.debug('Admin reminder summary query result', { 
+      adminCount: adminResult.length,
+      admins: adminResult.map(a => ({ email: redactEmail(a.email), isCommissioner: a.is_commissioner }))
+    });
+    
+    if (adminResult.length === 0) {
+      logger.warn('No main admin found to send reminder summary');
+      return { success: false, error: 'No main admin found' };
+    }
+    
+    // Collect unique email addresses (deduplicate if main admin is also commissioner)
+    const recipientEmails = new Set<string>();
+    adminResult.forEach(admin => {
+      if (admin.email) {
+        recipientEmails.add(admin.email);
+      }
+    });
+    
+    logger.debug('Recipient emails for admin summary', { 
+      recipientCount: recipientEmails.size,
+      recipients: Array.from(recipientEmails).map(email => redactEmail(email))
+    });
+    
+    if (recipientEmails.size === 0) {
+      logger.warn('No recipient emails found for reminder summary');
+      return { success: false, error: 'No recipient emails found' };
+    }
   
   // Format lock time
   const lockDate = new Date(lockTime).toLocaleString('en-US', {
@@ -749,7 +762,21 @@ export const sendAdminReminderSummary = async (
   const subject = `${settings.app_title} Reminder Summary: ${seasonName} — ${sportName} (locks ${lockDate} ${timezone.replace('_', ' ')})`;
 
   // Send to all recipients (main admin and commissioner, deduplicated)
+  logger.debug('Starting to send admin reminder summary emails', {
+    recipientCount: recipientEmails.size,
+    sportName,
+    seasonName,
+    participantsWithPicks: participantsWithPicks.length,
+    participantsMissingPicks: participantsMissingPicks.length,
+    subject
+  });
+  
   const emailPromises = Array.from(recipientEmails).map(async (recipientEmail) => {
+    logger.debug('Preparing admin reminder summary email', {
+      recipientEmail: redactEmail(recipientEmail),
+      sportName,
+      seasonName
+    });
     const mailOptions = {
       from: process.env.SMTP_FROM || 'noreply@example.com',
       to: recipientEmail,
@@ -768,20 +795,71 @@ export const sendAdminReminderSummary = async (
         missingPicks,
         recipientEmail: redactEmail(recipientEmail)
       });
+      return { success: true, recipientEmail };
     } catch (error: any) {
+      const errorMessage = error?.message || error?.toString() || 'Unknown error';
       logger.error('Error sending admin reminder summary email', { 
-        error: error.message,
+        error: errorMessage,
+        errorType: typeof error,
+        errorKeys: Object.keys(error || {}),
         sportName,
         seasonName,
         recipientEmail: redactEmail(recipientEmail)
       });
       logEmailSent(recipientEmail, 'Admin Reminder Summary', false);
-      // Don't throw - continue sending to other recipients
+      return { success: false, recipientEmail, error: errorMessage };
     }
   });
 
-  // Wait for all emails to be sent
-  await Promise.allSettled(emailPromises);
+  // Wait for all emails to be sent and check results
+  const results = await Promise.allSettled(emailPromises);
+  
+  logger.debug('Admin reminder summary email results', {
+    totalPromises: emailPromises.length,
+    results: results.map((result, index) => ({
+      index,
+      status: result.status,
+      fulfilled: result.status === 'fulfilled' ? {
+        success: result.value?.success,
+        recipientEmail: result.value?.recipientEmail ? redactEmail(result.value.recipientEmail) : 'unknown',
+        error: result.value?.error
+      } : {
+        reason: result.status === 'rejected' ? result.reason?.message || result.reason?.toString() || 'Unknown rejection' : 'unknown'
+      }
+    }))
+  });
+  
+  // Check if any emails failed
+  const failedEmails = results
+    .filter((result): result is PromiseFulfilledResult<{ success: boolean; recipientEmail: string; error?: string }> => 
+      result.status === 'fulfilled' && !result.value.success)
+    .map(result => result.value);
+  
+  if (failedEmails.length > 0) {
+    const errorMessage = `Failed to send to ${failedEmails.length} recipient(s): ${failedEmails.map(f => f.error).join(', ')}`;
+    logger.error('Admin reminder summary failed for some recipients', { 
+      failedCount: failedEmails.length,
+      totalRecipients: recipientEmails.size,
+      errors: failedEmails.map(f => ({ email: redactEmail(f.recipientEmail), error: f.error })),
+      failedEmailsDetails: failedEmails
+    });
+    return { success: false, error: errorMessage };
+  }
+  
+  return { success: true };
+  } catch (error: any) {
+    const errorMessage = error?.message || error?.toString() || 'Unknown error';
+    logger.error('Exception in sendAdminReminderSummary', { 
+      error: errorMessage,
+      errorType: typeof error,
+      errorKeys: Object.keys(error || {}),
+      sportName,
+      seasonName,
+      participantsWithPicks: participantsWithPicks.length,
+      participantsMissingPicks: participantsMissingPicks.length
+    });
+    return { success: false, error: errorMessage };
+  }
 };
 
 /**

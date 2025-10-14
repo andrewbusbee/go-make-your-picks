@@ -6,6 +6,7 @@ import { Migration } from './Migration';
 import migration001 from './001_add_commissioner_column';
 import migration002 from './002_remove_email_unique_constraint';
 import migration003 from './003_add_pick_edit_tracking';
+import migration004 from './004_force_remove_email_unique_constraint';
 
 /**
  * All migrations in order of execution
@@ -15,6 +16,7 @@ export const allMigrations: Migration[] = [
   migration001,
   migration002,
   migration003,
+  migration004,
   // Add new migrations here
 ];
 

@@ -177,7 +177,7 @@ export const logDatabaseQuery = (query: string, duration?: number) => {
 
 export const logEmailSent = (to: string, subject: string, success: boolean) => {
   logger.info(`Email ${success ? 'sent' : 'failed'}`, {
-    to,
+    to: redactEmail(to),
     subject,
     success,
   });

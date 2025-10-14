@@ -95,9 +95,6 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
       id: result.insertId
     });
   } catch (error: any) {
-    if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: 'Email already exists' });
-    }
     logger.error('Create user error:', error);
     res.status(500).json({ error: 'Server error' });
   }
@@ -136,9 +133,6 @@ router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) =>
 
     res.json({ message: 'User updated successfully' });
   } catch (error: any) {
-    if (error.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: 'Email already exists' });
-    }
     logger.error('Update user error:', error);
     res.status(500).json({ error: 'Server error' });
   }

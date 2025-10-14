@@ -345,7 +345,7 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       // Send admin summary
       logger.debug(`📧 Sending admin summary email for round ${round.id}...`);
       const adminEmailStartTime = Date.now();
-      await sendAdminReminderSummary(
+      const summaryResult = await sendAdminReminderSummary(
         round.sport_name,
         seasonName,
         round.lock_time,
@@ -355,7 +355,14 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       );
       const adminEmailDuration = Date.now() - adminEmailStartTime;
       
-      logger.info(`📊 Admin summary sent for "${round.sport_name}" (${participantsWithPicks.length} picked, ${participantsMissingPicks.length} missing)`);
+      if (summaryResult.success) {
+        logger.info(`📊 Admin summary sent for "${round.sport_name}" (${participantsWithPicks.length} picked, ${participantsMissingPicks.length} missing)`);
+      } else {
+        logger.error('Failed to send admin reminder summary', {
+          roundId: round.id,
+          error: summaryResult.error
+        });
+      }
     } catch (summaryError) {
       logger.error('Failed to send admin reminder summary', {
         roundId: round.id,
@@ -574,7 +581,7 @@ export const manualSendGenericReminder = async (roundId: number) => {
       const seasonName = seasonResult.length > 0 ? seasonResult[0].name : 'Unknown Season';
 
       // Send admin summary
-      await sendAdminReminderSummary(
+      const summaryResult = await sendAdminReminderSummary(
         round.sport_name,
         seasonName,
         round.lock_time,
@@ -583,13 +590,20 @@ export const manualSendGenericReminder = async (roundId: number) => {
         participantsMissingPicks
       );
 
-      logger.info('Admin reminder summary sent (manual)', {
-        roundId: round.id,
-        sportName: round.sport_name,
-        seasonName,
-        participantsWithPicks: participantsWithPicks.length,
-        participantsMissingPicks: participantsMissingPicks.length
-      });
+      if (summaryResult.success) {
+        logger.info('Admin reminder summary sent (manual)', {
+          roundId: round.id,
+          sportName: round.sport_name,
+          seasonName,
+          participantsWithPicks: participantsWithPicks.length,
+          participantsMissingPicks: participantsMissingPicks.length
+        });
+      } else {
+        logger.error('Failed to send admin reminder summary (manual)', {
+          roundId: round.id,
+          error: summaryResult.error
+        });
+      }
     } catch (summaryError) {
       logger.error('Failed to send admin reminder summary (manual)', {
         roundId: round.id,

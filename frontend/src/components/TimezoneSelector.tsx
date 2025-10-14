@@ -204,6 +204,7 @@ export default function TimezoneSelector({ value, onChange, className }: Timezon
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [filteredTimezones, setFilteredTimezones] = useState<TimezoneOption[]>(TIMEZONES);
+  const [dropdownPosition, setDropdownPosition] = useState<'below' | 'above'>('below');
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Get the label for the selected timezone
@@ -226,7 +227,7 @@ export default function TimezoneSelector({ value, onChange, className }: Timezon
     }
   }, [searchQuery]);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside and calculate position
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -237,6 +238,21 @@ export default function TimezoneSelector({ value, onChange, className }: Timezon
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      
+      // Calculate if dropdown should open upward
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const spaceBelow = viewportHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        const dropdownHeight = 240; // Approximate height of dropdown
+        
+        if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+          setDropdownPosition('above');
+        } else {
+          setDropdownPosition('below');
+        }
+      }
     }
 
     return () => {
@@ -284,7 +300,9 @@ export default function TimezoneSelector({ value, onChange, className }: Timezon
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-80 overflow-hidden flex flex-col">
+        <div className={`absolute z-[60] w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-hidden flex flex-col ${
+          dropdownPosition === 'above' ? 'bottom-full mb-1' : 'top-full mt-1'
+        }`}>
           {/* Search input */}
           <div className="p-2 border-b border-gray-200 dark:border-gray-700">
             <input
