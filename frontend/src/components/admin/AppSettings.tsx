@@ -56,6 +56,7 @@ export default function AppSettings() {
   const [appTitle, setAppTitle] = useState('');
   const [appTagline, setAppTagline] = useState('');
   const [footerMessage, setFooterMessage] = useState('');
+  const [themeMode, setThemeMode] = useState<'dark_only' | 'light_only' | 'user_choice'>('user_choice');
   const [pointsFirstPlace, setPointsFirstPlace] = useState(6);
   const [pointsSecondPlace, setPointsSecondPlace] = useState(5);
   const [pointsThirdPlace, setPointsThirdPlace] = useState(4);
@@ -65,6 +66,7 @@ export default function AppSettings() {
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalTagline, setOriginalTagline] = useState('');
   const [originalFooterMessage, setOriginalFooterMessage] = useState('');
+  const [originalThemeMode, setOriginalThemeMode] = useState<'dark_only' | 'light_only' | 'user_choice'>('user_choice');
   const [originalPointsFirstPlace, setOriginalPointsFirstPlace] = useState(6);
   const [originalPointsSecondPlace, setOriginalPointsSecondPlace] = useState(5);
   const [originalPointsThirdPlace, setOriginalPointsThirdPlace] = useState(4);
@@ -86,6 +88,7 @@ export default function AppSettings() {
       setAppTitle(res.data.app_title || 'Go Make Your Picks');
       setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
       setFooterMessage(res.data.footer_message || 'Built for Sports Fans');
+      setThemeMode(res.data.theme_mode || 'user_choice');
       setPointsFirstPlace(parseInt(res.data.points_first_place) || 6);
       setPointsSecondPlace(parseInt(res.data.points_second_place) || 5);
       setPointsThirdPlace(parseInt(res.data.points_third_place) || 4);
@@ -96,6 +99,7 @@ export default function AppSettings() {
       setOriginalTitle(res.data.app_title || 'Go Make Your Picks');
       setOriginalTagline(res.data.app_tagline || 'Predict. Compete. Win.');
       setOriginalFooterMessage(res.data.footer_message || 'Built for Sports Fans');
+      setOriginalThemeMode(res.data.theme_mode || 'user_choice');
       setOriginalPointsFirstPlace(parseInt(res.data.points_first_place) || 6);
       setOriginalPointsSecondPlace(parseInt(res.data.points_second_place) || 5);
       setOriginalPointsThirdPlace(parseInt(res.data.points_third_place) || 4);
@@ -139,6 +143,7 @@ export default function AppSettings() {
         appTitle,
         appTagline,
         footerMessage,
+        themeMode,
         pointsFirstPlace,
         pointsSecondPlace,
         pointsThirdPlace,
@@ -151,6 +156,7 @@ export default function AppSettings() {
       setOriginalTitle(appTitle);
       setOriginalTagline(appTagline);
       setOriginalFooterMessage(footerMessage);
+      setOriginalThemeMode(themeMode);
       setOriginalPointsFirstPlace(pointsFirstPlace);
       setOriginalPointsSecondPlace(pointsSecondPlace);
       setOriginalPointsThirdPlace(pointsThirdPlace);
@@ -173,6 +179,7 @@ export default function AppSettings() {
     setAppTitle(originalTitle);
     setAppTagline(originalTagline);
     setFooterMessage(originalFooterMessage);
+    setThemeMode(originalThemeMode);
     setPointsFirstPlace(originalPointsFirstPlace);
     setPointsSecondPlace(originalPointsSecondPlace);
     setPointsThirdPlace(originalPointsThirdPlace);
@@ -187,6 +194,7 @@ export default function AppSettings() {
     appTitle !== originalTitle || 
     appTagline !== originalTagline ||
     footerMessage !== originalFooterMessage ||
+    themeMode !== originalThemeMode ||
     pointsFirstPlace !== originalPointsFirstPlace ||
     pointsSecondPlace !== originalPointsSecondPlace ||
     pointsThirdPlace !== originalPointsThirdPlace ||
@@ -322,6 +330,69 @@ export default function AppSettings() {
               </p>
             </div>
 
+          </div>
+
+          <hr className={dividerClasses} />
+
+          {/* Theme Mode Section */}
+          <div className={pt6Classes}>
+            <h3 className={`${subheadingClasses} ${mb4Classes}`}>Theme Mode</h3>
+            <p className={`${bodyTextClasses} ${mb4Classes}`}>
+              Control how users experience dark and light themes throughout the app.
+            </p>
+
+            <div className="space-y-4">
+              <label className="flex items-start">
+                <input
+                  type="radio"
+                  name="themeMode"
+                  value="dark_only"
+                  checked={themeMode === 'dark_only'}
+                  onChange={(e) => setThemeMode(e.target.value as 'dark_only' | 'light_only' | 'user_choice')}
+                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600"
+                />
+                <div className="ml-3">
+                  <span className={`${labelClasses} block`}>Dark Mode Only</span>
+                  <p className={`${helpTextClasses} ${mt1Classes}`}>
+                    Force dark theme for all users. The theme toggle button will be hidden.
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex items-start">
+                <input
+                  type="radio"
+                  name="themeMode"
+                  value="light_only"
+                  checked={themeMode === 'light_only'}
+                  onChange={(e) => setThemeMode(e.target.value as 'dark_only' | 'light_only' | 'user_choice')}
+                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600"
+                />
+                <div className="ml-3">
+                  <span className={`${labelClasses} block`}>Light Mode Only</span>
+                  <p className={`${helpTextClasses} ${mt1Classes}`}>
+                    Force light theme for all users. The theme toggle button will be hidden.
+                  </p>
+                </div>
+              </label>
+
+              <label className="flex items-start">
+                <input
+                  type="radio"
+                  name="themeMode"
+                  value="user_choice"
+                  checked={themeMode === 'user_choice'}
+                  onChange={(e) => setThemeMode(e.target.value as 'dark_only' | 'light_only' | 'user_choice')}
+                  className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600"
+                />
+                <div className="ml-3">
+                  <span className={`${labelClasses} block`}>Dark/Light Mode (User Choice) 🌟 Default</span>
+                  <p className={`${helpTextClasses} ${mt1Classes}`}>
+                    Show theme toggle button. Users can switch between dark and light themes. Defaults to dark.
+                  </p>
+                </div>
+              </label>
+            </div>
           </div>
 
             <hr className={dividerClasses} />

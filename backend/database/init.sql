@@ -294,7 +294,8 @@ INSERT INTO text_settings (setting_key, setting_value) VALUES
 ('reminder_type', 'daily'),
 ('daily_reminder_time', '10:00:00'),
 ('email_notifications_enabled', 'true'),
-('send_admin_summary', 'true')
+('send_admin_summary', 'true'),
+('theme_mode', 'user_choice')
 ON DUPLICATE KEY UPDATE setting_key=setting_key;
 
 -- Insert default numeric settings

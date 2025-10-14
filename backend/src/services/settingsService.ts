@@ -24,6 +24,7 @@ export interface TextSettings {
   reminderType: string;
   dailyReminderTime: string;
   reminderTimezone: string;
+  themeMode: string;
 }
 
 export interface ReminderSettings {
@@ -139,6 +140,7 @@ export class SettingsService {
         reminderType: settingsMap.get('reminder_type') || 'daily',
         dailyReminderTime: settingsMap.get('daily_reminder_time') || '10:00:00',
         reminderTimezone: settingsMap.get('reminder_timezone') || 'America/New_York',
+        themeMode: settingsMap.get('theme_mode') || 'user_choice',
       };
 
       // Update cache
@@ -156,6 +158,7 @@ export class SettingsService {
         reminderType: 'daily',
         dailyReminderTime: '10:00:00',
         reminderTimezone: 'America/New_York',
+        themeMode: 'user_choice',
       };
     }
   }

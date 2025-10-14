@@ -245,6 +245,7 @@ export interface AppSettings {
   app_title: string;
   app_tagline: string;
   footer_message: string;
+  theme_mode: 'dark_only' | 'light_only' | 'user_choice';
   points_first_place: number;
   points_second_place: number;
   points_third_place: number;

@@ -42,7 +42,8 @@ router.get('/', async (req, res) => {
       reminder_timezone: 'America/New_York',
       reminder_first_hours: 48,
       reminder_final_hours: 6,
-      send_admin_summary: true
+      send_admin_summary: true,
+      theme_mode: 'user_choice'
     };
     
     textSettings.forEach((setting) => {
@@ -71,6 +72,7 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     appTitle, 
     appTagline, 
     footerMessage,
+    themeMode,
     pointsFirstPlace,
     pointsSecondPlace,
     pointsThirdPlace,
@@ -153,6 +155,13 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     }
   }
 
+  // Validate theme mode if provided
+  if (themeMode !== undefined) {
+    if (!['dark_only', 'light_only', 'user_choice'].includes(themeMode)) {
+      return res.status(400).json({ error: 'Theme mode must be "dark_only", "light_only", or "user_choice"' });
+    }
+  }
+
   try {
     await withTransaction(async (connection) => {
       // Update or insert text settings
@@ -173,6 +182,15 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
          ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
         [footerMessage]
       );
+
+      // Update theme mode if provided
+      if (themeMode !== undefined) {
+        await connection.query(
+          `INSERT INTO text_settings (setting_key, setting_value) VALUES ('theme_mode', ?)
+           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+          [themeMode]
+        );
+      }
 
       // Update reminder timezone if provided
       if (reminderTimezone) {

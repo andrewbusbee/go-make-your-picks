@@ -29,7 +29,7 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
   const [appTitle, setAppTitle] = useState('Go Make Your Picks');
   const [appTagline, setAppTagline] = useState('Predict. Compete. Win.');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, showToggle } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const mobileMenuRef = useRef<HTMLDivElement>(null);
@@ -117,14 +117,16 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
               </button>
             )}
             
-            {/* Theme Toggle Button */}
-            <button
-              onClick={toggleTheme}
-              className={themeToggleButtonClasses}
-              aria-label="Toggle theme"
-            >
-              {theme === 'light' ? '🌙' : '☀️'}
-            </button>
+            {/* Theme Toggle Button - only show if theme mode allows */}
+            {showToggle && (
+              <button
+                onClick={toggleTheme}
+                className={themeToggleButtonClasses}
+                aria-label="Toggle theme"
+              >
+                {theme === 'light' ? '🌙' : '☀️'}
+              </button>
+            )}
           </div>
 
           {/* Mobile Navigation */}
@@ -187,23 +189,25 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
                   </button>
                 )}
 
-                {/* Theme Toggle Menu Item - always show */}
-                <button 
-                  onClick={() => {
-                    toggleTheme();
-                    closeMobileMenu();
-                  }}
-                  className={`${mobileDropdownMenuItemClasses} ${mobileDropdownMenuItemThemeClasses}`}
-                >
-                  <div className={mobileDropdownMenuItemWithIconClasses}>
-                    <span className={mobileDropdownMenuItemIconClasses}>
-                      {theme === 'light' ? '🌙' : '☀️'}
-                    </span>
-                    <span className={mobileDropdownMenuItemTextClasses}>
-                      {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
-                    </span>
-                  </div>
-                </button>
+                {/* Theme Toggle Menu Item - only show if theme mode allows */}
+                {showToggle && (
+                  <button 
+                    onClick={() => {
+                      toggleTheme();
+                      closeMobileMenu();
+                    }}
+                    className={`${mobileDropdownMenuItemClasses} ${mobileDropdownMenuItemThemeClasses}`}
+                  >
+                    <div className={mobileDropdownMenuItemWithIconClasses}>
+                      <span className={mobileDropdownMenuItemIconClasses}>
+                        {theme === 'light' ? '🌙' : '☀️'}
+                      </span>
+                      <span className={mobileDropdownMenuItemTextClasses}>
+                        {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
+                      </span>
+                    </div>
+                  </button>
+                )}
               </div>
             )}
           </div>
