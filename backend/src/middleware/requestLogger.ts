@@ -21,9 +21,8 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
       level = 'error';
     } else if (statusCode >= 400) {
       level = 'warn';
-    } else if (statusCode >= 300) {
-      level = 'info';
     }
+    // 2xx/3xx responses stay at 'http' level (default)
     
     const message = `${method} ${originalUrl} ${statusCode} ${duration}ms`;
     
