@@ -244,6 +244,14 @@ CREATE TABLE IF NOT EXISTS numeric_settings (
     )
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Settings table for boolean and other special settings
+CREATE TABLE IF NOT EXISTS settings (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    send_admin_summary BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Reminder log table for tracking sent notifications
 CREATE TABLE IF NOT EXISTS reminder_log (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -294,7 +302,6 @@ INSERT INTO text_settings (setting_key, setting_value) VALUES
 ('reminder_type', 'daily'),
 ('daily_reminder_time', '10:00:00'),
 ('email_notifications_enabled', 'true'),
-('send_admin_summary', 'true'),
 ('theme_mode', 'user_choice')
 ON DUPLICATE KEY UPDATE setting_key=setting_key;
 
@@ -309,3 +316,7 @@ INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) 
 ('reminder_first_hours', 48, 2, 168),
 ('reminder_final_hours', 6, 1, 45)
 ON DUPLICATE KEY UPDATE setting_key=setting_key;
+
+-- Insert default settings row
+INSERT INTO settings (send_admin_summary) VALUES (TRUE)
+ON DUPLICATE KEY UPDATE id=id;
