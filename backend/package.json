@@ -21,7 +21,7 @@
     "jsonwebtoken": "^9.0.2",
     "moment-timezone": "^0.5.43",
     "mysql2": "^3.6.5",
-    "node-cron": "^4.2.1",
+    "node-cron": "^3.0.3",
     "nodemailer": "^6.9.7",
     "winston": "^3.11.0",
     "winston-daily-rotate-file": "^4.7.1"

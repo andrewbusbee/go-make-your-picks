@@ -27,19 +27,19 @@ export const cleanupOldLoginAttempts = async () => {
 export const checkAndSendReminders = async () => {
   try {
     const now = new Date();
-    logger.info('📋 Checking for reminders to send...');
+    logger.debug('📋 Checking for reminders to send...');
     
     // First, auto-lock any rounds that have passed their lock time
-    logger.info('🔒 Checking for expired rounds to auto-lock...');
+    logger.debug('🔒 Checking for expired rounds to auto-lock...');
     await autoLockExpiredRounds();
     
     // Get reminder settings
-    logger.info('⚙️ Loading reminder settings...');
+    logger.debug('⚙️ Loading reminder settings...');
     const reminderSettings = await SettingsService.getReminderSettings();
-    logger.info(`⚙️ Reminder settings loaded: type=${reminderSettings.reminderType}, firstHours=${reminderSettings.firstReminderHours}, finalHours=${reminderSettings.finalReminderHours}, dailyTime=${reminderSettings.dailyReminderTime}`);
+    logger.debug(`⚙️ Reminder settings loaded: type=${reminderSettings.reminderType}, firstHours=${reminderSettings.firstReminderHours}, finalHours=${reminderSettings.finalReminderHours}, dailyTime=${reminderSettings.dailyReminderTime}`);
     
     // Get all active rounds that haven't been completed (with commissioner from season)
-    logger.info('🔍 Querying active rounds...');
+    logger.debug('🔍 Querying active rounds...');
     const [rounds] = await db.query<RowDataPacket[]>(
       `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, s.commissioner 
        FROM rounds r
@@ -48,21 +48,21 @@ export const checkAndSendReminders = async () => {
       []
     );
     
-    logger.info(`📊 Found ${rounds.length} active round(s) to check`);
+    logger.debug(`📊 Found ${rounds.length} active round(s) to check`);
 
     for (const round of rounds) {
       const lockTime = new Date(round.lock_time);
-      logger.info(`🏈 Checking round: "${round.sport_name}" (ID: ${round.id}, Lock: ${lockTime.toISOString()})`);
+      logger.debug(`🏈 Checking round: "${round.sport_name}" (ID: ${round.id}, Lock: ${lockTime.toISOString()})`);
 
       if (reminderSettings.reminderType === 'daily') {
         // Handle daily reminders - check if it's time to send based on daily_reminder_time
-        logger.info(`📅 Checking daily reminder for round ${round.id}`);
+        logger.debug(`📅 Checking daily reminder for round ${round.id}`);
         await checkAndSendDailyReminder(round, now, reminderSettings);
       } else if (reminderSettings.reminderType === 'before_lock') {
         // Handle before-lock reminders (existing logic)
         const timeDiff = lockTime.getTime() - now.getTime();
         const hoursDiff = timeDiff / (1000 * 60 * 60);
-        logger.info(`⏱️ Time until lock: ${hoursDiff.toFixed(2)} hours`);
+        logger.debug(`⏱️ Time until lock: ${hoursDiff.toFixed(2)} hours`);
 
         // Use global reminder settings
         const firstReminderHours = reminderSettings.firstReminderHours;
@@ -72,26 +72,26 @@ export const checkAndSendReminders = async () => {
         // Runs every 5 minutes, so 30-minute window is ~6 chances to send
         if (hoursDiff >= (firstReminderHours - 0.25) && 
             hoursDiff <= (firstReminderHours + 0.25)) {
-          logger.info(`⏰ First reminder window hit! Sending first reminder (${firstReminderHours}h before lock)`);
+          logger.debug(`⏰ First reminder window hit! Sending first reminder (${firstReminderHours}h before lock)`);
           await sendReminderIfNotSent(round, 'first', firstReminderHours);
         }
 
         // Check if we need to send final reminder (30-minute window to prevent duplicates)
         if (hoursDiff >= (finalReminderHours - 0.25) && 
             hoursDiff <= (finalReminderHours + 0.25)) {
-          logger.info(`🚨 Final reminder window hit! Sending final reminder (${finalReminderHours}h before lock)`);
+          logger.debug(`🚨 Final reminder window hit! Sending final reminder (${finalReminderHours}h before lock)`);
           await sendReminderIfNotSent(round, 'final', finalReminderHours);
         }
         
-        logger.info(`✔️ Round ${round.id} check complete (no reminders needed at this time)`);
+        logger.debug(`✔️ Round ${round.id} check complete (no reminders needed at this time)`);
       } else if (reminderSettings.reminderType === 'none') {
         // No reminders to send - do nothing
-        logger.info(`⚠️ Reminder type is "none", skipping reminder checks for round ${round.id}`);
+        logger.debug(`⚠️ Reminder type is "none", skipping reminder checks for round ${round.id}`);
       }
     }
 
     // Check for rounds that just locked (locked in the last hour)
-    logger.info('🔐 Checking for recently locked rounds...');
+    logger.debug('🔐 Checking for recently locked rounds...');
     const [lockedRounds] = await db.query<RowDataPacket[]>(
       `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, s.commissioner 
        FROM rounds r
@@ -102,13 +102,13 @@ export const checkAndSendReminders = async () => {
       []
     );
 
-    logger.info(`🔐 Found ${lockedRounds.length} recently locked round(s)`);
+    logger.debug(`🔐 Found ${lockedRounds.length} recently locked round(s)`);
     for (const round of lockedRounds) {
-      logger.info(`🔒 Sending locked notification for round: "${round.sport_name}" (ID: ${round.id})`);
+      logger.debug(`🔒 Sending locked notification for round: "${round.sport_name}" (ID: ${round.id})`);
       await sendLockedNotificationIfNotSent(round);
     }
 
-    logger.info('✅ Reminder scheduler check complete');
+    logger.debug('✅ Reminder scheduler check complete');
 
   } catch (error) {
     logger.error('Error in reminder scheduler', { error });
@@ -199,7 +199,7 @@ export const checkAndSendDailyReminder = async (round: any, now: Date, reminderS
 // Send reminder to users who haven't picked yet
 export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 'final' | 'daily', reminderHours?: number) => {
   try {
-    logger.info(`📧 sendReminderIfNotSent: Starting ${reminderType} reminder for round ${round.id}`);
+    logger.debug(`📧 sendReminderIfNotSent: Starting ${reminderType} reminder for round ${round.id}`);
     
     // Check if this reminder was already sent
     const [existing] = await db.query<RowDataPacket[]>(
@@ -208,13 +208,13 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
     );
 
     if (existing.length > 0) {
-      logger.info(`⏭️ ${reminderType} reminder already sent for round ${round.id}, skipping`);
+      logger.debug(`⏭️ ${reminderType} reminder already sent for round ${round.id}, skipping`);
       return; // Already sent
     }
 
     // Get users who are in this season but haven't made picks yet, excluding deactivated players
     // Use LEFT JOIN on magic_links to include users who don't have magic links yet
-    logger.info(`🔍 Querying users without picks for round ${round.id}...`);
+    logger.debug(`🔍 Querying users without picks for round ${round.id}...`);
     const [usersWithoutPicks] = await db.query<RowDataPacket[]>(
       `SELECT DISTINCT u.id, u.email, u.name, ml.token
        FROM users u
@@ -225,10 +225,10 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       [round.id, round.id, round.season_id]
     );
 
-    logger.info(`👥 Found ${usersWithoutPicks.length} user(s) without picks`);
+    logger.debug(`👥 Found ${usersWithoutPicks.length} user(s) without picks`);
     
     if (usersWithoutPicks.length === 0) {
-      logger.info(`✅ Everyone has picked for round ${round.id}, no reminders needed`);
+      logger.debug(`✅ Everyone has picked for round ${round.id}, no reminders needed`);
       return; // Everyone has picked
     }
 
@@ -277,7 +277,7 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
     }
 
     // Send reminder emails in parallel
-    logger.info(`📤 Sending ${reminderType} reminder emails to ${usersWithoutPicks.length} user(s)...`);
+    logger.debug(`📤 Sending ${reminderType} reminder emails to ${usersWithoutPicks.length} user(s)...`);
     const emailStartTime = Date.now();
     await Promise.allSettled(
       usersWithoutPicks.map(user => {
@@ -293,7 +293,7 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       })
     );
     const emailDuration = Date.now() - emailStartTime;
-    logger.info(`✅ Finished sending ${reminderType} reminder emails in ${emailDuration}ms`);
+    logger.debug(`✅ Finished sending ${reminderType} reminder emails in ${emailDuration}ms`);
 
     // Log the reminder
     await db.query<ResultSetHeader>(
@@ -305,11 +305,11 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       roundId: round.id,
       recipientCount: usersWithoutPicks.length,
     });
-    logger.info(`✅ ${reminderType} reminder logged for round ${round.id}`);
+    logger.info(`📧 Sent ${reminderType} reminder to ${usersWithoutPicks.length} user(s) for round ${round.id}`);
 
     // Send admin reminder summary
     try {
-      logger.info(`📊 Preparing admin summary for round ${round.id}...`);
+      logger.debug(`📊 Preparing admin summary for round ${round.id}...`);
       
       // Get all participants in this season
       const [allParticipants] = await db.query<RowDataPacket[]>(
@@ -331,7 +331,7 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
         .filter(p => !p.hasPicked)
         .map(p => ({ name: p.name }));
 
-      logger.info(`📊 Admin summary stats: ${participantsWithPicks.length} picked, ${participantsMissingPicks.length} missing`);
+      logger.debug(`📊 Admin summary stats: ${participantsWithPicks.length} picked, ${participantsMissingPicks.length} missing`);
 
       // Get season name
       const [seasonResult] = await db.query<RowDataPacket[]>(
@@ -342,7 +342,7 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       const seasonName = seasonResult.length > 0 ? seasonResult[0].name : 'Unknown Season';
 
       // Send admin summary
-      logger.info(`📧 Sending admin summary email for round ${round.id}...`);
+      logger.debug(`📧 Sending admin summary email for round ${round.id}...`);
       const adminEmailStartTime = Date.now();
       await sendAdminReminderSummary(
         round.sport_name,
@@ -354,13 +354,7 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       );
       const adminEmailDuration = Date.now() - adminEmailStartTime;
       
-      logger.info(`✅ Admin reminder summary sent in ${adminEmailDuration}ms`, {
-        roundId: round.id,
-        sportName: round.sport_name,
-        seasonName,
-        participantsWithPicks: participantsWithPicks.length,
-        participantsMissingPicks: participantsMissingPicks.length
-      });
+      logger.info(`📊 Admin summary sent for "${round.sport_name}" (${participantsWithPicks.length} picked, ${participantsMissingPicks.length} missing)`);
     } catch (summaryError) {
       logger.error('Failed to send admin reminder summary', {
         roundId: round.id,
@@ -652,11 +646,14 @@ const runWithTimeout = async (asyncFn: () => Promise<void>, timeoutMs: number, o
 
 // Initialize the scheduler
 export const startReminderScheduler = () => {
-  // Run reminder checks every 5 minutes with 4-minute timeout
+  // Run reminder checks every 5 minutes using node-cron v3
+  // Cron format: */5 * * * * = every 5 minutes
+  // Note: We do NOT call .start() - cron.schedule() starts automatically
   cron.schedule('*/5 * * * *', async () => {
+    logger.info('🔔 CRON TRIGGERED! Reminder job callback executed');
     // Skip if previous execution is still running
     if (isReminderJobRunning) {
-      logger.warn('Skipping reminder check - previous execution still running');
+      logger.warn('⏭️ Skipping reminder check - previous execution still running');
       return;
     }
 
@@ -665,7 +662,6 @@ export const startReminderScheduler = () => {
     
     try {
       logSchedulerEvent('Running reminder scheduler check');
-      logger.info('🔄 Cron: Starting reminder scheduler check');
       
       // Run without timeout - let it complete naturally (mutex prevents concurrent runs)
       await checkAndSendReminders();
@@ -676,21 +672,23 @@ export const startReminderScheduler = () => {
       
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      logger.error('Cron job failed', { 
+      logger.error('❌ Cron job failed', { 
         error: error.message, 
         duration: `${duration}ms`,
         operation: 'reminder_check'
       });
     } finally {
       isReminderJobRunning = false;
+      logger.debug(`🔓 Mutex released (isReminderJobRunning = false)`);
     }
   });
 
-  // Run cleanup job daily at 3:00 AM with 30-minute timeout
+  // Run cleanup job daily at 3:00 AM
+  // Cron format: 0 3 * * * = at 3:00 AM every day
   cron.schedule('0 3 * * *', async () => {
     // Skip if previous execution is still running
     if (isCleanupJobRunning) {
-      logger.warn('Skipping cleanup job - previous execution still running');
+      logger.warn('⏭️ Skipping cleanup job - previous execution still running');
       return;
     }
 
@@ -700,31 +698,35 @@ export const startReminderScheduler = () => {
     try {
       logSchedulerEvent('Running daily cleanup job');
       
-      // Run with 30-minute timeout for cleanup
-      await runWithTimeout(
-        () => cleanupOldLoginAttempts(),
-        30 * 60 * 1000, // 30 minutes
-        'Daily cleanup job'
-      );
+      // Run cleanup (no timeout - let it complete naturally)
+      await cleanupOldLoginAttempts();
       
       const duration = Date.now() - startTime;
       logSchedulerEvent(`Daily cleanup job completed in ${duration}ms`);
+      logger.info(`✅ Daily cleanup job completed in ${duration}ms`);
       
     } catch (error: any) {
       const duration = Date.now() - startTime;
-      logger.error('Cleanup cron job failed', { 
+      logger.error('❌ Cleanup cron job failed', { 
         error: error.message, 
         duration: `${duration}ms`,
         operation: 'cleanup_job'
       });
     } finally {
       isCleanupJobRunning = false;
+      logger.debug(`🔓 Cleanup mutex released (isCleanupJobRunning = false)`);
     }
   });
 
+  // Log successful initialization
+  logger.info('✅ Cron jobs initialized with node-cron v3.0.3 (stable)');
+  logger.info('📅 Reminder job: Scheduled to run every 5 minutes');
+  logger.info('📅 Cleanup job: Scheduled to run daily at 3:00 AM');
+
   logSchedulerEvent('Reminder scheduler started - checking every 5 minutes');
   logger.info('🔄 Reminder scheduler: Running every 5 minutes with mutex protection');
-  logSchedulerEvent('Cleanup scheduler started - running daily at 3:00 AM (30min timeout)');
+  logger.info('⏰ Cron jobs are now active and will execute on schedule');
+  logSchedulerEvent('Cleanup scheduler started - running daily at 3:00 AM');
   logger.info('🧹 Cleanup scheduler: Running daily at 3:00 AM');
 };
 
