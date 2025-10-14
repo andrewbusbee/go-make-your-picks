@@ -97,6 +97,8 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
     const loadReminderSettings = async () => {
       try {
         const res = await api.get('/admin/settings');
+        
+        // Load reminder settings only
         setReminderType(res.data.reminder_type || 'daily');
         const timeValue = res.data.daily_reminder_time || '10:00:00';
         setDailyReminderTime(timeValue.substring(0, 5));
@@ -185,10 +187,7 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
     setSavingReminder(true);
 
     try {
-      await api.put('/admin/settings', {
-        appTitle: undefined, // Not updating these
-        appTagline: undefined,
-        footerMessage: undefined,
+      await api.put('/admin/settings/reminders', {
         reminderType,
         dailyReminderTime: reminderType === 'daily' ? dailyReminderTime + ':00' : undefined,
         reminderTimezone: reminderType === 'daily' ? reminderTimezone : undefined,

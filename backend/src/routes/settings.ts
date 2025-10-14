@@ -309,4 +309,133 @@ router.put('/email-notifications', authenticateAdmin, requireMainAdmin, async (r
   }
 });
 
+// Update reminder settings only (all admins)
+router.put('/reminders', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+  const {
+    reminderType,
+    dailyReminderTime,
+    reminderTimezone,
+    reminderFirstHours,
+    reminderFinalHours,
+    sendAdminSummary
+  } = req.body;
+
+  // Validate reminder type
+  if (reminderType !== undefined) {
+    if (!['daily', 'before_lock', 'none'].includes(reminderType)) {
+      return res.status(400).json({ error: 'Reminder type must be "daily", "before_lock", or "none"' });
+    }
+  }
+
+  // Validate reminder timezone if provided
+  if (reminderTimezone && !isValidTimezone(reminderTimezone)) {
+    return res.status(400).json({ error: 'Invalid reminder timezone. Please select a valid IANA timezone.' });
+  }
+
+  // Validate daily reminder time if provided
+  if (dailyReminderTime !== undefined) {
+    if (!dailyReminderTime.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$/)) {
+      return res.status(400).json({ error: 'Daily reminder time must be in HH:MM:SS format' });
+    }
+  }
+
+  // Validate reminder hours if provided
+  if (reminderFirstHours !== undefined) {
+    const hours = parseInt(reminderFirstHours);
+    if (isNaN(hours) || hours < 2 || hours > 168) {
+      return res.status(400).json({ error: 'First reminder hours must be between 2 and 168' });
+    }
+  }
+
+  if (reminderFinalHours !== undefined) {
+    const hours = parseInt(reminderFinalHours);
+    if (isNaN(hours) || hours < 1 || hours > 45) {
+      return res.status(400).json({ error: 'Final reminder hours must be between 1 and 45' });
+    }
+  }
+
+  // Validate that first reminder is after final reminder
+  if (reminderFirstHours !== undefined && reminderFinalHours !== undefined) {
+    if (parseInt(reminderFirstHours) <= parseInt(reminderFinalHours)) {
+      return res.status(400).json({ error: 'First reminder must be more hours before lock time than final reminder' });
+    }
+  }
+
+  try {
+    await withTransaction(async (connection) => {
+      // Update reminder type if provided
+      if (reminderType !== undefined) {
+        await connection.query(
+          `INSERT INTO text_settings (setting_key, setting_value) VALUES ('reminder_type', ?)
+           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+          [reminderType]
+        );
+      }
+
+      // Update daily reminder time if provided
+      if (dailyReminderTime !== undefined) {
+        await connection.query(
+          `INSERT INTO text_settings (setting_key, setting_value) VALUES ('daily_reminder_time', ?)
+           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+          [dailyReminderTime]
+        );
+      }
+
+      // Update reminder timezone if provided
+      if (reminderTimezone) {
+        await connection.query(
+          `INSERT INTO text_settings (setting_key, setting_value) VALUES ('reminder_timezone', ?)
+           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+          [reminderTimezone]
+        );
+      }
+
+      // Update reminder hours if provided
+      if (reminderFirstHours !== undefined) {
+        const intValue = parseInt(reminderFirstHours);
+        await connection.query(
+          `INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) VALUES ('reminder_first_hours', ?, 2, 168)
+           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+          [intValue]
+        );
+      }
+
+      if (reminderFinalHours !== undefined) {
+        const intValue = parseInt(reminderFinalHours);
+        await connection.query(
+          `INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) VALUES ('reminder_final_hours', ?, 1, 48)
+           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+          [intValue]
+        );
+      }
+
+      // Update send_admin_summary if provided
+      if (sendAdminSummary !== undefined) {
+        await connection.query(
+          `UPDATE settings SET send_admin_summary = ?`,
+          [sendAdminSummary ? 1 : 0]
+        );
+      }
+    });
+
+    // Clear settings cache so new values are loaded immediately
+    SettingsService.clearCache();
+
+    logger.info('Reminder settings updated', { 
+      adminId: req.adminId,
+      reminderType,
+      sendAdminSummary
+    });
+
+    res.json({ 
+      message: 'Reminder settings updated successfully',
+      reminder_type: reminderType,
+      send_admin_summary: sendAdminSummary
+    });
+  } catch (error) {
+    logger.error('Update reminder settings error', { error });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 export default router;
