@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
+import TimezoneSelector from '../TimezoneSelector';
 import {
   headingClasses,
   labelClasses,
@@ -14,7 +15,24 @@ import {
   alertErrorTextClasses,
   codeClasses,
   dividerClasses,
-  loadingTextClasses
+  loadingTextClasses,
+  bodyTextClasses,
+  inputClasses,
+  radioGroupClasses,
+  radioLabelClasses,
+  radioInputClasses,
+  radioTextClasses,
+  buttonCancelClasses,
+  flex1Classes,
+  disabledOpacityClasses,
+  flexSpaceXPtClasses,
+  subheadingClasses,
+  mb4Classes,
+  mt1Classes,
+  pt6Classes,
+  gridTwoColLgClasses,
+  gridTwoColMdClasses,
+  timeInputClasses
 } from '../../styles/commonClasses';
 
 interface TestEmailProps {
@@ -26,9 +44,27 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
   const [loadingUser, setLoadingUser] = useState(true);
   const [loading, setLoading] = useState(false);
   const [loadingSettings, setLoadingSettings] = useState(true);
+  const [loadingReminderSettings, setLoadingReminderSettings] = useState(true);
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  
+  // Reminder settings state
+  const [reminderType, setReminderType] = useState<'daily' | 'before_lock' | 'none'>('daily');
+  const [dailyReminderTime, setDailyReminderTime] = useState('10:00');
+  const [reminderTimezone, setReminderTimezone] = useState('America/New_York');
+  const [reminderFirstHours, setReminderFirstHours] = useState(48);
+  const [reminderFinalHours, setReminderFinalHours] = useState(6);
+  const [sendAdminSummary, setSendAdminSummary] = useState(true);
+  const [originalReminderType, setOriginalReminderType] = useState<'daily' | 'before_lock' | 'none'>('daily');
+  const [originalDailyReminderTime, setOriginalDailyReminderTime] = useState('10:00');
+  const [originalReminderTimezone, setOriginalReminderTimezone] = useState('America/New_York');
+  const [originalReminderFirstHours, setOriginalReminderFirstHours] = useState(48);
+  const [originalReminderFinalHours, setOriginalReminderFinalHours] = useState(6);
+  const [originalSendAdminSummary, setOriginalSendAdminSummary] = useState(true);
+  const [reminderSuccess, setReminderSuccess] = useState('');
+  const [reminderError, setReminderError] = useState('');
+  const [savingReminder, setSavingReminder] = useState(false);
 
   // Load current user info and settings on component mount
   useEffect(() => {
@@ -58,8 +94,33 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
       }
     };
 
+    const loadReminderSettings = async () => {
+      try {
+        const res = await api.get('/admin/settings');
+        setReminderType(res.data.reminder_type || 'daily');
+        const timeValue = res.data.daily_reminder_time || '10:00:00';
+        setDailyReminderTime(timeValue.substring(0, 5));
+        setReminderTimezone(res.data.reminder_timezone || 'America/New_York');
+        setReminderFirstHours(parseInt(res.data.reminder_first_hours) || 48);
+        setReminderFinalHours(parseInt(res.data.reminder_final_hours) || 6);
+        setSendAdminSummary(res.data.send_admin_summary !== undefined ? res.data.send_admin_summary : true);
+        
+        setOriginalReminderType(res.data.reminder_type || 'daily');
+        setOriginalDailyReminderTime(timeValue.substring(0, 5));
+        setOriginalReminderTimezone(res.data.reminder_timezone || 'America/New_York');
+        setOriginalReminderFirstHours(parseInt(res.data.reminder_first_hours) || 48);
+        setOriginalReminderFinalHours(parseInt(res.data.reminder_final_hours) || 6);
+        setOriginalSendAdminSummary(res.data.send_admin_summary !== undefined ? res.data.send_admin_summary : true);
+      } catch (err) {
+        console.error('Failed to load reminder settings:', err);
+      } finally {
+        setLoadingReminderSettings(false);
+      }
+    };
+
     loadCurrentUser();
     loadSettings();
+    loadReminderSettings();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,6 +155,80 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
       setError(err.response?.data?.error || 'Failed to update email notifications setting');
     }
   };
+
+  const handleSaveReminderSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setReminderError('');
+    setReminderSuccess('');
+
+    // Validate reminder settings based on type
+    if (reminderType === 'daily') {
+      if (!dailyReminderTime || !dailyReminderTime.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
+        setReminderError('Daily reminder time must be in HH:MM format');
+        return;
+      }
+    } else if (reminderType === 'before_lock') {
+      if (reminderFirstHours < 2 || reminderFirstHours > 168) {
+        setReminderError('First reminder hours must be between 2 and 168');
+        return;
+      }
+      if (reminderFinalHours < 1 || reminderFinalHours > 45) {
+        setReminderError('Final reminder hours must be between 1 and 45');
+        return;
+      }
+      if (reminderFirstHours <= reminderFinalHours) {
+        setReminderError('First reminder must be more hours before lock time than final reminder');
+        return;
+      }
+    }
+
+    setSavingReminder(true);
+
+    try {
+      await api.put('/admin/settings', {
+        appTitle: undefined, // Not updating these
+        appTagline: undefined,
+        footerMessage: undefined,
+        reminderType,
+        dailyReminderTime: reminderType === 'daily' ? dailyReminderTime + ':00' : undefined,
+        reminderTimezone: reminderType === 'daily' ? reminderTimezone : undefined,
+        reminderFirstHours: reminderType === 'before_lock' ? reminderFirstHours : undefined,
+        reminderFinalHours: reminderType === 'before_lock' ? reminderFinalHours : undefined,
+        sendAdminSummary
+      });
+      
+      setReminderSuccess('Reminder settings updated successfully!');
+      setOriginalReminderType(reminderType);
+      setOriginalDailyReminderTime(dailyReminderTime);
+      setOriginalReminderTimezone(reminderTimezone);
+      setOriginalReminderFirstHours(reminderFirstHours);
+      setOriginalReminderFinalHours(reminderFinalHours);
+      setOriginalSendAdminSummary(sendAdminSummary);
+    } catch (err: any) {
+      setReminderError(err.response?.data?.error || 'Failed to update reminder settings');
+    } finally {
+      setSavingReminder(false);
+    }
+  };
+
+  const handleResetReminderSettings = () => {
+    setReminderType(originalReminderType);
+    setDailyReminderTime(originalDailyReminderTime);
+    setReminderTimezone(originalReminderTimezone);
+    setReminderFirstHours(originalReminderFirstHours);
+    setReminderFinalHours(originalReminderFinalHours);
+    setSendAdminSummary(originalSendAdminSummary);
+    setReminderError('');
+    setReminderSuccess('');
+  };
+
+  const hasReminderChanges = 
+    reminderType !== originalReminderType ||
+    dailyReminderTime !== originalDailyReminderTime ||
+    reminderTimezone !== originalReminderTimezone ||
+    reminderFirstHours !== originalReminderFirstHours ||
+    reminderFinalHours !== originalReminderFinalHours ||
+    sendAdminSummary !== originalSendAdminSummary;
 
   return (
     <div>
@@ -133,7 +268,209 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
         </div>
       )}
 
+      {/* Reminder Email Settings */}
+      <div className={cardClasses + " mb-6"}>
+        <h3 className={`${subheadingClasses} ${mb4Classes}`}>Reminder Email Settings</h3>
+        <p className={`${bodyTextClasses} ${mt1Classes} ${mb4Classes}`}>
+          These settings control how and when reminder emails are sent to users who have not made their picks.
+          Only one reminder type can be active at a time.
+        </p>
+
+        {loadingReminderSettings ? (
+          <div className={loadingTextClasses}>Loading reminder settings...</div>
+        ) : (
+          <form onSubmit={handleSaveReminderSettings}>
+            {/* Success Message */}
+            {reminderSuccess && (
+              <div className={`${alertSuccessClasses} ${mb4Classes}`}>
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <p className={alertSuccessTextClasses}>{reminderSuccess}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {reminderError && (
+              <div className={`${alertErrorClasses} ${mb4Classes}`}>
+                <div className="flex items-start">
+                  <svg className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                  <p className={alertErrorTextClasses}>{reminderError}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Reminder Type Selection */}
+            <div className={mb4Classes}>
+              <label className={labelClasses}>Reminder Type</label>
+              <div className={radioGroupClasses}>
+                <label className={radioLabelClasses}>
+                  <input
+                    type="radio"
+                    name="reminderType"
+                    value="daily"
+                    checked={reminderType === 'daily'}
+                    onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock' | 'none')}
+                    className={radioInputClasses}
+                  />
+                  <span className={radioTextClasses}>Send reminder every day</span>
+                </label>
+                <label className={radioLabelClasses}>
+                  <input
+                    type="radio"
+                    name="reminderType"
+                    value="before_lock"
+                    checked={reminderType === 'before_lock'}
+                    onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock' | 'none')}
+                    className={radioInputClasses}
+                  />
+                  <span className={radioTextClasses}>Send reminders before lock time</span>
+                </label>
+                <label className={radioLabelClasses}>
+                  <input
+                    type="radio"
+                    name="reminderType"
+                    value="none"
+                    checked={reminderType === 'none'}
+                    onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock' | 'none')}
+                    className={radioInputClasses}
+                  />
+                  <span className={radioTextClasses}>Do not send reminder emails</span>
+                </label>
+              </div>
+            </div>
+
+            {/* Daily Reminder Settings */}
+            {reminderType === 'daily' && (
+              <div className={gridTwoColLgClasses}>
+                <div>
+                  <label htmlFor="dailyReminderTime" className={labelClasses}>
+                    Time of day to send
+                  </label>
+                  <input
+                    type="time"
+                    id="dailyReminderTime"
+                    value={dailyReminderTime}
+                    onChange={(e) => setDailyReminderTime(e.target.value)}
+                    className={timeInputClasses}
+                    required
+                  />
+                  <p className={`mt-1 ${helpTextClasses}`}>
+                    Daily reminders will be sent at this time
+                  </p>
+                </div>
+                
+                <div>
+                  <label htmlFor="reminderTimezone" className={labelClasses}>
+                    Daily Reminder Timezone
+                  </label>
+                  <TimezoneSelector
+                    value={reminderTimezone}
+                    onChange={setReminderTimezone}
+                    required
+                  />
+                  <p className={`mt-1 ${helpTextClasses}`}>
+                    Daily reminders will use this timezone
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Before Lock Reminder Settings */}
+            {reminderType === 'before_lock' && (
+              <div>
+                <div className={gridTwoColMdClasses}>
+                  <div>
+                    <label htmlFor="reminderFirstHours" className={labelClasses}>
+                      First Reminder (hours before lock time)
+                    </label>
+                    <input
+                      type="number"
+                      id="reminderFirstHours"
+                      value={reminderFirstHours}
+                      onChange={(e) => setReminderFirstHours(parseInt(e.target.value) || 0)}
+                      min="2"
+                      max="168"
+                      className={inputClasses}
+                      required
+                    />
+                    <p className={`mt-1 ${helpTextClasses}`}>
+                      Default: 48 hours. Users receive first reminder this many hours before picks lock (2-168 hours)
+                    </p>
+                  </div>
+
+                  <div>
+                    <label htmlFor="reminderFinalHours" className={labelClasses}>
+                      Final Reminder (hours before lock time)
+                    </label>
+                    <input
+                      type="number"
+                      id="reminderFinalHours"
+                      value={reminderFinalHours}
+                      onChange={(e) => setReminderFinalHours(parseInt(e.target.value) || 0)}
+                      min="1"
+                      max="45"
+                      className={inputClasses}
+                      required
+                    />
+                    <p className={`mt-1 ${helpTextClasses}`}>
+                      Default: 6 hours. Users receive final reminder this many hours before picks lock (1-45 hours)
+                    </p>
+                  </div>
+                </div>
+                <p className={`mt-3 ${helpTextClasses}`}>
+                  <strong>Note:</strong> Before-lock reminders use each sport's individual timezone from the lock time settings.
+                </p>
+              </div>
+            )}
+
+            {/* Admin Summary Email Checkbox */}
+            <div className={`${mb4Classes} ${pt6Classes}`}>
+              <label className={`${radioLabelClasses} cursor-pointer`}>
+                <input
+                  type="checkbox"
+                  checked={sendAdminSummary}
+                  onChange={(e) => setSendAdminSummary(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <span className={radioTextClasses}>Send admin summary when reminders go out</span>
+              </label>
+              <p className={`mt-2 ml-6 ${helpTextClasses}`}>
+                When enabled, admins will receive a summary email showing who has picked and who hasn't when player 
+                reminders are sent. This does not affect player reminder emails.
+              </p>
+            </div>
+
+            {/* Save/Reset Buttons */}
+            <div className={flexSpaceXPtClasses}>
+              <button
+                type="submit"
+                disabled={savingReminder || !hasReminderChanges}
+                className={`${flex1Classes} ${buttonPrimaryClasses} ${disabledOpacityClasses}`}
+              >
+                {savingReminder ? 'Saving...' : 'Save Reminder Settings'}
+              </button>
+              {hasReminderChanges && (
+                <button
+                  type="button"
+                  onClick={handleResetReminderSettings}
+                  className={buttonCancelClasses}
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          </form>
+        )}
+      </div>
+
       <div className={cardClasses}>
+        <h3 className={`${subheadingClasses} ${mb4Classes}`}>Send Test Email</h3>
+        
         {/* Info Box */}
         <div className={alertInfoClasses + " mb-6"}>
           <div className="flex items-start">

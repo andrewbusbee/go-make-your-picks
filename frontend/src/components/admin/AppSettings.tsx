@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import api from '../../utils/api';
-import TimezoneSelector from '../TimezoneSelector';
 import {
   headingClasses,
   bodyTextClasses,
@@ -35,7 +34,6 @@ import {
   formSectionLargeClasses,
   gridTwoColLgClasses,
   gridThreeColMdClasses,
-  gridTwoColMdClasses,
   warningBoxYellowClasses,
   warningTextYellowClasses,
   warningTextYellowSecondaryClasses,
@@ -48,15 +46,10 @@ import {
   mb2Classes,
   mb4Classes,
   pt6Classes,
-  radioGroupClasses,
-  radioLabelClasses,
-  radioInputClasses,
-  radioTextClasses,
   shadowClasses,
   flex1Classes,
   disabledOpacityClasses,
-  p4Classes,
-  timeInputClasses
+  p4Classes
 } from '../../styles/commonClasses';
 
 export default function AppSettings() {
@@ -69,12 +62,6 @@ export default function AppSettings() {
   const [pointsFourthPlace, setPointsFourthPlace] = useState(3);
   const [pointsFifthPlace, setPointsFifthPlace] = useState(2);
   const [pointsSixthPlusPlace, setPointsSixthPlusPlace] = useState(1);
-  const [reminderType, setReminderType] = useState<'daily' | 'before_lock' | 'none'>('daily');
-  const [dailyReminderTime, setDailyReminderTime] = useState('10:00');
-  const [reminderTimezone, setReminderTimezone] = useState('America/New_York');
-  const [reminderFirstHours, setReminderFirstHours] = useState(48);
-  const [reminderFinalHours, setReminderFinalHours] = useState(6);
-  const [sendAdminSummary, setSendAdminSummary] = useState(true);
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalTagline, setOriginalTagline] = useState('');
   const [originalFooterMessage, setOriginalFooterMessage] = useState('');
@@ -84,12 +71,6 @@ export default function AppSettings() {
   const [originalPointsFourthPlace, setOriginalPointsFourthPlace] = useState(3);
   const [originalPointsFifthPlace, setOriginalPointsFifthPlace] = useState(2);
   const [originalPointsSixthPlusPlace, setOriginalPointsSixthPlusPlace] = useState(1);
-  const [originalReminderType, setOriginalReminderType] = useState<'daily' | 'before_lock' | 'none'>('daily');
-  const [originalDailyReminderTime, setOriginalDailyReminderTime] = useState('10:00');
-  const [originalReminderTimezone, setOriginalReminderTimezone] = useState('America/New_York');
-  const [originalReminderFirstHours, setOriginalReminderFirstHours] = useState(48);
-  const [originalReminderFinalHours, setOriginalReminderFinalHours] = useState(6);
-  const [originalSendAdminSummary, setOriginalSendAdminSummary] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -111,14 +92,6 @@ export default function AppSettings() {
       setPointsFourthPlace(parseInt(res.data.points_fourth_place) || 3);
       setPointsFifthPlace(parseInt(res.data.points_fifth_place) || 2);
       setPointsSixthPlusPlace(parseInt(res.data.points_sixth_plus_place) || 1);
-      setReminderType(res.data.reminder_type || 'daily');
-      // Convert HH:MM:SS format to HH:MM format for the time input
-      const timeValue = res.data.daily_reminder_time || '10:00:00';
-      setDailyReminderTime(timeValue.substring(0, 5)); // Remove seconds part
-      setReminderTimezone(res.data.reminder_timezone || 'America/New_York');
-      setReminderFirstHours(parseInt(res.data.reminder_first_hours) || 48);
-      setReminderFinalHours(parseInt(res.data.reminder_final_hours) || 6);
-      setSendAdminSummary(res.data.send_admin_summary !== undefined ? res.data.send_admin_summary : true);
       
       setOriginalTitle(res.data.app_title || 'Go Make Your Picks');
       setOriginalTagline(res.data.app_tagline || 'Predict. Compete. Win.');
@@ -129,15 +102,6 @@ export default function AppSettings() {
       setOriginalPointsFourthPlace(parseInt(res.data.points_fourth_place) || 3);
       setOriginalPointsFifthPlace(parseInt(res.data.points_fifth_place) || 2);
       setOriginalPointsSixthPlusPlace(parseInt(res.data.points_sixth_plus_place) || 1);
-      
-      // Set original reminder values
-      const originalTimeValue = res.data.daily_reminder_time || '10:00:00';
-      setOriginalReminderType(res.data.reminder_type || 'daily');
-      setOriginalDailyReminderTime(originalTimeValue.substring(0, 5)); // Remove seconds part
-      setOriginalReminderTimezone(res.data.reminder_timezone || 'America/New_York');
-      setOriginalReminderFirstHours(parseInt(res.data.reminder_first_hours) || 48);
-      setOriginalReminderFinalHours(parseInt(res.data.reminder_final_hours) || 6);
-      setOriginalSendAdminSummary(res.data.send_admin_summary !== undefined ? res.data.send_admin_summary : true);
       
       setLoadingSettings(false);
     } catch (error) {
@@ -168,31 +132,6 @@ export default function AppSettings() {
       }
     }
 
-    // Validate reminder settings based on type
-    if (reminderType === 'daily') {
-      // Validate daily reminder time format
-      if (!dailyReminderTime || !dailyReminderTime.match(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)) {
-        setError('Daily reminder time must be in HH:MM format');
-        return;
-      }
-    } else if (reminderType === 'before_lock') {
-      // Validate reminder hours
-      if (reminderFirstHours < 2 || reminderFirstHours > 168) {
-        setError('First reminder hours must be between 2 and 168');
-        return;
-      }
-
-      if (reminderFinalHours < 1 || reminderFinalHours > 45) {
-        setError('Final reminder hours must be between 1 and 45');
-        return;
-      }
-
-      if (reminderFirstHours <= reminderFinalHours) {
-        setError('First reminder must be more hours before lock time than final reminder');
-        return;
-      }
-    }
-
     setLoading(true);
 
     try {
@@ -205,13 +144,7 @@ export default function AppSettings() {
         pointsThirdPlace,
         pointsFourthPlace,
         pointsFifthPlace,
-        pointsSixthPlusPlace,
-        reminderType,
-        dailyReminderTime: reminderType === 'daily' ? dailyReminderTime + ':00' : undefined,
-        reminderTimezone: reminderType === 'daily' ? reminderTimezone : undefined,
-        reminderFirstHours: reminderType === 'before_lock' ? reminderFirstHours : undefined,
-        reminderFinalHours: reminderType === 'before_lock' ? reminderFinalHours : undefined,
-        sendAdminSummary
+        pointsSixthPlusPlace
       });
       
       setSuccess('Settings updated successfully! Leaderboard scores will update automatically. Refresh the page to see the new scores.');
@@ -224,12 +157,6 @@ export default function AppSettings() {
       setOriginalPointsFourthPlace(pointsFourthPlace);
       setOriginalPointsFifthPlace(pointsFifthPlace);
       setOriginalPointsSixthPlusPlace(pointsSixthPlusPlace);
-      setOriginalReminderType(reminderType);
-      setOriginalDailyReminderTime(dailyReminderTime);
-      setOriginalReminderTimezone(reminderTimezone);
-      setOriginalReminderFirstHours(reminderFirstHours);
-      setOriginalReminderFinalHours(reminderFinalHours);
-      setOriginalSendAdminSummary(sendAdminSummary);
       
       // Force reload leaderboard data by triggering a re-render
       setTimeout(() => {
@@ -252,12 +179,6 @@ export default function AppSettings() {
     setPointsFourthPlace(originalPointsFourthPlace);
     setPointsFifthPlace(originalPointsFifthPlace);
     setPointsSixthPlusPlace(originalPointsSixthPlusPlace);
-    setReminderType(originalReminderType);
-    setDailyReminderTime(originalDailyReminderTime);
-    setReminderTimezone(originalReminderTimezone);
-    setReminderFirstHours(originalReminderFirstHours);
-    setReminderFinalHours(originalReminderFinalHours);
-    setSendAdminSummary(originalSendAdminSummary);
     setError('');
     setSuccess('');
   };
@@ -271,13 +192,7 @@ export default function AppSettings() {
     pointsThirdPlace !== originalPointsThirdPlace ||
     pointsFourthPlace !== originalPointsFourthPlace ||
     pointsFifthPlace !== originalPointsFifthPlace ||
-    pointsSixthPlusPlace !== originalPointsSixthPlusPlace ||
-    reminderType !== originalReminderType ||
-    dailyReminderTime !== originalDailyReminderTime ||
-    reminderTimezone !== originalReminderTimezone ||
-    reminderFirstHours !== originalReminderFirstHours ||
-    reminderFinalHours !== originalReminderFinalHours ||
-    sendAdminSummary !== originalSendAdminSummary;
+    pointsSixthPlusPlace !== originalPointsSixthPlusPlace;
 
   if (loadingSettings) {
     return (
@@ -408,160 +323,6 @@ export default function AppSettings() {
             </div>
 
           </div>
-
-            <hr className={dividerClasses} />
-
-            {/* Reminder Settings */}
-            <div className={pt6Classes}>
-              <h3 className={subheadingClasses}>Reminder Email Settings</h3>
-              <p className={`${bodyTextClasses} ${mt1Classes} ${mb4Classes}`}>
-                These settings control how and when reminder emails are sent to users who have not made their picks.
-                Only one reminder type can be active at a time.
-              </p>
-              
-              {/* Reminder Type Selection */}
-              <div className={mb4Classes}>
-                <label className={labelClasses}>
-                  Reminder Type
-                </label>
-                <div className={radioGroupClasses}>
-                  <label className={radioLabelClasses}>
-                    <input
-                      type="radio"
-                      name="reminderType"
-                      value="daily"
-                      checked={reminderType === 'daily'}
-                      onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock' | 'none')}
-                      className={radioInputClasses}
-                    />
-                    <span className={radioTextClasses}>Send reminder every day</span>
-                  </label>
-                  <label className={radioLabelClasses}>
-                    <input
-                      type="radio"
-                      name="reminderType"
-                      value="before_lock"
-                      checked={reminderType === 'before_lock'}
-                      onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock' | 'none')}
-                      className={radioInputClasses}
-                    />
-                    <span className={radioTextClasses}>Send reminders before lock time</span>
-                  </label>
-                  <label className={radioLabelClasses}>
-                    <input
-                      type="radio"
-                      name="reminderType"
-                      value="none"
-                      checked={reminderType === 'none'}
-                      onChange={(e) => setReminderType(e.target.value as 'daily' | 'before_lock' | 'none')}
-                      className={radioInputClasses}
-                    />
-                    <span className={radioTextClasses}>Do not send reminder emails</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Daily Reminder Settings */}
-              {reminderType === 'daily' && (
-                <div className={gridTwoColLgClasses}>
-                  <div>
-                    <label htmlFor="dailyReminderTime" className={labelClasses}>
-                      Time of day to send
-                    </label>
-                    <input
-                      type="time"
-                      id="dailyReminderTime"
-                      value={dailyReminderTime}
-                      onChange={(e) => setDailyReminderTime(e.target.value)}
-                      className={timeInputClasses}
-                      required
-                    />
-                    <p className={`mt-1 ${helpTextClasses}`}>
-                      Daily reminders will be sent at this time
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="reminderTimezone" className={labelClasses}>
-                      Daily Reminder Timezone
-                    </label>
-                    <TimezoneSelector
-                      value={reminderTimezone}
-                      onChange={setReminderTimezone}
-                      required
-                    />
-                    <p className={`mt-1 ${helpTextClasses}`}>
-                      Daily reminders will use this timezone
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Before Lock Reminder Settings */}
-              {reminderType === 'before_lock' && (
-                <div>
-                  <div className={gridTwoColMdClasses}>
-                    <div>
-                      <label htmlFor="reminderFirstHours" className={labelClasses}>
-                        First Reminder (hours before lock time)
-                      </label>
-                      <input
-                        type="number"
-                        id="reminderFirstHours"
-                        value={reminderFirstHours}
-                        onChange={(e) => setReminderFirstHours(parseInt(e.target.value) || 0)}
-                        min="2"
-                        max="168"
-                        className={inputClasses}
-                        required
-                      />
-                      <p className={`mt-1 ${helpTextClasses}`}>
-                        Default: 48 hours. Users receive first reminder this many hours before picks lock (2-168 hours)
-                      </p>
-                    </div>
-
-                    <div>
-                      <label htmlFor="reminderFinalHours" className={labelClasses}>
-                        Final Reminder (hours before lock time)
-                      </label>
-                      <input
-                        type="number"
-                        id="reminderFinalHours"
-                        value={reminderFinalHours}
-                        onChange={(e) => setReminderFinalHours(parseInt(e.target.value) || 0)}
-                        min="1"
-                        max="45"
-                        className={inputClasses}
-                        required
-                      />
-                      <p className={`mt-1 ${helpTextClasses}`}>
-                        Default: 6 hours. Users receive final reminder this many hours before picks lock (1-45 hours)
-                      </p>
-                    </div>
-                  </div>
-                  <p className={`mt-3 ${helpTextClasses}`}>
-                    <strong>Note:</strong> Before-lock reminders use each sport's individual timezone from the lock time settings.
-                  </p>
-                </div>
-              )}
-
-              {/* Admin Summary Email Checkbox */}
-              <div className={`${mb4Classes} ${pt6Classes}`}>
-                <label className={`${radioLabelClasses} cursor-pointer`}>
-                  <input
-                    type="checkbox"
-                    checked={sendAdminSummary}
-                    onChange={(e) => setSendAdminSummary(e.target.checked)}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <span className={radioTextClasses}>Send admin summary when reminders go out</span>
-                </label>
-                <p className={`mt-2 ml-6 ${helpTextClasses}`}>
-                  When enabled, admins will receive a summary email showing who has picked and who hasn't when player 
-                  reminders are sent. This does not affect player reminder emails.
-                </p>
-              </div>
-            </div>
 
             <hr className={dividerClasses} />
 
