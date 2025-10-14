@@ -206,13 +206,15 @@ export class ScoringService {
         `SELECT 
           u.id as user_id,
           u.name,
-          SUM(COALESCE(s.first_place, 0) * ?) +
-          SUM(COALESCE(s.second_place, 0) * ?) +
-          SUM(COALESCE(s.third_place, 0) * ?) +
-          SUM(COALESCE(s.fourth_place, 0) * ?) +
-          SUM(COALESCE(s.fifth_place, 0) * ?) +
-          SUM(COALESCE(s.sixth_plus_place, 0) * ?) +
-          SUM(COALESCE(s.no_pick, 0) * ?) as total_points
+          CAST(
+            SUM(COALESCE(s.first_place, 0) * ?) +
+            SUM(COALESCE(s.second_place, 0) * ?) +
+            SUM(COALESCE(s.third_place, 0) * ?) +
+            SUM(COALESCE(s.fourth_place, 0) * ?) +
+            SUM(COALESCE(s.fifth_place, 0) * ?) +
+            SUM(COALESCE(s.sixth_plus_place, 0) * ?) +
+            SUM(COALESCE(s.no_pick, 0) * ?)
+          AS SIGNED) as total_points
         FROM users u
         JOIN season_participants sp ON u.id = sp.user_id
         LEFT JOIN scores s ON u.id = s.user_id
@@ -336,20 +338,22 @@ export class ScoringService {
 
       const [result] = await db.query<RowDataPacket[]>(
         `SELECT 
-          SUM(COALESCE(s.first_place, 0) * ?) +
-          SUM(COALESCE(s.second_place, 0) * ?) +
-          SUM(COALESCE(s.third_place, 0) * ?) +
-          SUM(COALESCE(s.fourth_place, 0) * ?) +
-          SUM(COALESCE(s.fifth_place, 0) * ?) +
-          SUM(COALESCE(s.sixth_plus_place, 0) * ?) +
-          SUM(COALESCE(s.no_pick, 0) * ?) as total_points
+          CAST(
+            SUM(COALESCE(s.first_place, 0) * ?) +
+            SUM(COALESCE(s.second_place, 0) * ?) +
+            SUM(COALESCE(s.third_place, 0) * ?) +
+            SUM(COALESCE(s.fourth_place, 0) * ?) +
+            SUM(COALESCE(s.fifth_place, 0) * ?) +
+            SUM(COALESCE(s.sixth_plus_place, 0) * ?) +
+            SUM(COALESCE(s.no_pick, 0) * ?)
+          AS SIGNED) as total_points
         FROM scores s
         JOIN rounds r ON s.round_id = r.id
         WHERE s.user_id = ? AND r.season_id = ?`,
         [points.pointsFirst, points.pointsSecond, points.pointsThird, points.pointsFourth, points.pointsFifth, points.pointsSixthPlus, points.pointsNoPick, userId, seasonId]
       );
 
-      return result[0]?.total_points || 0;
+      return Number(result[0]?.total_points) || 0;
     } catch (error) {
       logger.error('ScoringService.calculateUserTotalPoints error', { error, userId, seasonId });
       throw error;

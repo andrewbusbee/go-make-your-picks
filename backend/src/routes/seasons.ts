@@ -676,25 +676,36 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
       // Calculate final standings using centralized ScoringService
       const leaderboard = await ScoringService.calculateFinalStandings(seasonId);
 
-      logger.debug('Leaderboard results', { count: leaderboard.length, results: leaderboard });
+      logger.debug('Leaderboard results (raw)', { count: leaderboard.length, results: leaderboard });
 
       // Clear any existing winners for this season (in case of previous failed attempts)
       await connection.query('DELETE FROM season_winners WHERE season_id = ?', [seasonId]);
 
       // Handle ties properly - assign ranks with tie handling
       let currentRank = 1;
-      let currentScore = leaderboard.length > 0 ? leaderboard[0].total_points : 0;
+      let currentScore = leaderboard.length > 0 ? Number(leaderboard[0].total_points) : 0;
       let tiedCount = 1;
       
       for (let i = 0; i < leaderboard.length && i < 5; i++) { // Store up to 5 winners for podium flexibility
         const player = leaderboard[i];
+        const playerScore = Number(player.total_points);
+        
+        logger.debug('Processing player for winner insertion', {
+          index: i,
+          playerName: player.name,
+          playerScore,
+          playerScoreType: typeof player.total_points,
+          currentScore,
+          currentScoreType: typeof currentScore,
+          comparison: playerScore < currentScore ? 'less' : playerScore === currentScore ? 'equal' : 'greater'
+        });
         
         // If this player has a different score than the previous, update rank
-        if (i > 0 && player.total_points < currentScore) {
+        if (i > 0 && playerScore < currentScore) {
           currentRank += tiedCount; // Skip ranks after ties
-          currentScore = player.total_points;
+          currentScore = playerScore;
           tiedCount = 1;
-        } else if (i > 0 && player.total_points === currentScore) {
+        } else if (i > 0 && playerScore === currentScore) {
           // Same score as previous player - they're tied, keep the same rank
           tiedCount++;
         }
@@ -703,7 +714,7 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
           seasonId, 
           place: currentRank, 
           userId: player.user_id, 
-          totalPoints: player.total_points,
+          totalPoints: playerScore,
           pointSettings: points
         });
         
@@ -712,7 +723,7 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
           `INSERT INTO season_winners 
            (season_id, place, user_id, total_points, points_first_place, points_second_place, points_third_place, points_fourth_place, points_fifth_place, points_sixth_plus_place) 
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [seasonId, currentRank, player.user_id, player.total_points, points.pointsFirst, points.pointsSecond, points.pointsThird, points.pointsFourth, points.pointsFifth, points.pointsSixthPlus]
+          [seasonId, currentRank, player.user_id, playerScore, points.pointsFirst, points.pointsSecond, points.pointsThird, points.pointsFourth, points.pointsFifth, points.pointsSixthPlus]
         );
       }
 
