@@ -193,11 +193,25 @@ export default function HomePage() {
                   className={`${selectClasses} mt-1 block w-full md:w-64`}
                   disabled={allSeasons.length === 1}
                 >
-                  {allSeasons.map(season => (
-                    <option key={season.id} value={season.id}>
-                      {season.name} {season.is_default === 1 ? '(Default)' : ''} {season.is_active ? '' : '(Inactive)'}
-                    </option>
-                  ))}
+                  {([...allSeasons]
+                    .sort((a, b) => {
+                      // Derive end year: prefer explicit year_end/ended_at, fallback to name parsing if needed
+                      const aEnd = a.ended_at ? new Date(a.ended_at).getTime() : (a.year_end ? Number(a.year_end) : 0);
+                      const bEnd = b.ended_at ? new Date(b.ended_at).getTime() : (b.year_end ? Number(b.year_end) : 0);
+                      return bEnd - aEnd; // newest first
+                    })
+                  ).map(season => {
+                    const endYear = season.year_end
+                      ? season.year_end
+                      : (season.ended_at ? new Date(season.ended_at).getFullYear() : '');
+                    const defaultLabel = season.is_default === 1 ? ' (Default)' : '';
+                    const inactiveLabel = season.is_active ? '' : ' (Inactive)';
+                    return (
+                      <option key={season.id} value={season.id}>
+                        {season.name}{endYear ? ` - ${endYear}` : ''}{defaultLabel}{inactiveLabel}
+                      </option>
+                    );
+                  })}
                 </select>
                 
                 {/* Commissioner Display */}

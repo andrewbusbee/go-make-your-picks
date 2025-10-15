@@ -268,13 +268,17 @@ export default function AdminPicksManagement() {
               className={selectClasses}
             >
               <option value="">Select a Season</option>
-              {seasons.map(season => (
-                <option key={season.id} value={season.id}>
-                  {season.name}
-                  {season.is_default === 1 ? ' (Default)' : ''}
-                  {season.ended_at ? ' (Ended)' : ''}
-                </option>
-              ))}
+              {seasons.map(season => {
+                const start = season.year_start ?? (season.started_at ? new Date(season.started_at).getFullYear() : '');
+                const end = season.year_end ?? (season.ended_at ? new Date(season.ended_at).getFullYear() : '');
+                const suffixDefault = season.is_default === 1 ? ' (Default)' : '';
+                const suffixEnded = season.ended_at ? ' (Ended)' : '';
+                return (
+                  <option key={season.id} value={season.id}>
+                    {season.name} ({start}{start && end ? ' - ' : ''}{end}){suffixDefault}{suffixEnded}
+                  </option>
+                );
+              })}
             </select>
           </div>
 
