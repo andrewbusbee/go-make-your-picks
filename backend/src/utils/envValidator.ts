@@ -26,8 +26,7 @@ const productionConfig: EnvConfig = {
     'PORT',
     'SMTP_PORT',
     'SMTP_SECURE',
-    'SMTP_FROM',
-    'SMTP_FROM_NAME'
+    'SMTP_FROM'
   ]
 };
 
@@ -48,7 +47,6 @@ const developmentConfig: EnvConfig = {
     'SMTP_PORT',
     'SMTP_SECURE',
     'SMTP_FROM',
-    'SMTP_FROM_NAME',
     'APP_URL'
   ]
 };

@@ -256,7 +256,7 @@ export const sendMagicLink = async (
   }
 
   const settings = await getSettings();
-  const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
+  const fromName = settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
   
   // Check if email is shared by multiple players
@@ -336,7 +336,7 @@ export const sendLockedNotification = async (
   }
 
   const settings = await getSettings();
-  const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
+  const fromName = settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
   
   // Format names for greeting
@@ -409,7 +409,7 @@ export const sendSportCompletionEmail = async (
 
   const settings = await getSettings();
   const pointsSettings = await SettingsService.getPointsSettings();
-  const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
+  const fromName = settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
   
   // Format final results with medals and points
@@ -540,7 +540,7 @@ export const sendPasswordResetEmail = async (
   // NOTE: Password reset emails are ALWAYS sent (authentication/security)
   // They are not affected by the email notifications toggle
   const settings = await getSettings();
-  const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
+  const fromName = settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
   
   const bodyHtml = `
@@ -600,7 +600,7 @@ export const sendAdminMagicLink = async (
   // NOTE: Admin login emails are ALWAYS sent (authentication/security)
   // They are not affected by the email notifications toggle
   const settings = await getSettings();
-  const fromName = process.env.SMTP_FROM_NAME || settings.app_title;
+  const fromName = settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
   
   const bodyHtml = `
