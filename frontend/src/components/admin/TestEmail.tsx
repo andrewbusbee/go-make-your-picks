@@ -450,22 +450,24 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
               </div>
             )}
 
-            {/* Admin Summary Email Checkbox */}
-            <div className={`${mb4Classes} ${pt6Classes}`}>
-              <label className={`${radioLabelClasses} cursor-pointer`}>
-                <input
-                  type="checkbox"
-                  checked={sendAdminSummary}
-                  onChange={(e) => setSendAdminSummary(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                />
-                <span className={radioTextClasses}>Send admin summary when reminders go out</span>
-              </label>
-              <p className={`mt-2 ml-6 ${helpTextClasses}`}>
-                When enabled, admins will receive a summary email showing who has picked and who hasn't when player 
-                reminders are sent. This does not affect player reminder emails.
-              </p>
-            </div>
+            {/* Admin Summary Email Checkbox - hidden when reminders disabled */}
+            {reminderType !== 'none' && (
+              <div className={`${mb4Classes} ${pt6Classes}`}>
+                <label className={`${radioLabelClasses} cursor-pointer`}>
+                  <input
+                    type="checkbox"
+                    checked={sendAdminSummary}
+                    onChange={(e) => setSendAdminSummary(e.target.checked)}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <span className={radioTextClasses}>Send admin summary when reminders go out</span>
+                </label>
+                <p className={`mt-2 ml-6 ${helpTextClasses}`}>
+                  When enabled, admins will receive a summary email showing who has picked and who hasn't when player 
+                  reminders are sent. This does not affect player reminder emails.
+                </p>
+              </div>
+            )}
 
             {/* Save/Reset Buttons */}
             <div className={flexSpaceXPtClasses}>
