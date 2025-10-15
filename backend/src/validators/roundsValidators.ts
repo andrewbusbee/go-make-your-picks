@@ -123,7 +123,6 @@ export const completeRoundValidators = [
   
   body('firstPlaceTeam')
     .trim()
-    .escape()
     .notEmpty().withMessage('Champion (1st place) is required')
     .isLength({ max: 255 }).withMessage('Team name must be 255 characters or less'),
   

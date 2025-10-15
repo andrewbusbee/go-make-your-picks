@@ -13,6 +13,7 @@ import { createRoundValidators, updateRoundValidators, completeRoundValidators }
 import { SettingsService } from '../services/settingsService';
 import logger, { redactEmail } from '../utils/logger';
 import { withTransaction } from '../utils/transactionWrapper';
+import { sanitizePlainText, sanitizePlainTextArray } from '../utils/textSanitizer';
 
 const router = express.Router();
 
@@ -398,8 +399,9 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
             throw new Error('Team names must be 100 characters or less');
           }
         }
-        
-        const teamValues = teams.map((team: string) => [roundId, team]);
+        // Sanitize inputs without HTML-encoding characters like '/'
+        const cleanedTeams = sanitizePlainTextArray(teams);
+        const teamValues = cleanedTeams.map((team: string) => [roundId, team]);
         await connection.query(
           'INSERT INTO round_teams (round_id, team_name) VALUES ?',
           [teamValues]
@@ -1050,7 +1052,8 @@ router.post('/:id/teams', authenticateAdmin, async (req: AuthRequest, res: Respo
   }
 
   try {
-    const teamValues = teams.map((team: string) => [roundId, team]);
+    const cleaned = sanitizePlainTextArray(teams);
+    const teamValues = cleaned.map((team: string) => [roundId, team]);
     await db.query(
       'INSERT INTO round_teams (round_id, team_name) VALUES ?',
       [teamValues]

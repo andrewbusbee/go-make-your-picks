@@ -5,6 +5,7 @@
 
 import { PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import logger from '../utils/logger';
+import { sanitizePlainTextArray } from '../utils/textSanitizer';
 
 export interface SubmitPickOptions {
   userId: number;
@@ -59,16 +60,19 @@ export class PicksService {
     const { userId, roundId, picks, validateTeams = false } = options;
 
     try {
-      // Validate pick values
+      // Validate pick values (length only)
       for (const pick of picks) {
         if (pick && pick.length > 100) {
           throw new Error('Pick values must be 100 characters or less');
         }
       }
 
+      // Sanitize picks to strip tags but not encode '/'
+      const cleanedPicks = sanitizePlainTextArray(picks);
+
       // Validate against teams if requested
       if (validateTeams) {
-        const validation = await this.validatePicksAgainstTeams(connection, roundId, picks);
+        const validation = await this.validatePicksAgainstTeams(connection, roundId, cleanedPicks);
         if (!validation.valid) {
           throw new Error(validation.error);
         }
@@ -105,7 +109,7 @@ export class PicksService {
       );
 
       // Insert new pick items
-      const pickItemValues = picks
+      const pickItemValues = cleanedPicks
         .filter(p => p && p.trim().length > 0)
         .map((pick, index) => [pickId, index + 1, pick]);
 
