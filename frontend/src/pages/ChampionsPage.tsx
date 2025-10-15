@@ -149,7 +149,7 @@ export default function ChampionsPage() {
               </h2>
               
               <p className={championsHeaderTaglineClasses}>
-                "{appTagline}"
+                {appTagline}
               </p>
               
               <div className={championsHeaderInfoClasses}>
