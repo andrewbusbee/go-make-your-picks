@@ -203,8 +203,11 @@ router.get('/champions', async (req, res) => {
        AND deleted_at IS NULL`
     );
 
-    // Get current commissioner (from most recent ended season)
-    const currentCommissioner = champions.length > 0 ? champions[0].commissioner : null;
+    // Get current commissioner from admins table (authoritative)
+    const [commissionerRows] = await db.query<RowDataPacket[]>(
+      `SELECT name FROM admins WHERE is_commissioner = TRUE LIMIT 1`
+    );
+    const currentCommissioner = commissionerRows[0]?.name || null;
 
     res.json({
       champions,
