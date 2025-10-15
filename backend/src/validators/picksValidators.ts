@@ -31,8 +31,13 @@ export const adminCreatePickValidators = [
     .isInt({ min: 1 }).withMessage('Valid round ID is required'),
   
   body('picks')
-    .isArray({ min: 1, max: 10 }).withMessage('Picks must be an array with 1-10 items')
+    .isArray({ min: 0, max: 10 }).withMessage('Picks must be an array with 0-10 items')
     .custom((picks) => {
+      // Allow empty array for clearing picks
+      if (picks.length === 0) {
+        return true;
+      }
+      
       const invalidPicks = picks.filter((pick: any) => 
         typeof pick !== 'string' || pick.trim().length === 0 || pick.length > 100
       );

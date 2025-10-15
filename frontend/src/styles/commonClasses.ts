@@ -932,7 +932,7 @@ export const championsHeaderInfoClasses =
 
 // Individual champion brass plate
 export const championPlateClasses = 
-  "rounded-lg p-4 h-24 md:h-28 flex flex-col justify-center items-center text-center relative overflow-hidden transition-all duration-300 hover:scale-105 " +
+  "rounded-lg p-4 h-24 md:h-28 flex flex-col justify-center items-center text-center relative overflow-hidden " +
   "[background:linear-gradient(180deg,#d7c088_0%,#c2a162_40%,#9a763a_64%,#7b5a23_78%,#cfb873_100%),radial-gradient(100%_60%_at_50%_0%,rgba(255,255,255,.14),transparent_60%),linear-gradient(180deg,transparent_0_60%,rgba(0,0,0,.07)_60%,transparent_61%)] " +
   "border border-amber-200";
 
@@ -959,10 +959,9 @@ export const championsEmptyStateTextClasses =
 
 // Champions button (for navigation)
 export const championsButtonClasses = 
-  "bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700 " +
+  "bg-gradient-to-r from-yellow-600 to-amber-600 " +
   "text-white px-4 py-2 rounded-lg font-semibold " +
-  "shadow-lg shadow-yellow-900/30 " +
-  "transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-yellow-900/40";
+  "shadow-lg shadow-yellow-900/30";
 
 // ============================================================================
 // MOBILE NAVIGATION STYLES

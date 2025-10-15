@@ -24,6 +24,7 @@ import {
   formSectionClasses,
   inputClasses,
   buttonLinkEditClasses,
+  buttonLinkDangerClasses,
   textMediumClasses,
   textCapitalizeClasses,
   textRedClasses,
@@ -364,9 +365,9 @@ export default function AdminPicksManagement() {
                   <td className={`${tableCellClasses} font-medium`}>
                     {pickData.userName}
                   </td>
-                  <td className={`px-6 py-4 ${bodyTextClasses}`}>
+                  <td className={`${tableCellClasses}`}>
                     {pickData.pick && pickData.pick.pickItems && pickData.pick.pickItems.length > 0 ? (
-                      <span className={headingClasses}>
+                      <span>
                         {pickData.pick.pickItems.map((item: any, i: number) => (
                           <span key={i}>
                             {item.pickValue}
