@@ -223,8 +223,8 @@ export class ScoringService {
           AS SIGNED) as total_points
         FROM users u
         JOIN season_participants sp ON u.id = sp.user_id
-        LEFT JOIN scores s ON u.id = s.user_id
-        LEFT JOIN rounds r ON s.round_id = r.id AND r.season_id = ? AND r.deleted_at IS NULL
+        LEFT JOIN rounds r ON r.season_id = ? AND r.deleted_at IS NULL
+        LEFT JOIN scores s ON u.id = s.user_id AND s.round_id = r.id
         WHERE sp.season_id = ?
         GROUP BY u.id, u.name
         ORDER BY total_points DESC`,
@@ -366,7 +366,7 @@ export class ScoringService {
           AS SIGNED) as total_points
         FROM scores s
         JOIN rounds r ON s.round_id = r.id
-        WHERE s.user_id = ? AND r.season_id = ?`,
+        WHERE s.user_id = ? AND r.season_id = ? AND r.deleted_at IS NULL`,
         [points.pointsFirst, points.pointsSecond, points.pointsThird, points.pointsFourth, points.pointsFifth, points.pointsSixthPlus, points.pointsNoPick, userId, seasonId]
       );
 
