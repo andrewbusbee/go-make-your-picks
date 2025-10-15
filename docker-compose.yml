@@ -47,7 +47,6 @@ services:
       SMTP_SECURE: ${SMTP_SECURE}
       SMTP_USER: ${SMTP_USER}
       SMTP_PASSWORD: ${SMTP_PASSWORD}
-      SMTP_FROM: ${SMTP_FROM}
       APP_URL: ${APP_URL}
       ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS}
     depends_on:

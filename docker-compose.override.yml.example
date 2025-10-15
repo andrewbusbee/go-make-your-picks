@@ -31,7 +31,6 @@ services:
       SMTP_USER: your-email@gmail.com
       SMTP_PASSWORD: your-gmail-app-password
       SMTP_FROM: noreply@yourdomain.com
-      SMTP_FROM_NAME: "Go Make Your Picks"
       
       # Application URL (used in magic links)
       APP_URL: http://localhost:3003
