@@ -251,6 +251,28 @@ export default function AdminPicksManagement() {
     }
   };
 
+  const handleClearPick = async (userId: number, userName: string) => {
+    if (!window.confirm(`Are you sure you want to clear the pick for ${userName}?`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Submit empty picks array to clear the pick
+      await api.post('/admin/picks', {
+        userId: userId,
+        roundId: selectedRoundId,
+        picks: [] // Empty array will clear the pick
+      });
+
+      await loadPicks(selectedRoundId!);
+    } catch (err: any) {
+      alert(err.response?.data?.error || 'Failed to clear pick');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div>
       <h2 className={headingClasses + " mb-6"}>Manage Picks</h2>
@@ -375,12 +397,22 @@ export default function AdminPicksManagement() {
                   </td>
                   <td className={`${tableCellClasses} text-right`}>
                     {roundDetails.status !== 'completed' && (
-                      <button
-                        onClick={() => openPickModal(pickData, pickData.pick)}
-                        className={buttonLinkEditClasses}
-                      >
-                        {pickData.pick ? 'Edit' : 'Add'} Pick
-                      </button>
+                      <div className="flex gap-2 justify-end">
+                        <button
+                          onClick={() => openPickModal(pickData, pickData.pick)}
+                          className={buttonLinkEditClasses}
+                        >
+                          {pickData.pick ? 'Edit' : 'Add'} Pick
+                        </button>
+                        {pickData.pick && (
+                          <button
+                            onClick={() => handleClearPick(pickData.userId, pickData.userName)}
+                            className={buttonLinkDangerClasses}
+                          >
+                            Clear Pick
+                          </button>
+                        )}
+                      </div>
                     )}
                   </td>
                 </tr>

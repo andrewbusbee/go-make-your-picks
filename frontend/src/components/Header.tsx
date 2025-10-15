@@ -102,10 +102,19 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
           
           {/* Desktop Navigation */}
           <div className={mobileNavigationDesktopClasses}>
-            {/* Champions Button */}
-            <Link to="/champions" className={championsButtonClasses}>
-              🏆 Champions
-            </Link>
+            {/* Champions Button - only show if not on champions page */}
+            {showChampionsLink && (
+              <Link to="/champions" className={championsButtonClasses}>
+                🏆 Champions
+              </Link>
+            )}
+            
+            {/* Home Button - only show if not on home page */}
+            {showHomeLink && (
+              <Link to="/" className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition">
+                🏠 Home
+              </Link>
+            )}
             
             {/* Admin Button */}
             {showAdminLink && (
