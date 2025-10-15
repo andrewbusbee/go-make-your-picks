@@ -763,7 +763,7 @@ export default function RoundsManagement() {
             const activeRounds = rounds.filter(round => round.status === 'active');
             if (activeRounds.length > 0) {
               return (
-                <div className={sectionWithDividerClasses}>
+                <div className="mb-8">
                   <h3 className={activeSectionHeaderClasses}>⚡ Active - Picks in Progress</h3>
                   <div className={gridTwoColClasses}>
                     {activeRounds.map((round) => (
