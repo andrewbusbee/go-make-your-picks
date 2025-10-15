@@ -48,6 +48,27 @@
   font-weight: 400; font-style: normal; font-display: swap;
 }
 
+/* Custom font family utility classes */
+.font-cinzel-decorative {
+  font-family: 'Cinzel Decorative', serif;
+}
+
+.font-cormorant-sc {
+  font-family: 'Cormorant SC', serif;
+}
+
+.font-italianno {
+  font-family: 'Italianno', cursive;
+}
+
+/* Engraved text effect - perfect carved look */
+.engraved-text {
+  text-shadow: 
+    1px 1px 0 rgba(0, 0, 0, 0.8),
+    -1px -1px 0 rgba(255, 255, 255, 0.5),
+    0 0 2px rgba(0, 0, 0, 0.7);
+}
+
 :root {
   --tooltip-bg: #ffffff;
   --tooltip-border: #e5e7eb;

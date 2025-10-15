@@ -910,10 +910,8 @@ export const championsWallTitleClasses =
 // Antique brass plate background
 export const championsHeaderPlateClasses = 
   "rounded-lg p-6 md:p-8 mx-auto mb-8 col-span-2 text-center relative overflow-hidden " +
-  "border-2 " +
-  "[background:linear-gradient(180deg,#d7c088_0%,#c2a162_40%,#9a763a_64%,#7b5a23_78%,#cfb873_100%)," +
-  "radial-gradient(100%_60%_at_50%_0%,rgba(255,255,255,.14),transparent_60%)," +
-  "linear-gradient(180deg,transparent_0_60%,rgba(0,0,0,.07)_60%,transparent_61%)] " +
+  "border border-amber-200 " +
+  "[background:linear-gradient(180deg,#d7c088_0%,#c2a162_40%,#9a763a_64%,#7b5a23_78%,#cfb873_100%),radial-gradient(100%_60%_at_50%_0%,rgba(255,255,255,.14),transparent_60%),linear-gradient(180deg,transparent_0_60%,rgba(0,0,0,.07)_60%,transparent_61%)] " +
   "shadow-lg";
 
 // Brass plate sheen effect
@@ -922,31 +920,29 @@ export const brassPlateSheenClasses =
 
 // Header plate title
 export const championsHeaderTitleClasses = 
-  "text-2xl md:text-3xl font-bold mb-2 [font-family:'Cinzel Decorative',serif] text-amber-900";
+  "text-2xl md:text-3xl font-bold mb-2 text-black font-cinzel-decorative engraved-text";
 
 // Header plate tagline
 export const championsHeaderTaglineClasses = 
-  "text-lg md:text-xl font-semibold mb-4 [font-family:'Cinzel Decorative',serif] text-amber-800";
+  "text-base md:text-lg font-semibold text-black font-cinzel-decorative engraved-text";
 
 // Header plate info
 export const championsHeaderInfoClasses = 
-  "text-sm md:text-base text-amber-700 space-y-1 [font-family:'Cormorant SC',serif]";
+  "text-base md:text-lg text-black space-y-1 font-cinzel-decorative engraved-text";
 
 // Individual champion brass plate
 export const championPlateClasses = 
   "rounded-lg p-4 h-24 md:h-28 flex flex-col justify-center items-center text-center relative overflow-hidden transition-all duration-300 hover:scale-105 " +
-  "[background:linear-gradient(180deg,#d7c088_0%,#c2a162_40%,#9a763a_64%,#7b5a23_78%,#cfb873_100%)," +
-  "radial-gradient(100%_60%_at_50%_0%,rgba(255,255,255,.14),transparent_60%)," +
-  "linear-gradient(180deg,transparent_0_60%,rgba(0,0,0,.07)_60%,transparent_61%)] " +
-  "border-2";
+  "[background:linear-gradient(180deg,#d7c088_0%,#c2a162_40%,#9a763a_64%,#7b5a23_78%,#cfb873_100%),radial-gradient(100%_60%_at_50%_0%,rgba(255,255,255,.14),transparent_60%),linear-gradient(180deg,transparent_0_60%,rgba(0,0,0,.07)_60%,transparent_61%)] " +
+  "border border-amber-200";
 
 // Champion name on plate
 export const championNameClasses = 
-  "text-sm md:text-base font-bold leading-tight mb-1 [font-family:'Italianno',cursive] text-amber-900";
+  "text-xl md:text-2xl font-bold leading-tight mb-1 text-black font-cormorant-sc engraved-text";
 
 // Champion year on plate
 export const championYearClasses = 
-  "text-xs md:text-sm font-semibold [font-family:'Italianno',cursive] text-amber-800";
+  "text-xl md:text-2xl font-semibold text-black font-cormorant-sc engraved-text";
 
 // Champions grid container
 export const championsGridClasses = 
@@ -1069,4 +1065,46 @@ export const championsNoDataTextClasses =
 // Champions empty state icon
 export const championsEmptyStateIconClasses = 
   "text-6xl mb-4";
+
+// ============================================================================
+// FONT FAMILY CLASSES FOR CHAMPIONS PAGE
+// ============================================================================
+
+export const fontCinzelDecorativeClasses = 
+  "font-cinzel-decorative";
+
+export const fontCormorantSCClasses = 
+  "font-cormorant-sc";
+
+export const fontItaliannoClasses = 
+  "font-italianno";
+
+// ============================================================================
+// ENGRAVED TEXT EFFECTS
+// ============================================================================
+
+export const engravedTextClasses = 
+  "engraved-text";
+
+// ============================================================================
+// SCREW/NAIL EFFECTS FOR PLAQUES
+// ============================================================================
+
+export const screwClasses = 
+  "absolute w-2.5 h-2.5 rounded-full " +
+  "bg-gray-500 " +
+  "shadow-[inset_0_1px_1px_#ffffff,inset_0_-1px_2px_#333333] " +
+  "border border-gray-600";
+
+export const screwTopLeftClasses = 
+  screwClasses + " top-2.5 left-2.5";
+
+export const screwTopRightClasses = 
+  screwClasses + " top-2.5 right-2.5";
+
+export const screwBottomLeftClasses = 
+  screwClasses + " bottom-2.5 left-2.5";
+
+export const screwBottomRightClasses = 
+  screwClasses + " bottom-2.5 right-2.5";
 

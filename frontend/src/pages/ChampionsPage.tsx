@@ -11,7 +11,6 @@ import {
   brassPlateSheenClasses,
   championsHeaderTitleClasses,
   championsHeaderTaglineClasses,
-  championsHeaderInfoClasses,
   championPlateClasses,
   championNameClasses,
   championYearClasses,
@@ -26,7 +25,11 @@ import {
   championsErrorTextClasses,
   championsTryAgainButtonClasses,
   championsNoDataTextClasses,
-  championsEmptyStateIconClasses
+  championsEmptyStateIconClasses,
+  screwTopLeftClasses,
+  screwTopRightClasses,
+  screwBottomLeftClasses,
+  screwBottomRightClasses
 } from '../styles/commonClasses';
 
 interface Champion {
@@ -140,27 +143,37 @@ export default function ChampionsPage() {
         {/* Large Header Plate */}
         <div className={championsHeaderPlateContainerClasses}>
           <div className={championsHeaderPlateClasses}>
-            {/* Brass sheen effect */}
+            {/* Screws in four corners */}
+            <div className="absolute inset-0 pointer-events-none z-30">
+              <div className={screwTopLeftClasses}/>
+              <div className={screwTopRightClasses}/>
+              <div className={screwBottomLeftClasses}/>
+              <div className={screwBottomRightClasses}/>
+            </div>
+            
+            {/* Brass sheen effect - moved after screws */}
             <div className={brassPlateSheenClasses}></div>
             
-            <div className="relative z-10">
-              <h2 className={championsHeaderTitleClasses}>
-                {appTitle}
-              </h2>
-              
-              <p className={championsHeaderTaglineClasses}>
-                {appTagline}
-              </p>
-              
-              <div className={championsHeaderInfoClasses}>
-                {currentCommissioner && (
-                  <p>
-                    <strong>Commissioner:</strong> {currentCommissioner}
+            <div className="relative z-20 flex flex-col h-full justify-center">
+              <div>
+                <h2 className={championsHeaderTitleClasses}>
+                  {appTitle}
+                </h2>
+                
+                <p className={championsHeaderTaglineClasses}>
+                  {appTagline}
+                </p>
+                {yearsActive && (
+                  <p className="text-xl md:text-2xl text-black font-cormorant-sc engraved-text">
+                    <strong>Established:</strong> {yearsActive.first}
                   </p>
                 )}
-                {yearsActive && (
-                  <p>
-                    <strong>Active:</strong> {yearsActive.first} - {yearsActive.last}
+              </div>
+              
+              <div className="mt-4">
+                {currentCommissioner && (
+                  <p className="text-xl md:text-2xl text-black font-cormorant-sc engraved-text">
+                    <strong>Commissioner:</strong> {currentCommissioner}
                   </p>
                 )}
               </div>
@@ -195,27 +208,25 @@ export default function ChampionsPage() {
                 .sort((a, b) => new Date(b.ended_at).getTime() - new Date(a.ended_at).getTime())
                 .map((group, groupIndex) => (
                   <div key={`${group.season_id}-${group.total_points}-${groupIndex}`} className={championPlateClasses}>
-                    {/* Brass sheen effect */}
-                    <div className={brassPlateSheenClasses}></div>
                     {/* Screws in four corners */}
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className="absolute w-2.5 h-2.5 rounded-full bg-[radial-gradient(circle_at_30%_30%,#ffffff66,transparent_50%),radial-gradient(circle_at_70%_70%,#00000066_0_60%,transparent_61%)] shadow-[inset_0_1px_1px_#ffffff55,inset_0_-1px_2px_#00000055]" style={{top:10,left:10}}/>
-                      <div className="absolute w-2.5 h-2.5 rounded-full bg-[radial-gradient(circle_at_30%_30%,#ffffff66,transparent_50%),radial-gradient(circle_at_70%_70%,#00000066_0_60%,transparent_61%)] shadow-[inset_0_1px_1px_#ffffff55,inset_0_-1px_2px_#00000055]" style={{top:10,right:10}}/>
-                      <div className="absolute w-2.5 h-2.5 rounded-full bg-[radial-gradient(circle_at_30%_30%,#ffffff66,transparent_50%),radial-gradient(circle_at_70%_70%,#00000066_0_60%,transparent_61%)] shadow-[inset_0_1px_1px_#ffffff55,inset_0_-1px_2px_#00000055]" style={{bottom:10,left:10}}/>
-                      <div className="absolute w-2.5 h-2.5 rounded-full bg-[radial-gradient(circle_at_30%_30%,#ffffff66,transparent_50%),radial-gradient(circle_at_70%_70%,#00000066_0_60%,transparent_61%)] shadow-[inset_0_1px_1px_#ffffff55,inset_0_-1px_2px_#00000055]" style={{bottom:10,right:10}}/>
+                    <div className="absolute inset-0 pointer-events-none z-30">
+                      <div className={screwTopLeftClasses}/>
+                      <div className={screwTopRightClasses}/>
+                      <div className={screwBottomLeftClasses}/>
+                      <div className={screwBottomRightClasses}/>
                     </div>
                     
-                    <div className="relative z-10">
+                    {/* Brass sheen effect - moved after screws */}
+                    <div className={brassPlateSheenClasses}></div>
+                    
+                    <div className="relative z-20">
                       <div className={championNameClasses}>
                         {group.champions.map((name, nameIndex) => (
                           <div key={nameIndex}>{name}</div>
                         ))}
                       </div>
                       <div className={championYearClasses}>
-                        {group.year_start === group.year_end 
-                          ? group.year_start 
-                          : `${group.year_start}-${group.year_end}`
-                        }
+                        {group.year_end}
                       </div>
                     </div>
                   </div>
