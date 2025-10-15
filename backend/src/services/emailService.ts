@@ -77,15 +77,23 @@ async function getUsersWithEmail(email: string): Promise<Array<{ id: number; nam
   }
 }
 
-function getCommissionerSignature(commissioner?: string): string {
+function getCommissionerSignature(commissioner?: string, appTitle?: string): string {
+  // Shown centered just below header. Two-line variant depending on presence of commissioner
+  const baseStyle = 'text-align: center; margin: 18px 0 22px 0; color: #666; font-style: italic;';
   if (commissioner && commissioner.trim()) {
-    return `<p style="text-align: center; margin-top: 30px; color: #666; font-style: italic;">
-              From the desk of The Commissioner: ${commissioner}
-            </p>`;
+    return `
+      <div style="${baseStyle}">
+        <div>From the desk of ${commissioner}</div>
+        <div>Commissioner of ${appTitle || ''}</div>
+      </div>
+    `;
   }
-  return `<p style="text-align: center; margin-top: 30px; color: #666; font-style: italic;">
-            From the desk of The Commissioner
-          </p>`;
+  return `
+    <div style="${baseStyle}">
+      <div>From the desk of The Commissioner</div>
+      <div>${appTitle || ''}</div>
+    </div>
+  `;
 }
 
 const transporter = nodemailer.createTransport({
@@ -263,7 +271,9 @@ export const sendMagicLink = async (
       </div>`
     : '';
   
+  const commissionerHeader = getCommissionerSignature(commissioner, settings.app_title);
   const bodyHtml = `
+    ${commissionerHeader}
     <h2>Hi ${nameFormatted}!</h2>
     <p>It's time to make your pick for <strong>${sportName}</strong>!</p>
     ${customMessage ? `<div class="custom-message">${customMessage.replace(/\n/g, '<br>')}</div>` : ''}
@@ -277,7 +287,7 @@ export const sendMagicLink = async (
     </p>
     <p><strong>Important:</strong> This link is unique to you and will expire once picks are locked. You can update your pick as many times as you want before the deadline.</p>
     ${sharedEmailNote}
-    ${getCommissionerSignature(commissioner)}
+    
   `;
 
   const html = buildEmailHtml({
@@ -335,7 +345,9 @@ export const sendLockedNotification = async (
     ? names.map(n => `<span style="color: #dc2626; font-weight: bold;">${n}</span>`).join(', ')
     : names[0];
   
+  const commissionerHeader = getCommissionerSignature(undefined, settings.app_title);
   const bodyHtml = `
+    ${commissionerHeader}
     <h2>Hi ${namesFormatted}!</h2>
     <div class="locked-notice">
       <h3 style="margin-top: 0; color: #856404;">📋 ${sportName} picks are now locked!</h3>
@@ -345,7 +357,7 @@ export const sendLockedNotification = async (
     <div style="text-align: center;">
       <a href="${leaderboardLink}" class="button">View Leaderboard</a>
     </div>
-    ${getCommissionerSignature()}
+    
   `;
 
   const html = buildEmailHtml({
@@ -472,7 +484,9 @@ export const sendSportCompletionEmail = async (
     ? `You earned ${users[0].points} points!`
     : `Results!`;
   
+  const commissionerHeader = getCommissionerSignature(commissioner, settings.app_title);
   const bodyHtml = `
+    ${commissionerHeader}
     <h2>Hi ${namesFormatted}!</h2>
     <p><strong>${sportName} has been completed!</strong></p>
     ${userResultsSections}
@@ -487,7 +501,7 @@ export const sendSportCompletionEmail = async (
     <div style="text-align: center;">
       <a href="${leaderboardLink}" class="button">View Full Leaderboard</a>
     </div>
-    ${getCommissionerSignature(commissioner)}
+    
   `;
 
   const html = buildEmailHtml({

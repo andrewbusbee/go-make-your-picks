@@ -917,13 +917,15 @@ export default function RoundsManagement() {
                 >
                   🔒 Lock Now
                 </button>
-                <button
-                  onClick={() => handleSendReminder(round.id)}
-                  className={buttonSmallPurpleClasses}
-                  title="Send reminder to users who haven't picked"
-                >
-                  📧 Remind
-                </button>
+                {currentSeason?.reminder_type === 'none' && (
+                  <button
+                    onClick={() => handleSendReminder(round.id)}
+                    className={buttonSmallPurpleClasses}
+                    title="Send reminder to users who haven't picked"
+                  >
+                    📧 Remind Players Who Have Not Picked
+                  </button>
+                )}
                 {currentSeason && currentSeason.ended_at ? (
                   <div className="text-xs py-2 px-3 text-gray-500 dark:text-gray-400 italic">
                     🔒 Cannot delete: Season has ended (preserving history)
