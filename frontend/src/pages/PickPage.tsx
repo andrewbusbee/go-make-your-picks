@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import api from '../utils/api';
 import { usePageMeta } from '../utils/usePageMeta';
 import {
@@ -17,7 +17,8 @@ import {
   alertErrorTextClasses,
   alertInfoClasses,
   alertInfoTextClasses,
-  helpTextClasses
+  helpTextClasses,
+  buttonPrimaryClasses
 } from '../styles/commonClasses';
 
 export default function PickPage() {
@@ -139,6 +140,14 @@ export default function PickPage() {
     }
   };
 
+  // Check if picks are locked (past lock time)
+  const isPicksLocked = () => {
+    if (!pickData?.round?.lockTime) return false;
+    const lockTime = new Date(pickData.round.lockTime);
+    const now = new Date();
+    return now > lockTime;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center p-4">
@@ -154,6 +163,60 @@ export default function PickPage() {
           <span className="text-6xl mb-4 block">❌</span>
           <h2 className={`${headingClasses} mb-2`}>Invalid Link</h2>
           <p className="text-red-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show locked picks page if past lock time
+  if (pickData && isPicksLocked()) {
+    const commissioner = pickData.round.commissioner || 'The Commissioner';
+    
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 py-8 px-4 pb-20 transition-colors">
+        <div className="max-w-2xl mx-auto">
+          <div className={`${cardClasses} shadow-xl overflow-hidden`}>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-800 dark:to-purple-800 text-white p-6">
+              <h1 className="text-3xl font-bold mb-2">🏆 {appTitle}</h1>
+            </div>
+
+            {/* Content */}
+            <div className="p-8 text-center">
+              <div className="mb-6">
+                <span className="text-6xl mb-4 block">😔</span>
+                <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-4">WHOMP WHOMP! 😔</h2>
+              </div>
+
+              <div className="mb-8">
+                <p className="text-lg text-gray-700 dark:text-gray-300 mb-4">
+                  ⏰ Picks for <span className="font-bold text-blue-600 dark:text-blue-400">{pickData.round.sportName}</span> have been LOCKED since the deadline for submitting picks has passed.
+                </p>
+              </div>
+
+              {/* Commissioner Contact */}
+              <div className={`${alertInfoClasses} mb-8`}>
+                <div className="text-center">
+                  <p className={`${alertInfoTextClasses} font-medium mb-2`}>
+                    💬 Need help or think you are seeing this message in error? Contact The Commissioner, {commissioner}.
+                  </p>
+                  <p className={`${alertInfoTextClasses} text-sm`}>
+                    💰 I hear {appTitle} allows bribes 💰
+                  </p>
+                </div>
+              </div>
+
+              {/* Back to Home Button */}
+              <Link to="/" className={buttonPrimaryClasses}>
+                🏠 Back to Home
+              </Link>
+            </div>
+          </div>
+          
+          {/* Footer */}
+          <div className="text-center mt-8">
+            <p className="text-gray-500 dark:text-gray-400">⚡ {appTagline}</p>
+          </div>
         </div>
       </div>
     );
