@@ -61,12 +61,14 @@ export default function HomePage() {
     if (selectedSeasonId && allSeasons.length > 0) {
       const season = allSeasons.find(s => s.id === selectedSeasonId);
       setSelectedSeason(season);
+      
+      // Clear winners immediately when season changes to prevent stale data
+      setWinners([]);
+      
       loadLeaderboard(selectedSeasonId);
       loadGraphData(selectedSeasonId);
       if (season?.ended_at) {
         loadWinners(selectedSeasonId);
-      } else {
-        setWinners([]);
       }
     }
   }, [selectedSeasonId, allSeasons]);
@@ -220,7 +222,7 @@ export default function HomePage() {
               </p>
             </div>
 
-            {winners.length > 0 && (
+            {winners.length > 0 && winners[0]?.user_name && (
               <div className={cardClasses}>
                 <h3 className={`${headingClasses} text-center mb-6`}>
                   Final Standings - Top 3
