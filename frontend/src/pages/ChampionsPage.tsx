@@ -197,6 +197,13 @@ export default function ChampionsPage() {
                   <div key={`${group.season_id}-${group.total_points}-${groupIndex}`} className={championPlateClasses}>
                     {/* Brass sheen effect */}
                     <div className={brassPlateSheenClasses}></div>
+                    {/* Screws in four corners */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div className="absolute w-2.5 h-2.5 rounded-full bg-[radial-gradient(circle_at_30%_30%,#ffffff66,transparent_50%),radial-gradient(circle_at_70%_70%,#00000066_0_60%,transparent_61%)] shadow-[inset_0_1px_1px_#ffffff55,inset_0_-1px_2px_#00000055]" style={{top:10,left:10}}/>
+                      <div className="absolute w-2.5 h-2.5 rounded-full bg-[radial-gradient(circle_at_30%_30%,#ffffff66,transparent_50%),radial-gradient(circle_at_70%_70%,#00000066_0_60%,transparent_61%)] shadow-[inset_0_1px_1px_#ffffff55,inset_0_-1px_2px_#00000055]" style={{top:10,right:10}}/>
+                      <div className="absolute w-2.5 h-2.5 rounded-full bg-[radial-gradient(circle_at_30%_30%,#ffffff66,transparent_50%),radial-gradient(circle_at_70%_70%,#00000066_0_60%,transparent_61%)] shadow-[inset_0_1px_1px_#ffffff55,inset_0_-1px_2px_#00000055]" style={{bottom:10,left:10}}/>
+                      <div className="absolute w-2.5 h-2.5 rounded-full bg-[radial-gradient(circle_at_30%_30%,#ffffff66,transparent_50%),radial-gradient(circle_at_70%_70%,#00000066_0_60%,transparent_61%)] shadow-[inset_0_1px_1px_#ffffff55,inset_0_-1px_2px_#00000055]" style={{bottom:10,right:10}}/>
+                    </div>
                     
                     <div className="relative z-10">
                       <div className={championNameClasses}>

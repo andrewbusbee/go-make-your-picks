@@ -907,53 +907,46 @@ export const championsWallTitleClasses =
   "drop-shadow-lg tracking-wide";
 
 // Large header brass plate (2 columns wide)
+// Antique brass plate background
 export const championsHeaderPlateClasses = 
-  "bg-gradient-to-br from-yellow-400 via-yellow-300 to-yellow-500 " +
-  "dark:from-yellow-500 dark:via-yellow-400 dark:to-yellow-600 " +
-  "border-2 border-yellow-600 dark:border-yellow-500 " +
-  "rounded-lg p-6 md:p-8 mx-auto mb-8 " +
-  "shadow-lg shadow-yellow-900/30 " +
-  "col-span-2 text-center " +
-  "relative overflow-hidden";
+  "rounded-lg p-6 md:p-8 mx-auto mb-8 col-span-2 text-center relative overflow-hidden " +
+  "border-2 " +
+  "[background:linear-gradient(180deg,#d7c088_0%,#c2a162_40%,#9a763a_64%,#7b5a23_78%,#cfb873_100%)," +
+  "radial-gradient(100%_60%_at_50%_0%,rgba(255,255,255,.14),transparent_60%)," +
+  "linear-gradient(180deg,transparent_0_60%,rgba(0,0,0,.07)_60%,transparent_61%)] " +
+  "shadow-lg";
 
 // Brass plate sheen effect
 export const brassPlateSheenClasses = 
-  "absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent " +
-  "transform -skew-x-12 -translate-x-full " +
-  "animate-pulse";
+  "absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full animate-pulse";
 
 // Header plate title
 export const championsHeaderTitleClasses = 
-  "text-2xl md:text-3xl font-bold text-amber-900 dark:text-amber-950 mb-2";
+  "text-2xl md:text-3xl font-bold mb-2 [font-family:'Cinzel Decorative',serif] text-amber-900";
 
 // Header plate tagline
 export const championsHeaderTaglineClasses = 
-  "text-lg md:text-xl font-semibold text-amber-800 dark:text-amber-900 mb-4";
+  "text-lg md:text-xl font-semibold mb-4 [font-family:'Cinzel Decorative',serif] text-amber-800";
 
 // Header plate info
 export const championsHeaderInfoClasses = 
-  "text-sm md:text-base text-amber-700 dark:text-amber-800 space-y-1";
+  "text-sm md:text-base text-amber-700 space-y-1 [font-family:'Cormorant SC',serif]";
 
 // Individual champion brass plate
 export const championPlateClasses = 
-  "bg-gradient-to-br from-yellow-400 via-yellow-300 to-yellow-500 " +
-  "dark:from-yellow-500 dark:via-yellow-400 dark:to-yellow-600 " +
-  "border-2 border-yellow-600 dark:border-yellow-500 " +
-  "rounded-lg p-4 h-24 md:h-28 " +
-  "shadow-lg shadow-yellow-900/30 " +
-  "flex flex-col justify-center items-center text-center " +
-  "relative overflow-hidden " +
-  "hover:shadow-xl hover:shadow-yellow-900/40 transition-all duration-300 " +
-  "hover:scale-105";
+  "rounded-lg p-4 h-24 md:h-28 flex flex-col justify-center items-center text-center relative overflow-hidden transition-all duration-300 hover:scale-105 " +
+  "[background:linear-gradient(180deg,#d7c088_0%,#c2a162_40%,#9a763a_64%,#7b5a23_78%,#cfb873_100%)," +
+  "radial-gradient(100%_60%_at_50%_0%,rgba(255,255,255,.14),transparent_60%)," +
+  "linear-gradient(180deg,transparent_0_60%,rgba(0,0,0,.07)_60%,transparent_61%)] " +
+  "border-2";
 
 // Champion name on plate
 export const championNameClasses = 
-  "text-sm md:text-base font-bold text-amber-900 dark:text-amber-950 " +
-  "leading-tight mb-1";
+  "text-sm md:text-base font-bold leading-tight mb-1 [font-family:'Italianno',cursive] text-amber-900";
 
 // Champion year on plate
 export const championYearClasses = 
-  "text-xs md:text-sm font-semibold text-amber-800 dark:text-amber-900";
+  "text-xs md:text-sm font-semibold [font-family:'Italianno',cursive] text-amber-800";
 
 // Champions grid container
 export const championsGridClasses = 
