@@ -182,16 +182,17 @@ export default function ChampionsPage() {
                     year_start: champion.year_start,
                     year_end: champion.year_end,
                     total_points: champion.total_points,
+                    ended_at: champion.ended_at,
                     champions: []
                   };
                 }
                 acc[groupKey].champions.push(champion.user_name);
                 return acc;
-              }, {} as Record<string, { season_id: number; year_start: number; year_end: number; total_points: number; champions: string[] }>);
+              }, {} as Record<string, { season_id: number; year_start: number; year_end: number; total_points: number; ended_at: string; champions: string[] }>);
 
-              // Convert to array and sort by season_id (most recent first)
+              // Convert to array and sort by ended_at date (most recent first)
               return Object.values(groupedChampions)
-                .sort((a, b) => b.season_id - a.season_id)
+                .sort((a, b) => new Date(b.ended_at).getTime() - new Date(a.ended_at).getTime())
                 .map((group, groupIndex) => (
                   <div key={`${group.season_id}-${group.total_points}-${groupIndex}`} className={championPlateClasses}>
                     {/* Brass sheen effect */}
