@@ -48,6 +48,7 @@ interface ChampionsData {
   champions: Champion[];
   appTitle: string;
   appTagline: string;
+  championshipPageTitle: string;
   currentCommissioner: string | null;
   yearsActive: {
     first: number;
@@ -62,8 +63,8 @@ export default function ChampionsPage() {
 
   // Update page meta tags
   usePageMeta({
-    title: 'Hall of Fame',
-    description: 'Hall of Fame - Past Season Champions'
+    title: championsData?.championshipPageTitle || 'Hall of Fame',
+    description: `${championsData?.championshipPageTitle || 'Hall of Fame'} - Past Season Champions`
   });
 
   useEffect(() => {
@@ -128,7 +129,7 @@ export default function ChampionsPage() {
     );
   }
 
-  const { champions, appTitle, appTagline, currentCommissioner, yearsActive } = championsData;
+  const { champions, appTitle, appTagline, championshipPageTitle, currentCommissioner, yearsActive } = championsData;
 
   return (
     <div className={`${pageContainerClasses} pb-20`}>
@@ -137,7 +138,7 @@ export default function ChampionsPage() {
       <div className={championsPageContainerClasses}>
         {/* Page Title */}
         <h1 className={championsWallTitleClasses}>
-          🏆 HALL OF FAME 🏆
+          🏆 {championshipPageTitle?.toUpperCase() || 'HALL OF FAME'} 🏆
         </h1>
 
         {/* Large Header Plate */}
@@ -237,7 +238,7 @@ export default function ChampionsPage() {
           <div className={championsEmptyStateClasses}>
             <div className={championsEmptyStateIconClasses}>🏆</div>
             <div className={championsEmptyStateTextClasses}>
-              No inductees yet. Complete a season to see champions in the Hall of Fame!
+              No inductees yet. Complete a season to see champions in the {championshipPageTitle || 'Hall of Fame'}!
             </div>
             <Link to="/" className={championsButtonClasses}>
               View Current Season

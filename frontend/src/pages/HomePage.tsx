@@ -26,6 +26,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [appTitle, setAppTitle] = useState('Go Make Your Picks');
   const [appTagline, setAppTagline] = useState('Predict. Compete. Win.');
+  const [championshipPageTitle, setChampionshipPageTitle] = useState('Hall of Fame');
 
   // Update page meta tags dynamically
   usePageMeta({
@@ -78,6 +79,7 @@ export default function HomePage() {
       const res = await api.get('/public/settings');
       setAppTitle(res.data.app_title || 'Go Make Your Picks');
       setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
+      setChampionshipPageTitle(res.data.championship_page_title || 'Hall of Fame');
     } catch (error) {
       console.error('Error loading settings:', error);
       // Don't throw - just use default values
@@ -355,7 +357,7 @@ export default function HomePage() {
                 {/* Champions Button */}
                 <div className="text-center mt-6">
                   <Link to="/champions" className={championsButtonClasses}>
-                    🏆 View Hall of Fame
+                    🏆 {championshipPageTitle}
                   </Link>
                 </div>
               </div>

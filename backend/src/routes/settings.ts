@@ -31,6 +31,7 @@ router.get('/', async (req, res) => {
       app_title: 'Go Make Your Picks',
       app_tagline: 'Predict. Compete. Win.',
       footer_message: 'Built for Sports Fans',
+      championship_page_title: 'Hall of Fame',
       points_first_place: 6,
       points_second_place: 5,
       points_third_place: 4,
@@ -73,6 +74,7 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     appTitle, 
     appTagline, 
     footerMessage,
+    championshipPageTitle,
     themeMode,
     pointsFirstPlace,
     pointsSecondPlace,
@@ -95,6 +97,10 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
 
   if (appTitle.length > 100 || appTagline.length > 200 || footerMessage.length > 100) {
     return res.status(400).json({ error: 'Title, tagline, or footer message is too long' });
+  }
+
+  if (championshipPageTitle && championshipPageTitle.length > 100) {
+    return res.status(400).json({ error: 'Championship page title is too long (max 100 characters)' });
   }
 
   // Validate reminder timezone if provided
@@ -186,6 +192,15 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
          ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
         [footerMessage]
       );
+
+      // Update championship page title if provided
+      if (championshipPageTitle !== undefined) {
+        await connection.query(
+          `INSERT INTO text_settings (setting_key, setting_value) VALUES ('championship_page_title', ?)
+           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+          [championshipPageTitle]
+        );
+      }
 
       // Update theme mode if provided
       if (themeMode !== undefined) {

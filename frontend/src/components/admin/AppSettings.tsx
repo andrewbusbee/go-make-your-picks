@@ -56,6 +56,7 @@ export default function AppSettings() {
   const [appTitle, setAppTitle] = useState('');
   const [appTagline, setAppTagline] = useState('');
   const [footerMessage, setFooterMessage] = useState('');
+  const [championshipPageTitle, setChampionshipPageTitle] = useState('Hall of Fame');
   const [themeMode, setThemeMode] = useState<'dark_only' | 'light_only' | 'user_choice'>('user_choice');
   const [pointsFirstPlace, setPointsFirstPlace] = useState(6);
   const [pointsSecondPlace, setPointsSecondPlace] = useState(5);
@@ -90,6 +91,7 @@ export default function AppSettings() {
       setAppTitle(res.data.app_title || 'Go Make Your Picks');
       setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
       setFooterMessage(res.data.footer_message || 'Built for Sports Fans');
+      setChampionshipPageTitle(res.data.championship_page_title || 'Hall of Fame');
       setThemeMode(res.data.theme_mode || 'user_choice');
       setPointsFirstPlace(parseInt(res.data.points_first_place) || 6);
       setPointsSecondPlace(parseInt(res.data.points_second_place) || 5);
@@ -148,6 +150,7 @@ export default function AppSettings() {
         appTitle,
         appTagline,
         footerMessage,
+        championshipPageTitle,
         themeMode,
         pointsFirstPlace,
         pointsSecondPlace,
@@ -336,6 +339,25 @@ export default function AppSettings() {
               />
               <p className={`mt-1 ${helpTextClasses}`}>
                 Appears in the footer on all pages. Maximum 200 characters.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="championshipPageTitle" className={labelClasses}>
+                Championship Page Title
+              </label>
+              <input
+                type="text"
+                id="championshipPageTitle"
+                value={championshipPageTitle}
+                onChange={(e) => setChampionshipPageTitle(e.target.value)}
+                placeholder="Hall of Fame"
+                maxLength={100}
+                className={inputClasses}
+                required
+              />
+              <p className={`mt-1 ${helpTextClasses}`}>
+                Title displayed on the champions page and navigation button. Maximum 100 characters.
               </p>
             </div>
 

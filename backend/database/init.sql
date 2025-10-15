@@ -301,6 +301,7 @@ INSERT INTO text_settings (setting_key, setting_value) VALUES
 ('app_title', 'Go Make Your Picks'),
 ('app_tagline', 'Predict. Compete. Win.'),
 ('footer_message', 'Built for Sports Fans'),
+('championship_page_title', 'Hall of Fame'),
 ('reminder_type', 'daily'),
 ('daily_reminder_time', '10:00:00'),
 ('email_notifications_enabled', 'true'),

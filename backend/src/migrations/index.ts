@@ -6,12 +6,14 @@
  * Migrations are only needed for upgrading existing databases
  */
 import { Migration } from './Migration';
+import { AddChampionshipPageTitleMigration } from './20250115000000_add_championship_page_title';
 
 /**
  * All migrations in order of execution
  * Add new migrations to the end of this array
  */
 export const allMigrations: Migration[] = [
+  new AddChampionshipPageTitleMigration(),
   // Add new migrations here as needed
 ];
 
