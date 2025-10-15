@@ -758,108 +758,6 @@ export default function RoundsManagement() {
         </div>
       ) : (
         <>
-          {/* Locked Sports Section */}
-          {(() => {
-            const lockedRounds = rounds.filter(round => round.status === 'locked');
-            if (lockedRounds.length > 0) {
-              return (
-                <div className="mb-8">
-                  <h3 className={activeSectionHeaderClasses}>Locked Sports</h3>
-                  <div className={gridTwoColClasses}>
-                    {lockedRounds.map((round) => (
-                      <div key={round.id} className={`${cardClasses} shadow-md`}>
-              <div className={`${flexJustifyBetweenStartClasses} ${mb3Classes}`}>
-                <div>
-                  <h3 className={subheadingClasses}>{round.sport_name}</h3>
-                  <p className={bodyTextClasses}>
-                    Lock: {new Date(round.lock_time).toLocaleString('en-US', {
-                      timeZone: round.timezone,
-                      dateStyle: 'short',
-                      timeStyle: 'short'
-                    })} ({round.timezone?.replace('_', ' ')})
-                  </p>
-                </div>
-                {getStatusBadge(round.status)}
-              </div>
-
-              {/* Participants list - hidden for draft rounds */}
-              {(round.status === 'active') && round.participants && (
-                <div className={participantSectionClasses}>
-                  <p className={participantHeaderClasses}>
-                    👥 Participants {round.status === 'active' ? `(${round.pickedCount}/${round.totalParticipants} picked)` : `(${round.totalParticipants} players)`}:
-                  </p>
-                  <div className={participantListClasses}>
-                    {round.participants.map((participant: any) => (
-                      <div key={participant.id} className={participantItemClasses}>
-                        {round.status === 'active' && (
-                          <span className={participantCheckmarkClasses}>
-                            {participant.hasPicked ? '✅' : '❌'}
-                          </span>
-                        )}
-                        <span>{participant.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {round.first_place_team && (
-                <div className={`${alertSuccessClasses} mb-3`}>
-                  <p className={`${alertSuccessTextClasses} font-medium`}>
-                    🏆 Champion: {round.first_place_team}
-                  </p>
-                  {(round.second_place_team || round.third_place_team || round.fourth_place_team || round.fifth_place_team) && (
-                    <p className={`${alertSuccessTextClasses} mt-1 text-xs`}>
-                      {round.second_place_team && `🥈 2nd: ${round.second_place_team}`}
-                      {round.third_place_team && ` | 🥉 3rd: ${round.third_place_team}`}
-                      {round.fourth_place_team && ` | 4th: ${round.fourth_place_team}`}
-                      {round.fifth_place_team && ` | 5th: ${round.fifth_place_team}`}
-                    </p>
-                  )}
-                </div>
-              )}
-
-              <div className={`${flexWrapGapClasses} ${mt4Classes}`}>
-                {round.status === 'locked' && (
-                  <>
-                    <button
-                      onClick={() => openEditModal(round)}
-                      className={buttonSmallSecondaryClasses}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => openCompleteModal(round)}
-                      className={buttonSmallPrimaryClasses}
-                    >
-                      Complete & Score Sport
-                    </button>
-                  </>
-                )}
-                {(round.status === 'locked') && (
-                  currentSeason && currentSeason.ended_at ? (
-                    <div className="text-xs py-2 px-3 text-gray-500 dark:text-gray-400 italic">
-                      🔒 Cannot delete: Season has ended (preserving history)
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => openDeleteModal(round)}
-                      className={buttonSmallDangerLinkClasses}
-                    >
-                      Delete
-                    </button>
-                  )
-                )}
-              </div>
-            </div>
-                      ))}
-                  </div>
-                </div>
-              );
-            }
-            return null;
-          })()}
-
           {/* Divider + Active Sports Section */}
           {(() => {
             const activeRounds = rounds.filter(round => round.status === 'active');
@@ -940,6 +838,84 @@ export default function RoundsManagement() {
                 )}
               </div>
             </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+          {/* Locked Sports Section */}
+          {(() => {
+            const lockedRounds = rounds.filter(round => round.status === 'locked');
+            if (lockedRounds.length > 0) {
+              return (
+                <div className={sectionWithDividerClasses}>
+                  <h3 className={activeSectionHeaderClasses}>Locked Sports - Waiting for sport to complete prior to scoring</h3>
+                  <div className={gridTwoColClasses}>
+                    {lockedRounds.map((round) => (
+                      <div key={round.id} className={`${cardClasses} shadow-md`}>
+                        <div className={`${flexJustifyBetweenStartClasses} ${mb3Classes}`}>
+                          <div>
+                            <h3 className={subheadingClasses}>{round.sport_name}</h3>
+                            <p className={bodyTextClasses}>
+                              Lock: {new Date(round.lock_time).toLocaleString('en-US', {
+                                timeZone: round.timezone,
+                                dateStyle: 'short',
+                                timeStyle: 'short'
+                              })} ({round.timezone?.replace('_', ' ')})
+                            </p>
+                          </div>
+                          {getStatusBadge(round.status)}
+                        </div>
+
+                        {/* Participants list */}
+                        {round.participants && (
+                          <div className={participantSectionClasses}>
+                            <p className={participantHeaderClasses}>
+                              👥 Participants ({round.totalParticipants} players):
+                            </p>
+                            <div className={participantListClasses}>
+                              {round.participants.map((participant: any) => (
+                                <div key={participant.id} className={participantItemClasses}>
+                                  <span className={participantCheckmarkClasses}>
+                                    {participant.hasPicked ? '✅' : '❌'}
+                                  </span>
+                                  <span>{participant.name}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className={`${flexWrapGapClasses} ${mt4Classes}`}>
+                          <button
+                            onClick={() => openEditModal(round)}
+                            className={buttonSmallSecondaryClasses}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => openCompleteModal(round)}
+                            className={buttonSmallPrimaryClasses}
+                          >
+                            Complete & Score Sport
+                          </button>
+                          {currentSeason && currentSeason.ended_at ? (
+                            <div className="text-xs py-2 px-3 text-gray-500 dark:text-gray-400 italic">
+                              🔒 Cannot delete: Season has ended (preserving history)
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => openDeleteModal(round)}
+                              className={buttonSmallDangerLinkClasses}
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>
