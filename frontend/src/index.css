@@ -2,6 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Local self-hosted fonts for Champions page */
+@font-face {
+  font-family: 'Cinzel Decorative';
+  src: url('/fonts/Cinzel_Decorative/CinzelDecorative-Regular.woff2') format('woff2'),
+       url('/fonts/Cinzel_Decorative/CinzelDecorative-Regular.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Cinzel Decorative';
+  src: url('/fonts/Cinzel_Decorative/CinzelDecorative-Bold.woff2') format('woff2'),
+       url('/fonts/Cinzel_Decorative/CinzelDecorative-Bold.ttf') format('truetype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Cinzel Decorative';
+  src: url('/fonts/Cinzel_Decorative/CinzelDecorative-Black.woff2') format('woff2'),
+       url('/fonts/Cinzel_Decorative/CinzelDecorative-Black.ttf') format('truetype');
+  font-weight: 900; font-style: normal; font-display: swap;
+}
+
+@font-face {
+  font-family: 'Cormorant SC';
+  src: url('/fonts/Cormorant_SC/CormorantSC-Regular.woff2') format('woff2'),
+       url('/fonts/Cormorant_SC/CormorantSC-Regular.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant SC';
+  src: url('/fonts/Cormorant_SC/CormorantSC-SemiBold.woff2') format('woff2'),
+       url('/fonts/Cormorant_SC/CormorantSC-SemiBold.ttf') format('truetype');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Cormorant SC';
+  src: url('/fonts/Cormorant_SC/CormorantSC-Bold.woff2') format('woff2'),
+       url('/fonts/Cormorant_SC/CormorantSC-Bold.ttf') format('truetype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+
+@font-face {
+  font-family: 'Italianno';
+  src: url('/fonts/Italianno/Italianno-Regular.woff2') format('woff2'),
+       url('/fonts/Italianno/Italianno-Regular.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+
 :root {
   --tooltip-bg: #ffffff;
   --tooltip-border: #e5e7eb;
