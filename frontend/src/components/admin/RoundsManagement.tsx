@@ -82,6 +82,7 @@ export default function RoundsManagement() {
   const [rounds, setRounds] = useState<any[]>([]);
   const [deletedRounds, setDeletedRounds] = useState<any[]>([]);
   const [isMainAdmin, setIsMainAdmin] = useState(false);
+  const [reminderType, setReminderType] = useState<string>('daily');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -192,6 +193,7 @@ export default function RoundsManagement() {
     
     loadSeasons();
     loadSettings();
+    loadReminderSettings();
   }, []);
 
   const loadSettings = async () => {
@@ -201,6 +203,15 @@ export default function RoundsManagement() {
       setPointsNoPick(parseInt(res.data.points_no_pick) || 0);
     } catch (error) {
       console.error('Error loading settings:', error);
+    }
+  };
+
+  const loadReminderSettings = async () => {
+    try {
+      const res = await api.get('/admin/settings');
+      setReminderType(res.data.reminder_type || 'daily');
+    } catch (error) {
+      console.error('Error loading reminder settings:', error);
     }
   };
 
@@ -815,7 +826,7 @@ export default function RoundsManagement() {
                 >
                   🔒 Lock Now
                 </button>
-                {currentSeason?.reminder_type === 'none' && (
+                {reminderType === 'none' && (
                   <button
                     onClick={() => handleSendReminder(round.id)}
                     className={buttonSmallPurpleClasses}
