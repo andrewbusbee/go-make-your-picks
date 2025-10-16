@@ -1308,29 +1308,17 @@ router.post('/:id/message-all-players', authenticateAdmin, async (req: AuthReque
     const appTitle = settingsRows.find(s => s.setting_key === 'app_title')?.setting_value || 'Go Make Your Picks';
 
     // Import email service
-    const { sendBulkEmail } = await import('../services/emailService');
+    const { sendBulkMessage } = await import('../services/emailService');
 
     // Prepare email data for bulk sending
     const emailData = players.map(player => ({
       to: player.email,
-      subject: `Message from The Commissioner - ${appTitle}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Hi ${player.name},</h2>
-          
-          <p>You have a new message from ${commissionerName}, Commissioner of ${appTitle}:</p>
-          
-          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p style="margin: 0; white-space: pre-wrap;">${message.trim()}</p>
-          </div>
-          
-          <p>Have a great day,<br>${commissionerName}</p>
-        </div>
-      `
+      name: player.name,
+      message: message
     }));
 
-    // Send bulk email
-    await sendBulkEmail(emailData);
+    // Send bulk message using standard template
+    await sendBulkMessage(emailData);
 
     logger.info('Message sent to all players', {
       seasonId,

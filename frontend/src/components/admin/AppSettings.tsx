@@ -90,13 +90,11 @@ export default function AppSettings() {
       setAppTitle(res.data.app_title || 'Go Make Your Picks');
       setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
       setFooterMessage(res.data.footer_message || 'Built for Sports Fans');
-      setChampionshipPageTitle(res.data.championship_page_title || 'Hall of Fame');
       
       // Set original values for change detection
       setOriginalTitle(res.data.app_title || 'Go Make Your Picks');
       setOriginalTagline(res.data.app_tagline || 'Predict. Compete. Win.');
       setOriginalFooterMessage(res.data.footer_message || 'Built for Sports Fans');
-      setOriginalChampionshipPageTitle(res.data.championship_page_title || 'Hall of Fame');
       setThemeMode(res.data.theme_mode || 'user_choice');
       setPointsFirstPlace(parseInt(res.data.points_first_place) || 6);
       setPointsSecondPlace(parseInt(res.data.points_second_place) || 5);
@@ -193,7 +191,6 @@ export default function AppSettings() {
     setAppTitle(originalTitle);
     setAppTagline(originalTagline);
     setFooterMessage(originalFooterMessage);
-    setChampionshipPageTitle(originalChampionshipPageTitle);
     setThemeMode(originalThemeMode);
     setPointsFirstPlace(originalPointsFirstPlace);
     setPointsSecondPlace(originalPointsSecondPlace);

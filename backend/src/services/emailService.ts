@@ -902,7 +902,7 @@ export const sendAdminReminderSummary = async (
  * @param emails - Array of email objects with to, subject, and html
  * @returns Promise<void>
  */
-export const sendBulkEmail = async (emails: Array<{ to: string; subject: string; html: string }>): Promise<void> => {
+export const sendBulkMessage = async (emails: Array<{ to: string; name: string; message: string }>): Promise<void> => {
   if (!emails || emails.length === 0) {
     throw new Error('No emails to send');
   }
@@ -910,28 +910,50 @@ export const sendBulkEmail = async (emails: Array<{ to: string; subject: string;
   // Check if email notifications are enabled globally
   const notificationsEnabled = await areEmailNotificationsEnabled();
   if (!notificationsEnabled) {
-    logger.info('Email notifications disabled, skipping bulk email send', { 
+    logger.info('Email notifications disabled, skipping bulk message send', { 
       emailCount: emails.length 
     });
     return;
   }
 
-  logger.info('Starting bulk email send', { emailCount: emails.length });
+  const settings = await getSettings();
+  const currentCommissioner = await getCurrentCommissioner();
+  const fromName = settings.app_title;
+  const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
+
+  logger.info('Starting bulk message send', { emailCount: emails.length });
 
   // Send emails in parallel with error handling for individual failures
   const sendPromises = emails.map(async (emailData) => {
     try {
       await retry(
         async () => {
+          // Use standard email template
+          const commissionerHeader = getCommissionerSignature(currentCommissioner || undefined, settings.app_title);
+          const bodyHtml = `
+            ${commissionerHeader}
+            <h2>Hi ${emailData.name}!</h2>
+            <div class="custom-message">
+              <p>${emailData.message.replace(/\n/g, '<br>')}</p>
+            </div>
+          `;
+
+          const html = buildEmailHtml({
+            appTitle: settings.app_title,
+            headerIcon: '📢',
+            bodyHtml,
+            footerText: `${settings.app_title} - ${settings.app_tagline}`
+          });
+
           const mailOptions = {
-            from: process.env.SMTP_FROM,
+            from: `"${fromName}" <${fromEmail}>`,
             to: emailData.to,
-            subject: emailData.subject,
-            html: emailData.html
+            subject: `Message from The Commissioner - ${settings.app_title}`,
+            html
           };
 
           await transporter.sendMail(mailOptions);
-          logEmailSent(emailData.to, emailData.subject, true);
+          logEmailSent(emailData.to, `Message from The Commissioner - ${settings.app_title}`, true);
         },
         {
           retries: EMAIL_RETRY_ATTEMPTS,
@@ -939,7 +961,7 @@ export const sendBulkEmail = async (emails: Array<{ to: string; subject: string;
           minTimeout: EMAIL_RETRY_MIN_TIMEOUT,
           maxTimeout: EMAIL_RETRY_MAX_TIMEOUT,
           onRetry: (error: any, attempt) => {
-            logger.warn('Retrying bulk email send', {
+            logger.warn('Retrying bulk message send', {
               attempt,
               to: redactEmail(emailData.to),
               error: error.message
@@ -948,17 +970,18 @@ export const sendBulkEmail = async (emails: Array<{ to: string; subject: string;
         }
       );
     } catch (error: any) {
-      logger.error('Failed to send bulk email after retries', {
+      logger.error('Failed to send bulk message after retries', {
         to: redactEmail(emailData.to),
-        subject: emailData.subject,
+        name: emailData.name,
         error: error.message
       });
+      logEmailSent(emailData.to, `Message from The Commissioner - ${settings.app_title}`, false);
       // Don't throw - we want to continue sending to other recipients
     }
   });
 
   await Promise.all(sendPromises);
-  logger.info('Bulk email send completed', { emailCount: emails.length });
+  logger.info('Bulk message send completed', { emailCount: emails.length });
 };
 
 /**
