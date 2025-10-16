@@ -15,6 +15,8 @@ import {
   championNameClasses,
   championYearClasses,
   championsGridClasses,
+  emptyChampionPlateClasses,
+  emptyPlateTextClasses,
   championsEmptyStateClasses,
   championsEmptyStateTextClasses,
   championsButtonClasses,
@@ -181,33 +183,39 @@ export default function ChampionsPage() {
           </div>
         </div>
 
-        {/* Champions Grid */}
-        {champions.length > 0 ? (
-          <div className={championsGridClasses}>
-            {(() => {
-              // Group champions by season AND points to handle ties properly
-              const groupedChampions = champions.reduce((acc, champion) => {
-                // Group by season AND total points - only tie champions together
-                const groupKey = `${champion.season_id}-${champion.year_start}-${champion.year_end}-${champion.total_points}`;
-                if (!acc[groupKey]) {
-                  acc[groupKey] = {
-                    season_id: champion.season_id,
-                    year_start: champion.year_start,
-                    year_end: champion.year_end,
-                    total_points: champion.total_points,
-                    ended_at: champion.ended_at,
-                    champions: []
-                  };
-                }
-                acc[groupKey].champions.push(champion.user_name);
-                return acc;
-              }, {} as Record<string, { season_id: number; year_start: number; year_end: number; total_points: number; ended_at: string; champions: string[] }>);
+        {/* Champions Grid - 4×6 Layout */}
+        <div className={championsGridClasses}>
+          {(() => {
+            // Group champions by season AND points to handle ties properly
+            const groupedChampions = champions.reduce((acc, champion) => {
+              // Group by season AND total points - only tie champions together
+              const groupKey = `${champion.season_id}-${champion.year_start}-${champion.year_end}-${champion.total_points}`;
+              if (!acc[groupKey]) {
+                acc[groupKey] = {
+                  season_id: champion.season_id,
+                  year_start: champion.year_start,
+                  year_end: champion.year_end,
+                  total_points: champion.total_points,
+                  ended_at: champion.ended_at,
+                  champions: []
+                };
+              }
+              acc[groupKey].champions.push(champion.user_name);
+              return acc;
+            }, {} as Record<string, { season_id: number; year_start: number; year_end: number; total_points: number; ended_at: string; champions: string[] }>);
 
-              // Convert to array and sort by year_end (most recent first)
-              return Object.values(groupedChampions)
-                .sort((a, b) => b.year_end - a.year_end)
-                .map((group, groupIndex) => (
-                  <div key={`${group.season_id}-${group.total_points}-${groupIndex}`} className={championPlateClasses}>
+            // Convert to array and sort by year_end (most recent first)
+            const sortedChampions = Object.values(groupedChampions)
+              .sort((a, b) => b.year_end - a.year_end);
+
+            // Create array of 24 slots (4×6 grid)
+            const gridSlots = Array.from({ length: 24 }, (_, index) => {
+              const champion = sortedChampions[index];
+              
+              if (champion) {
+                // Champion plate
+                return (
+                  <div key={`champion-${champion.season_id}-${champion.total_points}`} className={championPlateClasses}>
                     {/* Screws in four corners */}
                     <div className="absolute inset-0 pointer-events-none z-30">
                       <div className={screwTopLeftClasses}/>
@@ -221,29 +229,58 @@ export default function ChampionsPage() {
                     
                     <div className="relative z-20">
                       <div className={championNameClasses}>
-                        {group.champions.map((name, nameIndex) => (
+                        {champion.champions.map((name, nameIndex) => (
                           <div key={nameIndex}>{name}</div>
                         ))}
                       </div>
                       <div className={championYearClasses}>
-                        {group.year_end}
+                        {champion.year_end}
                       </div>
                     </div>
                   </div>
-                ));
-            })()}
-          </div>
-        ) : (
-          <div className={championsEmptyStateClasses}>
-            <div className={championsEmptyStateIconClasses}>🏆</div>
-            <div className={championsEmptyStateTextClasses}>
-              No inductees yet. Complete a season to see champions in the {championshipPageTitle || 'Hall of Fame'}!
-            </div>
-            <Link to="/" className={championsButtonClasses}>
-              View Current Season
-            </Link>
-          </div>
-        )}
+                );
+              } else {
+                // Empty plate
+                return (
+                  <div key={`empty-${index}`} className={emptyChampionPlateClasses}>
+                    <div className={emptyPlateTextClasses}>
+                      Empty
+                    </div>
+                  </div>
+                );
+              }
+            });
+
+            // Add overflow champions (after 24) as individual plates
+            const overflowChampions = sortedChampions.slice(24).map((champion, index) => (
+              <div key={`overflow-${champion.season_id}-${champion.total_points}`} className={championPlateClasses}>
+                {/* Screws in four corners */}
+                <div className="absolute inset-0 pointer-events-none z-30">
+                  <div className={screwTopLeftClasses}/>
+                  <div className={screwTopRightClasses}/>
+                  <div className={screwBottomLeftClasses}/>
+                  <div className={screwBottomRightClasses}/>
+                </div>
+                
+                {/* Brass sheen effect - moved after screws */}
+                <div className={brassPlateSheenClasses}></div>
+                
+                <div className="relative z-20">
+                  <div className={championNameClasses}>
+                    {champion.champions.map((name, nameIndex) => (
+                      <div key={nameIndex}>{name}</div>
+                    ))}
+                  </div>
+                  <div className={championYearClasses}>
+                    {champion.year_end}
+                  </div>
+                </div>
+              </div>
+            ));
+
+            return [...gridSlots, ...overflowChampions];
+          })()}
+        </div>
       </div>
       
       <Footer />

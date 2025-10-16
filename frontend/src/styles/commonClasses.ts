@@ -944,10 +944,20 @@ export const championNameClasses =
 export const championYearClasses = 
   "text-xl md:text-2xl font-semibold text-black font-cormorant-sc engraved-text";
 
-// Champions grid container
+// Champions grid container - Fixed 4 columns, 6 rows (24 plates total)
 export const championsGridClasses = 
-  "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 " +
+  "grid grid-cols-4 gap-4 md:gap-6 " +
   "max-w-6xl mx-auto";
+
+// Empty champion plate (for initial 24 empty slots)
+export const emptyChampionPlateClasses = 
+  "rounded-lg p-4 h-24 md:h-28 flex flex-col justify-center items-center text-center relative overflow-hidden " +
+  "bg-gray-200 dark:bg-gray-700 border-2 border-dashed border-gray-400 dark:border-gray-500 " +
+  "opacity-50";
+
+// Empty plate text
+export const emptyPlateTextClasses = 
+  "text-sm text-gray-500 dark:text-gray-400 font-cormorant-sc";
 
 // Champions empty state
 export const championsEmptyStateClasses = 
