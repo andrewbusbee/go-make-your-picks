@@ -363,8 +363,18 @@ export default function HomePage() {
 
             {/* Data sections */}
             <div className="space-y-8">
-              {/* Cumulative Graph - Only show if there are completed rounds */}
-              {leaderboardData.rounds && leaderboardData.rounds.some((round: any) => round.status === 'completed') && (() => {
+              {/* Cumulative Graph */}
+              {(() => {
+                const hasCompletedRounds = leaderboardData.rounds && leaderboardData.rounds.some((round: any) => round.status === 'completed');
+                
+                if (!hasCompletedRounds) {
+                  return (
+                    <div className={`${cardClasses} shadow-lg text-center`}>
+                      <p className={bodyTextClasses}>No completed sports yet. Graph will appear once the first sport is completed.</p>
+                    </div>
+                  );
+                }
+
                 const allowedRoundIds = (leaderboardData.rounds || [])
                   .filter((r: any) => r.status === 'locked' || r.status === 'completed')
                   .map((r: any) => r.id);
@@ -374,7 +384,7 @@ export default function HomePage() {
                   points: (user.points || []).filter((p: any) => allowedRoundIds.includes(p.roundId))
                 }));
 
-                return <CumulativeGraph data={filteredGraphData} />;
+                return <CumulativeGraph key={`graph-${selectedSeasonId}`} data={filteredGraphData} />;
               })()}
 
               {/* Leaderboard Table */}
@@ -384,6 +394,7 @@ export default function HomePage() {
                   const filteredRounds = (leaderboardData.rounds || []).filter((r: any) => r.status === 'locked' || r.status === 'completed');
                   return (
                     <LeaderboardTable 
+                      key={`leaderboard-${selectedSeasonId}`}
                       rounds={filteredRounds}
                       leaderboard={leaderboardData.leaderboard}
                     />

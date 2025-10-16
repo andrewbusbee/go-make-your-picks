@@ -204,7 +204,19 @@ export default function CumulativeGraph({ data }: CumulativeGraphProps) {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  if (!data || data.length === 0 || data[0].points.length === 0) {
+  // Validate data structure
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    return (
+      <div className={`${cardClasses} shadow-lg text-center`}>
+        <p className={bodyTextClasses}>No completed sports yet. Graph will appear once the first sport is completed.</p>
+      </div>
+    );
+  }
+
+  // Check if any user has points data
+  const hasValidData = data.some(user => user.points && Array.isArray(user.points) && user.points.length > 0);
+  
+  if (!hasValidData) {
     return (
       <div className={`${cardClasses} shadow-lg text-center`}>
         <p className={bodyTextClasses}>No completed sports yet. Graph will appear once the first sport is completed.</p>
@@ -214,6 +226,14 @@ export default function CumulativeGraph({ data }: CumulativeGraphProps) {
 
   // Ensure all user data starts at 0 by prepending a Start point if not present
   const normalizedData = data.map(user => {
+    // Validate user data structure
+    if (!user.points || !Array.isArray(user.points)) {
+      return {
+        ...user,
+        points: [{ roundId: 0, roundName: 'Start', points: 0 }]
+      };
+    }
+
     const hasStartPoint = user.points.length > 0 && 
                           user.points[0].roundName === 'Start' && 
                           user.points[0].points === 0;
@@ -228,18 +248,34 @@ export default function CumulativeGraph({ data }: CumulativeGraphProps) {
     return user;
   });
 
-  // Transform data for recharts
-  const chartData = normalizedData[0].points.map((_, index) => {
-    const point: any = {
-      round: normalizedData[0].points[index].roundName,
-    };
-    
-    normalizedData.forEach(user => {
-      point[user.userName] = user.points[index].points;
-    });
-    
-    return point;
-  });
+  // Transform data for recharts - with error handling
+  let chartData: any[] = [];
+  try {
+    if (normalizedData.length > 0 && normalizedData[0].points && normalizedData[0].points.length > 0) {
+      chartData = normalizedData[0].points.map((_, index) => {
+        const point: any = {
+          round: normalizedData[0].points[index].roundName,
+        };
+        
+        normalizedData.forEach(user => {
+          if (user.points && user.points[index]) {
+            point[user.userName] = user.points[index].points || 0;
+          } else {
+            point[user.userName] = 0;
+          }
+        });
+        
+        return point;
+      });
+    }
+  } catch (error) {
+    console.error('Error transforming chart data:', error);
+    return (
+      <div className={`${cardClasses} shadow-lg text-center`}>
+        <p className={bodyTextClasses}>Error loading graph data. Please try again.</p>
+      </div>
+    );
+  }
 
   // Auto-scroll to the right when data changes
   useEffect(() => {
