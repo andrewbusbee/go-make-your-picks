@@ -11,7 +11,7 @@ import {
   overflowXAutoClasses,
   overflowYAutoClasses
 } from '../styles/commonClasses';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
 
 interface GraphData {
   userId: number;
@@ -190,7 +190,7 @@ function CustomXAxisTick({ x, y, payload }: any) {
   );
 }
 
-export default function CumulativeGraph({ data }: CumulativeGraphProps) {
+const CumulativeGraph = memo(function CumulativeGraph({ data }: CumulativeGraphProps) {
   const [isMobile, setIsMobile] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -348,4 +348,6 @@ export default function CumulativeGraph({ data }: CumulativeGraphProps) {
       </div>
     </div>
   );
-}
+});
+
+export default CumulativeGraph;

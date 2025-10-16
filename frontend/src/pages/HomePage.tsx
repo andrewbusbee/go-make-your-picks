@@ -63,14 +63,25 @@ export default function HomePage() {
       const season = allSeasons.find(s => s.id === selectedSeasonId);
       setSelectedSeason(season);
       
-      // Clear winners immediately when season changes to prevent stale data
+      // Clear data immediately when season changes to prevent stale data
       setWinners([]);
+      setGraphData([]);
+      setLeaderboardData(null);
       
-      loadLeaderboard(selectedSeasonId);
-      loadGraphData(selectedSeasonId);
-      if (season?.ended_at) {
-        loadWinners(selectedSeasonId);
-      }
+      // Load new data with error handling
+      const loadSeasonData = async () => {
+        try {
+          await Promise.all([
+            loadLeaderboard(selectedSeasonId),
+            loadGraphData(selectedSeasonId),
+            season?.ended_at ? loadWinners(selectedSeasonId) : Promise.resolve()
+          ]);
+        } catch (error) {
+          console.error('Error loading season data:', error);
+        }
+      };
+      
+      loadSeasonData();
     }
   }, [selectedSeasonId, allSeasons]);
 
@@ -363,29 +374,31 @@ export default function HomePage() {
 
             {/* Data sections */}
             <div className="space-y-8">
-              {/* Cumulative Graph */}
-              {(() => {
-                const hasCompletedRounds = leaderboardData.rounds && leaderboardData.rounds.some((round: any) => round.status === 'completed');
-                
-                if (!hasCompletedRounds) {
-                  return (
-                    <div className={`${cardClasses} shadow-lg text-center`}>
-                      <p className={bodyTextClasses}>No completed sports yet. Graph will appear once the first sport is completed.</p>
-                    </div>
-                  );
-                }
+              {/* Cumulative Graph - Always render with stable structure */}
+              <div key={`graph-container-${selectedSeasonId}`}>
+                {(() => {
+                  const hasCompletedRounds = leaderboardData?.rounds && leaderboardData.rounds.some((round: any) => round.status === 'completed');
+                  
+                  if (!hasCompletedRounds) {
+                    return (
+                      <div className={`${cardClasses} shadow-lg text-center`}>
+                        <p className={bodyTextClasses}>No completed sports yet. Graph will appear once the first sport is completed.</p>
+                      </div>
+                    );
+                  }
 
-                const allowedRoundIds = (leaderboardData.rounds || [])
-                  .filter((r: any) => r.status === 'locked' || r.status === 'completed')
-                  .map((r: any) => r.id);
+                  const allowedRoundIds = (leaderboardData.rounds || [])
+                    .filter((r: any) => r.status === 'locked' || r.status === 'completed')
+                    .map((r: any) => r.id);
 
-                const filteredGraphData = (graphData || []).map((user: any) => ({
-                  ...user,
-                  points: (user.points || []).filter((p: any) => allowedRoundIds.includes(p.roundId))
-                }));
+                  const filteredGraphData = (graphData || []).map((user: any) => ({
+                    ...user,
+                    points: (user.points || []).filter((p: any) => allowedRoundIds.includes(p.roundId))
+                  }));
 
-                return <CumulativeGraph key={`graph-${selectedSeasonId}`} data={filteredGraphData} />;
-              })()}
+                  return <CumulativeGraph key={`graph-${selectedSeasonId}`} data={filteredGraphData} />;
+                })()}
+              </div>
 
               {/* Leaderboard Table */}
               <div>
