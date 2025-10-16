@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import api from '../utils/api';
@@ -16,10 +15,11 @@ import {
   championYearClasses,
   championsGridClasses,
   emptyChampionPlateClasses,
-  emptyPlateTextClasses,
-  championsEmptyStateClasses,
-  championsEmptyStateTextClasses,
-  championsButtonClasses,
+  screwsContainerClasses,
+  plateContentClasses,
+  headerPlateContentClasses,
+  headerPlateInfoTextClasses,
+  headerPlateSpacingClasses,
   championsPageContainerClasses,
   championsHeaderPlateContainerClasses,
   championsLoadingContainerClasses,
@@ -27,7 +27,6 @@ import {
   championsErrorTextClasses,
   championsTryAgainButtonClasses,
   championsNoDataTextClasses,
-  championsEmptyStateIconClasses,
   screwTopLeftClasses,
   screwTopRightClasses,
   screwBottomLeftClasses,
@@ -146,7 +145,7 @@ export default function ChampionsPage() {
         <div className={championsHeaderPlateContainerClasses}>
           <div className={championsHeaderPlateClasses}>
             {/* Screws in four corners */}
-            <div className="absolute inset-0 pointer-events-none z-30">
+            <div className={screwsContainerClasses}>
               <div className={screwTopLeftClasses}/>
               <div className={screwTopRightClasses}/>
               <div className={screwBottomLeftClasses}/>
@@ -156,7 +155,7 @@ export default function ChampionsPage() {
             {/* Brass sheen effect - moved after screws */}
             <div className={brassPlateSheenClasses}></div>
             
-            <div className="relative z-20 flex flex-col h-full justify-center">
+            <div className={headerPlateContentClasses}>
               <div>
                 <h2 className={championsHeaderTitleClasses}>
                   {appTitle}
@@ -165,16 +164,16 @@ export default function ChampionsPage() {
                 <p className={championsHeaderTaglineClasses}>
                   {appTagline}
                 </p>
-                {yearsActive && (
-                  <p className="text-xl md:text-2xl text-black font-cormorant-sc engraved-text">
+                {yearsActive && yearsActive.first && (
+                  <p className={headerPlateInfoTextClasses}>
                     <strong>Established:</strong> {yearsActive.first}
                   </p>
                 )}
               </div>
               
-              <div className="mt-4">
+              <div className={headerPlateSpacingClasses}>
                 {currentCommissioner && (
-                  <p className="text-xl md:text-2xl text-black font-cormorant-sc engraved-text">
+                  <p className={headerPlateInfoTextClasses}>
                     <strong>Commissioner:</strong> {currentCommissioner}
                   </p>
                 )}
@@ -217,7 +216,7 @@ export default function ChampionsPage() {
                 return (
                   <div key={`champion-${champion.season_id}-${champion.total_points}`} className={championPlateClasses}>
                     {/* Screws in four corners */}
-                    <div className="absolute inset-0 pointer-events-none z-30">
+                    <div className={screwsContainerClasses}>
                       <div className={screwTopLeftClasses}/>
                       <div className={screwTopRightClasses}/>
                       <div className={screwBottomLeftClasses}/>
@@ -227,7 +226,7 @@ export default function ChampionsPage() {
                     {/* Brass sheen effect - moved after screws */}
                     <div className={brassPlateSheenClasses}></div>
                     
-                    <div className="relative z-20">
+                    <div className={plateContentClasses}>
                       <div className={championNameClasses}>
                         {champion.champions.map((name, nameIndex) => (
                           <div key={nameIndex}>{name}</div>
@@ -243,19 +242,26 @@ export default function ChampionsPage() {
                 // Empty plate
                 return (
                   <div key={`empty-${index}`} className={emptyChampionPlateClasses}>
-                    <div className={emptyPlateTextClasses}>
-                      Empty
+                    {/* Screws in four corners */}
+                    <div className={screwsContainerClasses}>
+                      <div className={screwTopLeftClasses}/>
+                      <div className={screwTopRightClasses}/>
+                      <div className={screwBottomLeftClasses}/>
+                      <div className={screwBottomRightClasses}/>
                     </div>
+                    
+                    {/* Brass sheen effect - moved after screws */}
+                    <div className={brassPlateSheenClasses}></div>
                   </div>
                 );
               }
             });
 
             // Add overflow champions (after 24) as individual plates
-            const overflowChampions = sortedChampions.slice(24).map((champion, index) => (
+            const overflowChampions = sortedChampions.slice(24).map((champion) => (
               <div key={`overflow-${champion.season_id}-${champion.total_points}`} className={championPlateClasses}>
                 {/* Screws in four corners */}
-                <div className="absolute inset-0 pointer-events-none z-30">
+                <div className={screwsContainerClasses}>
                   <div className={screwTopLeftClasses}/>
                   <div className={screwTopRightClasses}/>
                   <div className={screwBottomLeftClasses}/>
@@ -265,7 +271,7 @@ export default function ChampionsPage() {
                 {/* Brass sheen effect - moved after screws */}
                 <div className={brassPlateSheenClasses}></div>
                 
-                <div className="relative z-20">
+                <div className={plateContentClasses}>
                   <div className={championNameClasses}>
                     {champion.champions.map((name, nameIndex) => (
                       <div key={nameIndex}>{name}</div>

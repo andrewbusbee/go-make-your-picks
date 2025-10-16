@@ -949,15 +949,35 @@ export const championsGridClasses =
   "grid grid-cols-4 gap-4 md:gap-6 " +
   "max-w-6xl mx-auto";
 
-// Empty champion plate (for initial 24 empty slots)
+// Empty champion plate (for initial 24 empty slots) - same brass look as champion plates
 export const emptyChampionPlateClasses = 
   "rounded-lg p-4 h-24 md:h-28 flex flex-col justify-center items-center text-center relative overflow-hidden " +
-  "bg-gray-200 dark:bg-gray-700 border-2 border-dashed border-gray-400 dark:border-gray-500 " +
-  "opacity-50";
+  "[background:linear-gradient(180deg,#d7c088_0%,#c2a162_40%,#9a763a_64%,#7b5a23_78%,#cfb873_100%),radial-gradient(100%_60%_at_50%_0%,rgba(255,255,255,.14),transparent_60%),linear-gradient(180deg,transparent_0_60%,rgba(0,0,0,.07)_60%,transparent_61%)] " +
+  "border border-amber-200 shadow-lg";
 
 // Empty plate text
 export const emptyPlateTextClasses = 
-  "text-sm text-gray-500 dark:text-gray-400 font-cormorant-sc";
+  "text-lg md:text-xl font-semibold text-black font-cormorant-sc engraved-text opacity-70";
+
+// Screws container (absolute positioning)
+export const screwsContainerClasses = 
+  "absolute inset-0 pointer-events-none z-30";
+
+// Plate content container (relative positioning)
+export const plateContentClasses = 
+  "relative z-20";
+
+// Header plate content container (flex column)
+export const headerPlateContentClasses = 
+  "relative z-20 flex flex-col h-full justify-center";
+
+// Header plate info text
+export const headerPlateInfoTextClasses = 
+  "text-xl md:text-2xl text-black font-cormorant-sc engraved-text";
+
+// Header plate spacing
+export const headerPlateSpacingClasses = 
+  "mt-4";
 
 // Champions empty state
 export const championsEmptyStateClasses = 

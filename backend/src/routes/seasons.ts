@@ -196,7 +196,7 @@ router.get('/champions', async (req, res) => {
     // Get years active range from ended seasons only
     const [yearRange] = await db.query<RowDataPacket[]>(
       `SELECT 
-        MIN(year_start) as first_year,
+        MIN(year_end) as first_year,
         MAX(year_end) as last_year
        FROM seasons 
        WHERE ended_at IS NOT NULL 
