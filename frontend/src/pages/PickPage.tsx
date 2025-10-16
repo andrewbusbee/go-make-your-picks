@@ -217,7 +217,7 @@ export default function PickPage() {
 
               {/* Round Locked Status */}
               <div className={`${alertErrorClasses} mb-6`}>
-                <p className={alertErrorTextClasses}>
+                <p className={`${alertErrorTextClasses} text-center`}>
                   <strong>This round is now locked</strong>
                 </p>
               </div>
@@ -231,14 +231,12 @@ export default function PickPage() {
               {/* Commissioner Contact */}
               <div className={`${alertInfoClasses} mb-8`}>
                 <div className="text-center">
-                  <p className={`${alertInfoTextClasses} font-medium mb-2`}>
-                    💬 Need help or think you are seeing this message in error? Contact The Commissioner, {commissioner}.
-                  </p>
+                    <p className={`${alertInfoTextClasses} font-medium mb-2`}>
+                      💬 Contact your Commissioner, {commissioner}, if you need<br />
+                      help or think you are seeing this message in error.
+                    </p>
                   <p className={`${alertInfoTextClasses} text-sm`}>
-                    I hear {appTitle} allows bribes!
-                  </p>
-                  <p className={`${alertInfoTextClasses} text-sm text-center`}>
-                    💰 💰
+                   💰 I hear {commissioner} accepts bribes! 💰 
                   </p>
                 </div>
               </div>
