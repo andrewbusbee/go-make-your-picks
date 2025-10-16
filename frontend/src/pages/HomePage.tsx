@@ -192,15 +192,19 @@ export default function HomePage() {
                   id="season-select"
                   value={selectedSeasonId || ''}
                   onChange={(e) => setSelectedSeasonId(Number(e.target.value))}
-                  className={`${selectClasses} mt-1 block w-full md:w-64`}
+                  className={`${selectClasses} mt-1 block w-full md:w-80`}
                   disabled={allSeasons.length === 1}
                 >
                   {([...allSeasons]
                     .sort((a, b) => {
-                      // Derive end year: prefer explicit year_end/ended_at, fallback to name parsing if needed
-                      const aEnd = a.ended_at ? new Date(a.ended_at).getTime() : (a.year_end ? Number(a.year_end) : 0);
-                      const bEnd = b.ended_at ? new Date(b.ended_at).getTime() : (b.year_end ? Number(b.year_end) : 0);
-                      return bEnd - aEnd; // newest first
+                      // Default season first
+                      if (a.is_default === 1 && b.is_default !== 1) return -1;
+                      if (b.is_default === 1 && a.is_default !== 1) return 1;
+                      
+                      // Then sort by year_end (newest first)
+                      const aEnd = a.year_end ? Number(a.year_end) : 0;
+                      const bEnd = b.year_end ? Number(b.year_end) : 0;
+                      return bEnd - aEnd;
                     })
                   ).map(season => {
                     const endYear = season.year_end
