@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -24,6 +24,7 @@ export default function HomePage() {
   const [graphData, setGraphData] = useState<any[]>([]);
   const [winners, setWinners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [seasonLoading, setSeasonLoading] = useState(false);
   const [appTitle, setAppTitle] = useState('Go Make Your Picks');
   const [appTagline, setAppTagline] = useState('Predict. Compete. Win.');
   const [championshipPageTitle, setChampionshipPageTitle] = useState('Hall of Fame');
@@ -58,9 +59,23 @@ export default function HomePage() {
     };
   }, []);
 
-  useEffect(() => {
-    if (selectedSeasonId && allSeasons.length > 0) {
-      const season = allSeasons.find(s => s.id === selectedSeasonId);
+  // Ref to track current loading operation
+  const loadingRef = useRef<number | null>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  const loadSeasonData = useCallback(async (seasonId: number) => {
+    // Cancel any existing loading operation
+    if (loadingRef.current) {
+      loadingRef.current = null;
+    }
+    
+    const currentLoadId = Date.now();
+    loadingRef.current = currentLoadId;
+    
+    setSeasonLoading(true);
+    
+    try {
+      const season = allSeasons.find(s => s.id === seasonId);
       setSelectedSeason(season);
       
       // Clear data immediately when season changes to prevent stale data
@@ -68,22 +83,60 @@ export default function HomePage() {
       setGraphData([]);
       setLeaderboardData(null);
       
-      // Load new data with error handling
-      const loadSeasonData = async () => {
-        try {
-          await Promise.all([
-            loadLeaderboard(selectedSeasonId),
-            loadGraphData(selectedSeasonId),
-            season?.ended_at ? loadWinners(selectedSeasonId) : Promise.resolve()
-          ]);
-        } catch (error) {
-          console.error('Error loading season data:', error);
-        }
-      };
+      // Load new data sequentially to avoid race conditions
+      await loadLeaderboard(seasonId);
       
-      loadSeasonData();
+      // Check if this is still the current load operation
+      if (loadingRef.current !== currentLoadId) return;
+      
+      await loadGraphData(seasonId);
+      
+      // Check if this is still the current load operation
+      if (loadingRef.current !== currentLoadId) return;
+      
+      if (season?.ended_at) {
+        await loadWinners(seasonId);
+      }
+    } catch (error) {
+      console.error('Error loading season data:', error);
+    } finally {
+      // Only update loading state if this is still the current operation
+      if (loadingRef.current === currentLoadId) {
+        setSeasonLoading(false);
+        loadingRef.current = null;
+      }
     }
-  }, [selectedSeasonId, allSeasons]);
+  }, [allSeasons]);
+
+  // Debounced season change handler
+  const handleSeasonChange = useCallback((seasonId: number) => {
+    // Clear any existing debounce
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
+    // Set new debounced call
+    debounceRef.current = setTimeout(() => {
+      if (seasonId && allSeasons.length > 0) {
+        loadSeasonData(seasonId);
+      }
+    }, 100); // 100ms debounce
+  }, [allSeasons, loadSeasonData]);
+
+  useEffect(() => {
+    if (selectedSeasonId) {
+      handleSeasonChange(selectedSeasonId);
+    }
+  }, [selectedSeasonId, handleSeasonChange]);
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   const loadSettings = async () => {
     try {
@@ -376,7 +429,11 @@ export default function HomePage() {
             <div className="space-y-8">
               {/* Cumulative Graph - Always render with stable structure */}
               <div key={`graph-container-${selectedSeasonId}`}>
-                {(() => {
+                {seasonLoading ? (
+                  <div className={`${cardClasses} shadow-lg text-center`}>
+                    <p className={bodyTextClasses}>Loading season data...</p>
+                  </div>
+                ) : (() => {
                   const hasCompletedRounds = leaderboardData?.rounds && leaderboardData.rounds.some((round: any) => round.status === 'completed');
                   
                   if (!hasCompletedRounds) {
@@ -403,13 +460,17 @@ export default function HomePage() {
               {/* Leaderboard Table */}
               <div>
                 <h2 className={`${headingClasses} mb-4`}>Leaderboard</h2>
-                {(() => {
-                  const filteredRounds = (leaderboardData.rounds || []).filter((r: any) => r.status === 'locked' || r.status === 'completed');
+                {seasonLoading ? (
+                  <div className={`${cardClasses} shadow-lg text-center`}>
+                    <p className={bodyTextClasses}>Loading leaderboard data...</p>
+                  </div>
+                ) : (() => {
+                  const filteredRounds = (leaderboardData?.rounds || []).filter((r: any) => r.status === 'locked' || r.status === 'completed');
                   return (
                     <LeaderboardTable 
                       key={`leaderboard-${selectedSeasonId}`}
                       rounds={filteredRounds}
-                      leaderboard={leaderboardData.leaderboard}
+                      leaderboard={leaderboardData?.leaderboard || []}
                     />
                   );
                 })()}
