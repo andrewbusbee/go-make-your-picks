@@ -61,7 +61,7 @@ export default function HomePage() {
 
   // Ref to track current loading operation
   const loadingRef = useRef<number | null>(null);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const debounceRef = useRef<number | null>(null);
 
   const loadSeasonData = useCallback(async (seasonId: number) => {
     // Cancel any existing loading operation
@@ -111,12 +111,12 @@ export default function HomePage() {
   // Debounced season change handler
   const handleSeasonChange = useCallback((seasonId: number) => {
     // Clear any existing debounce
-    if (debounceRef.current) {
+    if (debounceRef.current !== null) {
       clearTimeout(debounceRef.current);
     }
     
     // Set new debounced call
-    debounceRef.current = setTimeout(() => {
+    debounceRef.current = window.setTimeout(() => {
       if (seasonId && allSeasons.length > 0) {
         loadSeasonData(seasonId);
       }
@@ -132,7 +132,7 @@ export default function HomePage() {
   // Cleanup debounce on unmount
   useEffect(() => {
     return () => {
-      if (debounceRef.current) {
+      if (debounceRef.current !== null) {
         clearTimeout(debounceRef.current);
       }
     };
