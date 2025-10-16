@@ -203,10 +203,12 @@ export const checkAndSendDailyReminder = async (round: any, now: Date, reminderS
     const todayInReminderTz = moment.tz(now, reminderTimezone);
     const scheduledTimeToday = todayInReminderTz.clone().hour(hours).minute(minutes).second(seconds).millisecond(0);
     
-    // Check 2: Is current time past the scheduled reminder time?
-    if (now < scheduledTimeToday.toDate()) {
+    // Check 2: Is current time past the scheduled reminder time? (Skip if forcing)
+    if (!forceOverride && now < scheduledTimeToday.toDate()) {
       logger.debug(`Not yet time for daily reminder (scheduled: ${scheduledTimeToday.format()}, now: ${moment(now).format()})`);
       return;
+    } else if (forceOverride) {
+      logger.debug(`Force override enabled for round ${round.id}, bypassing time check`);
     }
     
     // Check 3: Is current time BEFORE lock time?
@@ -268,7 +270,8 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
        JOIN season_participants sp ON u.id = sp.user_id
        LEFT JOIN magic_links ml ON u.id = ml.user_id AND ml.round_id = ?
        LEFT JOIN picks p ON u.id = p.user_id AND p.round_id = ?
-       WHERE sp.season_id = ? AND p.id IS NULL AND u.is_active = TRUE`,
+       LEFT JOIN pick_items pi ON p.id = pi.pick_id
+       WHERE sp.season_id = ? AND (p.id IS NULL OR pi.pick_value IS NULL OR pi.pick_value = '') AND u.is_active = TRUE`,
       [round.id, round.id, round.season_id]
     );
 
@@ -538,7 +541,8 @@ export const manualSendGenericReminder = async (roundId: number) => {
        JOIN season_participants sp ON u.id = sp.user_id
        LEFT JOIN magic_links ml ON u.id = ml.user_id AND ml.round_id = ?
        LEFT JOIN picks p ON u.id = p.user_id AND p.round_id = ?
-       WHERE sp.season_id = ? AND p.id IS NULL AND u.is_active = TRUE`,
+       LEFT JOIN pick_items pi ON p.id = pi.pick_id
+       WHERE sp.season_id = ? AND (p.id IS NULL OR pi.pick_value IS NULL OR pi.pick_value = '') AND u.is_active = TRUE`,
       [round.id, round.id, round.season_id]
     );
 
