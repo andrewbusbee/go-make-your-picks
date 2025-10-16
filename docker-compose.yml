@@ -1,7 +1,7 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: go-make-your-picks-mysql
+    container_name: mysql
     restart: always
     networks:
       - go-make-your-picks-network
@@ -24,7 +24,7 @@ services:
 
   go-make-your-picks:
     image: ghcr.io/andrewbusbee/go-make-your-picks:latest
-    container_name: go-make-your-picks-app
+    container_name: go-make-your-picks
     restart: always
     networks:
       - go-make-your-picks-network
