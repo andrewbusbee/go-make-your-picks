@@ -141,7 +141,7 @@ export default function PickPage() {
         picks: picksToSubmit
       });
       
-      setSuccess('Your pick has been submitted successfully! You can update it anytime before the lock time.');
+      setSuccess('Your pick has been submitted successfully! You can return to this page and update it anytime before the lock time.');
       
       // Reload pick data to show submitted picks
       await loadPickData();
@@ -202,7 +202,6 @@ export default function PickPage() {
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-800 dark:to-purple-800 text-white p-6">
               <h1 className="text-3xl font-bold mb-2">🏆 {appTitle}</h1>
-              <p className="text-blue-100">{pickData.round.seasonName}</p>
             </div>
 
             {/* Content */}
@@ -266,34 +265,23 @@ export default function PickPage() {
         <div className={`${cardClasses} shadow-xl overflow-hidden`}>
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-800 dark:to-purple-800 text-white p-6">
-            <h1 className="text-3xl font-bold mb-2">🏆 Go Make Your Picks</h1>
-            <p className="text-blue-100">{pickData.round.seasonName}</p>
+              <h1 className="text-3xl font-bold mb-2">🏆 {appTitle}</h1>
+
           </div>
 
           {/* Content */}
           <div className="p-6">
             <div className="mb-6">
-              <h2 className={`${headingClasses} mb-2`}>
-                Make Your Pick{pickType === 'multiple' && 's'}: {pickData.round.sportName}
-              </h2>
-              <p className={bodyTextClasses}>
+
+            <h2 className={`${headingClasses} mb-2`}>
                 Hello, <span className="font-semibold">{pickData.user.name}</span>!
+              </h2>
+              <p className="text-lg text-gray-700 dark:text-gray-300 mb-4">
+                It's time to make Your Pick{pickType === 'multiple' && 's'} for {pickData.round.sportName}
               </p>
+
             </div>
 
-            {/* Lock Time Warning */}
-            <div className={`${alertWarningClasses} mb-6`}>
-              <p className={alertWarningTextClasses}>
-                <strong>Lock Time:</strong> {new Date(pickData.round.lockTime).toLocaleString('en-US', {
-                  timeZone: pickData.round.timezone,
-                  dateStyle: 'full',
-                  timeStyle: 'short'
-                })} {pickData.round.timezone}
-              </p>
-              <p className={`${alertWarningTextClasses} text-xs mt-1`}>
-                You can update your pick{pickType === 'multiple' && 's'} anytime before this deadline.
-              </p>
-            </div>
 
             {/* Success Message */}
             {success && (
@@ -398,6 +386,20 @@ export default function PickPage() {
               </button>
             </form>
             )}
+
+            {/* Lock Time Warning */}
+            <div className={`${alertWarningClasses} mb-6 mt-4`}>
+              <p className={alertWarningTextClasses}>
+                <strong>Lock Time:</strong> {new Date(pickData.round.lockTime).toLocaleString('en-US', {
+                  timeZone: pickData.round.timezone,
+                  dateStyle: 'full',
+                  timeStyle: 'short'
+                })} {pickData.round.timezone}
+              </p>
+              <p className={`${alertWarningTextClasses} text-xs mt-1`}>
+                You can return to this page and update your pick{pickType === 'multiple' && 's'} anytime before this deadline.
+              </p>
+            </div>
           </div>
         </div>
       </div>
