@@ -797,7 +797,7 @@ export const sendAdminReminderSummary = async (
       seasonName
     });
     const mailOptions = {
-      from: process.env.SMTP_FROM || 'noreply@example.com',
+      from: `"${settings.app_title}" <${process.env.SMTP_FROM || 'noreply@example.com'}>`,
       to: recipientEmail,
       subject,
       html,

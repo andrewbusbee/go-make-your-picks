@@ -68,6 +68,7 @@ export default function AppSettings() {
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalTagline, setOriginalTagline] = useState('');
   const [originalFooterMessage, setOriginalFooterMessage] = useState('');
+  const [originalChampionshipPageTitle, setOriginalChampionshipPageTitle] = useState('Hall of Fame');
   const [originalThemeMode, setOriginalThemeMode] = useState<'dark_only' | 'light_only' | 'user_choice'>('user_choice');
   const [originalPointsFirstPlace, setOriginalPointsFirstPlace] = useState(6);
   const [originalPointsSecondPlace, setOriginalPointsSecondPlace] = useState(5);
@@ -92,6 +93,12 @@ export default function AppSettings() {
       setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
       setFooterMessage(res.data.footer_message || 'Built for Sports Fans');
       setChampionshipPageTitle(res.data.championship_page_title || 'Hall of Fame');
+      
+      // Set original values for change detection
+      setOriginalTitle(res.data.app_title || 'Go Make Your Picks');
+      setOriginalTagline(res.data.app_tagline || 'Predict. Compete. Win.');
+      setOriginalFooterMessage(res.data.footer_message || 'Built for Sports Fans');
+      setOriginalChampionshipPageTitle(res.data.championship_page_title || 'Hall of Fame');
       setThemeMode(res.data.theme_mode || 'user_choice');
       setPointsFirstPlace(parseInt(res.data.points_first_place) || 6);
       setPointsSecondPlace(parseInt(res.data.points_second_place) || 5);
@@ -189,6 +196,7 @@ export default function AppSettings() {
     setAppTitle(originalTitle);
     setAppTagline(originalTagline);
     setFooterMessage(originalFooterMessage);
+    setChampionshipPageTitle(originalChampionshipPageTitle);
     setThemeMode(originalThemeMode);
     setPointsFirstPlace(originalPointsFirstPlace);
     setPointsSecondPlace(originalPointsSecondPlace);
@@ -205,6 +213,7 @@ export default function AppSettings() {
     appTitle !== originalTitle ||
     appTagline !== originalTagline ||
     footerMessage !== originalFooterMessage ||
+    championshipPageTitle !== originalChampionshipPageTitle ||
     themeMode !== originalThemeMode ||
     pointsFirstPlace !== originalPointsFirstPlace ||
     pointsSecondPlace !== originalPointsSecondPlace ||
