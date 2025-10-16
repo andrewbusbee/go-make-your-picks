@@ -179,7 +179,7 @@ router.get('/champions', async (req, res) => {
        WHERE s.ended_at IS NOT NULL 
        AND s.deleted_at IS NULL
        AND sw.place = 1
-       ORDER BY s.ended_at DESC, s.id DESC, sw.total_points DESC, u.name ASC`
+       ORDER BY s.year_end DESC, s.id DESC, sw.total_points DESC, u.name ASC`
     );
 
     // Get app settings for display

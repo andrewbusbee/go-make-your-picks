@@ -203,9 +203,9 @@ export default function ChampionsPage() {
                 return acc;
               }, {} as Record<string, { season_id: number; year_start: number; year_end: number; total_points: number; ended_at: string; champions: string[] }>);
 
-              // Convert to array and sort by ended_at date (most recent first)
+              // Convert to array and sort by year_end (most recent first)
               return Object.values(groupedChampions)
-                .sort((a, b) => new Date(b.ended_at).getTime() - new Date(a.ended_at).getTime())
+                .sort((a, b) => b.year_end - a.year_end)
                 .map((group, groupIndex) => (
                   <div key={`${group.season_id}-${group.total_points}-${groupIndex}`} className={championPlateClasses}>
                     {/* Screws in four corners */}
