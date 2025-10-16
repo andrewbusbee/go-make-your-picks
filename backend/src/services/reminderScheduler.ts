@@ -98,7 +98,7 @@ export const checkAndSendReminders = async () => {
     // Check for rounds that just locked (locked in the last hour)
     logger.debug('🔐 Checking for recently locked rounds...');
     const [lockedRounds] = await db.query<RowDataPacket[]>(
-      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status, s.commissioner 
+      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status
        FROM rounds r
        JOIN seasons s ON r.season_id = s.id 
        WHERE r.status = 'locked' 
@@ -520,7 +520,7 @@ export const manualSendReminder = async (roundId: number, reminderType: 'first' 
 export const manualSendGenericReminder = async (roundId: number) => {
   try {
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status, s.commissioner FROM rounds r JOIN seasons s ON r.season_id = s.id WHERE r.id = ?',
+      'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status FROM rounds r WHERE r.id = ?',
       [roundId]
     );
 

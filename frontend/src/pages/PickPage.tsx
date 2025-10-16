@@ -59,7 +59,7 @@ export default function PickPage() {
 
   const loadCommissioner = async () => {
     try {
-      const res = await api.get('/admin/admins/commissioner');
+      const res = await api.get('/admin/admins/commissioner/public');
       setCurrentCommissioner(res.data.name);
     } catch (error) {
       console.error('Error loading commissioner:', error);

@@ -534,9 +534,9 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
   const roundId = parseInt(req.params.id);
 
   try {
-    // Get round details with commissioner from season
+    // Get round details
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT r.*, s.commissioner FROM rounds r JOIN seasons s ON r.season_id = s.id WHERE r.id = ?',
+      'SELECT r.* FROM rounds r WHERE r.id = ?',
       [roundId]
     );
 
@@ -1289,7 +1289,7 @@ router.post('/force-send-daily-reminders', authenticateAdmin, requireMainAdmin, 
     
     // Get all active rounds
     const [rounds] = await db.query<RowDataPacket[]>(
-      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status, s.commissioner 
+      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status
        FROM rounds r
        JOIN seasons s ON r.season_id = s.id 
        WHERE r.status = 'active' 
