@@ -140,12 +140,23 @@ export default function PickPage() {
     }
   };
 
-  // Check if picks are locked (past lock time)
+  // Check if picks are locked (past lock time OR manually locked)
   const isPicksLocked = () => {
-    if (!pickData?.round?.lockTime) return false;
-    const lockTime = new Date(pickData.round.lockTime);
-    const now = new Date();
-    return now > lockTime;
+    if (!pickData?.round) return false;
+    
+    // Check if round is manually locked
+    if (pickData.round.status === 'locked') {
+      return true;
+    }
+    
+    // Check if past scheduled lock time
+    if (pickData.round.lockTime) {
+      const lockTime = new Date(pickData.round.lockTime);
+      const now = new Date();
+      return now > lockTime;
+    }
+    
+    return false;
   };
 
   if (loading) {
