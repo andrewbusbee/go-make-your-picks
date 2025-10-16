@@ -190,13 +190,44 @@ export default function PickPage() {
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-800 dark:to-purple-800 text-white p-6">
               <h1 className="text-3xl font-bold mb-2">🏆 {appTitle}</h1>
+              <p className="text-blue-100">{pickData.round.seasonName}</p>
             </div>
 
             {/* Content */}
-            <div className="p-8 text-center">
+            <div className="p-6">
+              {/* Sport Title */}
               <div className="mb-6">
-                <span className="text-6xl mb-4 block">😔</span>
-                <h2 className="text-4xl font-bold text-gray-800 dark:text-white mb-4">WHOMP WHOMP! 😔</h2>
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Make Your Pick: {pickData.round.sportName}</h2>
+                <p className="text-gray-600 dark:text-gray-400">Hello, {pickData.userName}!</p>
+              </div>
+
+              {/* Locked Message */}
+              <div className="text-center mb-6">
+
+                <h3 className="text-4xl font-bold text-gray-800 dark:text-white mb-4">😔 WOMP WOMP! 😔</h3>
+              </div>
+
+              {/* Lock Time Warning */}
+              {pickData.round.lockTime && (
+                <div className={`${alertWarningClasses} mb-6`}>
+                  <p className={alertWarningTextClasses}>
+                    <strong>Lock Time:</strong> {new Date(pickData.round.lockTime).toLocaleString('en-US', {
+                      timeZone: pickData.round.timezone,
+                      dateStyle: 'full',
+                      timeStyle: 'short'
+                    })} {pickData.round.timezone}
+                  </p>
+                  <p className={alertWarningTextClasses}>
+                    You can update your pick anytime before this deadline.
+                  </p>
+                </div>
+              )}
+
+              {/* Round Locked Status */}
+              <div className={`${alertErrorClasses} mb-6`}>
+                <p className={alertErrorTextClasses}>
+                  <strong>This round is now locked</strong>
+                </p>
               </div>
 
               <div className="mb-8">
