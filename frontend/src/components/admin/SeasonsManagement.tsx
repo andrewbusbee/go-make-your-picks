@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
+import MessageAllPlayersModal from './MessageAllPlayersModal';
 import {
   headingClasses,
   subheadingClasses,
@@ -88,6 +89,10 @@ export default function SeasonsManagement() {
   const [selectedParticipants, setSelectedParticipants] = useState<number[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Message all players modal state
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [selectedSeasonForMessage, setSelectedSeasonForMessage] = useState<any>(null);
   
   // Edit modal state
   const [editingSeason, setEditingSeason] = useState<any>(null);
@@ -310,6 +315,28 @@ export default function SeasonsManagement() {
     }
   };
 
+  const openMessageModal = (season: any) => {
+    setSelectedSeasonForMessage(season);
+    setShowMessageModal(true);
+  };
+
+  const closeMessageModal = () => {
+    setShowMessageModal(false);
+    setSelectedSeasonForMessage(null);
+  };
+
+  const handleSendMessage = async (message: string) => {
+    if (!selectedSeasonForMessage) return;
+    
+    try {
+      await api.post(`/admin/seasons/${selectedSeasonForMessage.id}/message-all-players`, {
+        message
+      });
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || 'Failed to send message');
+    }
+  };
+
   const openDeleteModal = (season: any) => {
     setSeasonToDelete(season);
     setDeleteConfirmText('');
@@ -504,6 +531,18 @@ export default function SeasonsManagement() {
                   </button>
                 )}
               </div>
+
+              {/* Message All Players Button - Only for active, non-ended, non-deleted seasons */}
+              {season.is_active && !season.ended_at && !season.deleted_at && (
+                <div className={`${flexWrapGapClasses} ${mb2Classes}`}>
+                  <button
+                    onClick={() => openMessageModal(season)}
+                    className={`flex-1 min-w-[140px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonPrimaryClasses}`}
+                  >
+                    ✉️ Message All Players
+                  </button>
+                </div>
+              )}
 
               {/* Second Row of Buttons */}
               <div className="flex flex-wrap gap-2">
@@ -1110,6 +1149,14 @@ export default function SeasonsManagement() {
           </div>
         </div>
       )}
+
+      {/* Message All Players Modal */}
+      <MessageAllPlayersModal
+        isOpen={showMessageModal}
+        onClose={closeMessageModal}
+        season={selectedSeasonForMessage}
+        onSendMessage={handleSendMessage}
+      />
     </div>
   );
 }

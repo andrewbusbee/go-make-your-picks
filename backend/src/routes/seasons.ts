@@ -1252,4 +1252,107 @@ router.post('/:targetId/copy-sports', authenticateAdmin, async (req: AuthRequest
   }
 });
 
+// Message all players in a season (admin only)
+router.post('/:id/message-all-players', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const seasonId = parseInt(req.params.id);
+    const { message } = req.body;
+
+    if (!seasonId || isNaN(seasonId)) {
+      return res.status(400).json({ error: 'Invalid season ID' });
+    }
+
+    if (!message || typeof message !== 'string' || message.trim().length === 0) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    if (message.length > 1000) {
+      return res.status(400).json({ error: 'Message must be 1000 characters or less' });
+    }
+
+    // Verify season exists and is active (not ended, not deleted, not disabled)
+    const [seasonRows] = await db.query<RowDataPacket[]>(
+      `SELECT id, name, year_start, year_end, is_active, ended_at, deleted_at 
+       FROM seasons 
+       WHERE id = ? AND deleted_at IS NULL AND is_active = 1 AND ended_at IS NULL`,
+      [seasonId]
+    );
+
+    if (seasonRows.length === 0) {
+      return res.status(404).json({ error: 'Season not found or not eligible for messaging' });
+    }
+
+    const season = seasonRows[0];
+
+    // Get all active players in this season
+    const [players] = await db.query<RowDataPacket[]>(
+      `SELECT u.id, u.name, u.email 
+       FROM users u
+       JOIN season_participants sp ON u.id = sp.user_id
+       WHERE sp.season_id = ? AND u.is_active = 1
+       ORDER BY u.name`,
+      [seasonId]
+    );
+
+    if (players.length === 0) {
+      return res.status(400).json({ error: 'No active players found in this season' });
+    }
+
+    // Get commissioner name and app settings
+    const [commissionerRows] = await db.query<RowDataPacket[]>(
+      `SELECT name FROM admins WHERE is_commissioner = TRUE LIMIT 1`
+    );
+    const commissionerName = commissionerRows[0]?.name || 'The Commissioner';
+
+    const [settingsRows] = await db.query<RowDataPacket[]>(
+      `SELECT setting_key, setting_value FROM text_settings WHERE setting_key IN ('app_title')`
+    );
+    const appTitle = settingsRows.find(s => s.setting_key === 'app_title')?.setting_value || 'Go Make Your Picks';
+
+    // Import email service
+    const { sendBulkEmail } = await import('../services/emailService');
+
+    // Prepare email data for bulk sending
+    const emailData = players.map(player => ({
+      to: player.email,
+      subject: `Message from The Commissioner - ${appTitle}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Hi ${player.name},</h2>
+          
+          <p>You have a new message from ${commissionerName}, Commissioner of ${appTitle}:</p>
+          
+          <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <p style="margin: 0; white-space: pre-wrap;">${message.trim()}</p>
+          </div>
+          
+          <p>Have a great day,<br>${commissionerName}</p>
+        </div>
+      `
+    }));
+
+    // Send bulk email
+    await sendBulkEmail(emailData);
+
+    logger.info('Message sent to all players', {
+      seasonId,
+      seasonName: season.name,
+      recipientCount: players.length,
+      commissionerName,
+      messageLength: message.length
+    });
+
+    res.json({
+      success: true,
+      message: `Message sent successfully to ${players.length} active players`,
+      recipientCount: players.length,
+      recipients: players.map(p => ({ name: p.name, email: p.email }))
+    });
+
+  } catch (error: any) {
+    logger.error('Error sending message to all players', { error, seasonId: req.params.id });
+    res.status(500).json({ error: 'Failed to send message to players' });
+  }
+});
+
 export default router;

@@ -898,6 +898,70 @@ export const sendAdminReminderSummary = async (
 };
 
 /**
+ * Send bulk emails to multiple recipients
+ * @param emails - Array of email objects with to, subject, and html
+ * @returns Promise<void>
+ */
+export const sendBulkEmail = async (emails: Array<{ to: string; subject: string; html: string }>): Promise<void> => {
+  if (!emails || emails.length === 0) {
+    throw new Error('No emails to send');
+  }
+
+  // Check if email notifications are enabled globally
+  const notificationsEnabled = await areEmailNotificationsEnabled();
+  if (!notificationsEnabled) {
+    logger.info('Email notifications disabled, skipping bulk email send', { 
+      emailCount: emails.length 
+    });
+    return;
+  }
+
+  logger.info('Starting bulk email send', { emailCount: emails.length });
+
+  // Send emails in parallel with error handling for individual failures
+  const sendPromises = emails.map(async (emailData) => {
+    try {
+      await retry(
+        async () => {
+          const mailOptions = {
+            from: process.env.SMTP_FROM,
+            to: emailData.to,
+            subject: emailData.subject,
+            html: emailData.html
+          };
+
+          await transporter.sendMail(mailOptions);
+          logEmailSent('bulk-message', emailData.to, emailData.subject);
+        },
+        {
+          retries: EMAIL_RETRY_ATTEMPTS,
+          factor: EMAIL_RETRY_FACTOR,
+          minTimeout: EMAIL_RETRY_MIN_TIMEOUT,
+          maxTimeout: EMAIL_RETRY_MAX_TIMEOUT,
+          onRetry: (error, attempt) => {
+            logger.warn('Retrying bulk email send', {
+              attempt,
+              to: redactEmail(emailData.to),
+              error: error.message
+            });
+          }
+        }
+      );
+    } catch (error: any) {
+      logger.error('Failed to send bulk email after retries', {
+        to: redactEmail(emailData.to),
+        subject: emailData.subject,
+        error: error.message
+      });
+      // Don't throw - we want to continue sending to other recipients
+    }
+  });
+
+  await Promise.all(sendPromises);
+  logger.info('Bulk email send completed', { emailCount: emails.length });
+};
+
+/**
  * Verifies SMTP connection for health checks
  * @returns Promise<{ connected: boolean; error?: string }>
  */
