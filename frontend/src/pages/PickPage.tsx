@@ -195,33 +195,15 @@ export default function PickPage() {
 
             {/* Content */}
             <div className="p-6">
-              {/* Sport Title */}
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Make Your Pick: {pickData.round.sportName}</h2>
-                <p className="text-gray-600 dark:text-gray-400">Hello, {pickData.userName}!</p>
-              </div>
+
 
               {/* Locked Message */}
               <div className="text-center mb-6">
 
-                <h3 className="text-4xl font-bold text-gray-800 dark:text-white mb-4">😔 WOMP WOMP! 😔</h3>
+                <h3 className="text-4xl font-bold text-gray-800 dark:text-white mb-4">WOMP WOMP!</h3>
               </div>
 
-              {/* Lock Time Warning */}
-              {pickData.round.lockTime && (
-                <div className={`${alertWarningClasses} mb-6`}>
-                  <p className={alertWarningTextClasses}>
-                    <strong>Lock Time:</strong> {new Date(pickData.round.lockTime).toLocaleString('en-US', {
-                      timeZone: pickData.round.timezone,
-                      dateStyle: 'full',
-                      timeStyle: 'short'
-                    })} {pickData.round.timezone}
-                  </p>
-                  <p className={alertWarningTextClasses}>
-                    You can update your pick anytime before this deadline.
-                  </p>
-                </div>
-              )}
+              
 
               {/* Round Locked Status */}
               <div className={`${alertErrorClasses} mb-6`}>
@@ -243,7 +225,10 @@ export default function PickPage() {
                     💬 Need help or think you are seeing this message in error? Contact The Commissioner, {commissioner}.
                   </p>
                   <p className={`${alertInfoTextClasses} text-sm`}>
-                    💰 I hear {appTitle} allows bribes 💰
+                    I hear {appTitle} allows bribes!
+                  </p>
+                  <p className={`${alertInfoTextClasses} text-sm text-center`}>
+                    💰 💰
                   </p>
                 </div>
               </div>
@@ -257,7 +242,7 @@ export default function PickPage() {
           
           {/* Footer */}
           <div className="text-center mt-8">
-            <p className="text-gray-500 dark:text-gray-400">⚡ {appTagline}</p>
+            <p className="text-gray-500 dark:text-gray-400">{appTagline}</p>
           </div>
         </div>
       </div>

@@ -323,7 +323,8 @@ export const sendLockedNotification = async (
   names: string[], // Changed to array to support merged emails
   sportName: string,
   leaderboardLink: string,
-  customMessage?: string
+  customMessage?: string,
+  commissioner?: string
 ): Promise<void> => {
   // Check if email notifications are globally enabled
   const notificationsEnabled = await areEmailNotificationsEnabled();
@@ -345,7 +346,7 @@ export const sendLockedNotification = async (
     ? names.map(n => `<span style="color: #dc2626; font-weight: bold;">${n}</span>`).join(', ')
     : names[0];
   
-  const commissionerHeader = getCommissionerSignature(undefined, settings.app_title);
+  const commissionerHeader = getCommissionerSignature(commissioner, settings.app_title);
   const bodyHtml = `
     ${commissionerHeader}
     <h2>Hi ${namesFormatted}!</h2>

@@ -470,7 +470,7 @@ export const sendLockedNotificationIfNotSent = async (round: any) => {
     // Send locked notification (one per unique email, merged if shared)
     await Promise.allSettled(
       Array.from(usersByEmail.entries()).map(([email, names]) =>
-        sendLockedNotification(email, names, round.sport_name, leaderboardLink)
+        sendLockedNotification(email, names, round.sport_name, leaderboardLink, undefined, round.commissioner)
           .catch(emailError => {
             logger.error(`Failed to send locked notification`, { emailError, emailRedacted: redactEmail(email) });
           })
