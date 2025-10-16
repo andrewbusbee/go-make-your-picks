@@ -6,7 +6,6 @@ import {
   labelClasses,
   selectClasses,
   inputClasses,
-  cardClasses,
   headingClasses,
   bodyTextClasses,
   alertWarningClasses,
@@ -198,7 +197,7 @@ export default function PickPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 py-8 px-4 pb-20 transition-colors">
         <div className="max-w-2xl mx-auto">
-          <div className={`${cardClasses} shadow-xl overflow-hidden`}>
+          <div className="overflow-hidden">
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-800 dark:to-purple-800 text-white p-6">
               <h1 className="text-3xl font-bold mb-2">🏆 {appTitle}</h1>
@@ -245,9 +244,11 @@ export default function PickPage() {
               </div>
 
               {/* Back to Home Button */}
-              <Link to="/" className={buttonPrimaryClasses}>
-                🏠 Back to Home
-              </Link>
+              <div className="text-center">
+                <Link to="/" className={buttonPrimaryClasses}>
+                  🏠 Back to Home
+                </Link>
+              </div>
             </div>
           </div>
           
@@ -259,10 +260,31 @@ export default function PickPage() {
 
   const pickType = pickData.round.pickType || 'single';
 
+  // Helper function to make URLs clickable
+  const formatMessage = (text: string) => {
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.split(urlRegex).map((part, index) => {
+      if (urlRegex.test(part)) {
+        return (
+          <a 
+            key={index} 
+            href={part} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300"
+          >
+            {part}
+          </a>
+        );
+      }
+      return part;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 py-8 px-4 pb-20 transition-colors">
       <div className="max-w-2xl mx-auto">
-        <div className={`${cardClasses} shadow-xl overflow-hidden`}>
+        <div className="overflow-hidden">
           {/* Header */}
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-800 dark:to-purple-800 text-white p-6">
               <h1 className="text-3xl font-bold mb-2">🏆 {appTitle}</h1>
@@ -279,6 +301,18 @@ export default function PickPage() {
               <p className="text-lg text-gray-700 dark:text-gray-300 mb-4">
                 It's time to make Your Pick{pickType === 'multiple' && 's'} for {pickData.round.sportName}
               </p>
+
+              {/* Commissioner Message */}
+              {pickData.round.email_message && !success && (
+                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-r-md">
+                  <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                    Message from the Commissioner:
+                  </p>
+                  <p className="text-sm text-blue-700 dark:text-blue-300 whitespace-pre-wrap">
+                    {formatMessage(pickData.round.email_message)}
+                  </p>
+                </div>
+              )}
 
             </div>
 
@@ -321,7 +355,7 @@ export default function PickPage() {
                 /* Single Pick Type - Dropdown */
                 <div>
                   <label className={labelClasses}>
-                    Your Pick *
+                    Your Pick:
                   </label>
                   {pickData.teams && pickData.teams.length > 0 ? (
                     <select
@@ -346,7 +380,7 @@ export default function PickPage() {
                 <div className="space-y-4">
                   <div className={`${alertInfoClasses} mb-4`}>
                     <p className={alertInfoTextClasses}>
-                      <strong>Instructions:</strong> Enter your picks below. You can fill in as many or as few as you'd like.
+                        <strong>Instructions:</strong> {pickData.round.sportName} requires a manual pick.  Please enter your picks below and click submit.
                     </p>
                   </div>
                   

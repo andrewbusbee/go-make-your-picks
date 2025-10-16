@@ -90,7 +90,8 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
         lockTime: link.lock_time,
         timezone: link.timezone,
         status: link.status,
-        seasonName: link.season_name
+        seasonName: link.season_name,
+        email_message: link.email_message
       },
       teams: teams.map(t => t.team_name),
       currentPick
