@@ -56,7 +56,6 @@ export default function AppSettings() {
   const [appTitle, setAppTitle] = useState('');
   const [appTagline, setAppTagline] = useState('');
   const [footerMessage, setFooterMessage] = useState('');
-  const [championshipPageTitle, setChampionshipPageTitle] = useState('Hall of Fame');
   const [themeMode, setThemeMode] = useState<'dark_only' | 'light_only' | 'user_choice'>('user_choice');
   const [pointsFirstPlace, setPointsFirstPlace] = useState(6);
   const [pointsSecondPlace, setPointsSecondPlace] = useState(5);
@@ -68,7 +67,6 @@ export default function AppSettings() {
   const [originalTitle, setOriginalTitle] = useState('');
   const [originalTagline, setOriginalTagline] = useState('');
   const [originalFooterMessage, setOriginalFooterMessage] = useState('');
-  const [originalChampionshipPageTitle, setOriginalChampionshipPageTitle] = useState('Hall of Fame');
   const [originalThemeMode, setOriginalThemeMode] = useState<'dark_only' | 'light_only' | 'user_choice'>('user_choice');
   const [originalPointsFirstPlace, setOriginalPointsFirstPlace] = useState(6);
   const [originalPointsSecondPlace, setOriginalPointsSecondPlace] = useState(5);
@@ -157,7 +155,6 @@ export default function AppSettings() {
         appTitle,
         appTagline,
         footerMessage,
-        championshipPageTitle,
         themeMode,
         pointsFirstPlace,
         pointsSecondPlace,
@@ -213,7 +210,6 @@ export default function AppSettings() {
     appTitle !== originalTitle ||
     appTagline !== originalTagline ||
     footerMessage !== originalFooterMessage ||
-    championshipPageTitle !== originalChampionshipPageTitle ||
     themeMode !== originalThemeMode ||
     pointsFirstPlace !== originalPointsFirstPlace ||
     pointsSecondPlace !== originalPointsSecondPlace ||
@@ -351,24 +347,6 @@ export default function AppSettings() {
               </p>
             </div>
 
-            <div>
-              <label htmlFor="championshipPageTitle" className={labelClasses}>
-                Championship Page Title
-              </label>
-              <input
-                type="text"
-                id="championshipPageTitle"
-                value={championshipPageTitle}
-                onChange={(e) => setChampionshipPageTitle(e.target.value)}
-                placeholder="Hall of Fame"
-                maxLength={100}
-                className={inputClasses}
-                required
-              />
-              <p className={`mt-1 ${helpTextClasses}`}>
-                Title displayed on the champions page and navigation button. Maximum 100 characters.
-              </p>
-            </div>
 
           </div>
 

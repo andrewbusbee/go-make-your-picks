@@ -5,7 +5,6 @@ import api from '../utils/api';
 import { usePageMeta } from '../utils/usePageMeta';
 import {
   pageContainerClasses,
-  championsWallTitleClasses,
   championsHeaderPlateClasses,
   brassPlateSheenClasses,
   championsHeaderTitleClasses,
@@ -49,7 +48,6 @@ interface ChampionsData {
   champions: Champion[];
   appTitle: string;
   appTagline: string;
-  championshipPageTitle: string;
   currentCommissioner: string | null;
   yearsActive: {
     first: number;
@@ -65,8 +63,8 @@ export default function ChampionsPage() {
 
   // Update page meta tags
   usePageMeta({
-    title: championsData?.championshipPageTitle || 'Hall of Fame',
-    description: `${championsData?.championshipPageTitle || 'Hall of Fame'} - Past Season Champions`
+    title: championsData ? `${championsData.appTitle} Champions!` : 'Champions!',
+    description: championsData ? `${championsData.appTitle} - Past Season Champions` : 'Past Season Champions'
   });
 
   useEffect(() => {
@@ -143,17 +141,13 @@ export default function ChampionsPage() {
     );
   }
 
-  const { champions, appTitle, appTagline, championshipPageTitle, currentCommissioner, yearsActive } = championsData;
+  const { champions, appTitle, appTagline, currentCommissioner, yearsActive } = championsData;
 
   return (
     <div className={`${pageContainerClasses} pb-20`}>
       <Header />
       
       <div className={championsPageContainerClasses}>
-        {/* Page Title */}
-        <h1 className={championsWallTitleClasses}>
-          🏆 {championshipPageTitle?.toUpperCase() || 'HALL OF FAME'} 🏆
-        </h1>
 
         {/* Large Header Plate */}
         <div className={championsHeaderPlateContainerClasses}>

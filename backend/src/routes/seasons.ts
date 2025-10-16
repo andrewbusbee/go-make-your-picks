@@ -186,12 +186,11 @@ router.get('/champions', async (req, res) => {
     const [settings] = await db.query<RowDataPacket[]>(
       `SELECT setting_key, setting_value 
        FROM text_settings 
-       WHERE setting_key IN ('app_title', 'app_tagline', 'championship_page_title')`
+       WHERE setting_key IN ('app_title', 'app_tagline')`
     );
 
     const appTitle = settings.find(s => s.setting_key === 'app_title')?.setting_value || 'Go Make Your Picks';
     const appTagline = settings.find(s => s.setting_key === 'app_tagline')?.setting_value || 'Predict. Compete. Win.';
-    const championshipPageTitle = settings.find(s => s.setting_key === 'championship_page_title')?.setting_value || 'Hall of Fame';
 
     // Get years active range from ended seasons only
     const [yearRange] = await db.query<RowDataPacket[]>(
@@ -213,7 +212,6 @@ router.get('/champions', async (req, res) => {
       champions,
       appTitle,
       appTagline,
-      championshipPageTitle,
       currentCommissioner,
       yearsActive: yearRange.length > 0 ? {
         first: yearRange[0].first_year,
