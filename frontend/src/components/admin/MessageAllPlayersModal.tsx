@@ -3,7 +3,6 @@ import {
   modalBackdropClasses,
   modalClasses,
   modalTitleClasses,
-  modalBodyClasses,
   buttonPrimaryClasses,
   buttonSecondaryClasses,
   inputClasses,
@@ -84,7 +83,7 @@ export default function MessageAllPlayersModal({
           ✉️ Message All Players
         </h3>
 
-        <div className={modalBodyClasses}>
+        <div className="space-y-4">
           <div className="mb-4">
             <p className={bodyTextClasses}>
               <strong>Season:</strong> {season.name}

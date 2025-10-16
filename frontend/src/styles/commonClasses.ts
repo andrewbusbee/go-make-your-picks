@@ -949,6 +949,11 @@ export const championsGridClasses =
   "grid grid-cols-4 gap-4 md:gap-6 " +
   "max-w-6xl mx-auto";
 
+// Champions grid container for mobile - 1 column, only champions
+export const championsGridMobileClasses = 
+  "grid grid-cols-1 gap-4 " +
+  "max-w-6xl mx-auto";
+
 // Empty champion plate (for initial 24 empty slots) - same brass look as champion plates
 export const emptyChampionPlateClasses = 
   "rounded-lg p-4 h-24 md:h-28 flex flex-col justify-center items-center text-center relative overflow-hidden " +

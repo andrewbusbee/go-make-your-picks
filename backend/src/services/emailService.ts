@@ -931,14 +931,14 @@ export const sendBulkEmail = async (emails: Array<{ to: string; subject: string;
           };
 
           await transporter.sendMail(mailOptions);
-          logEmailSent('bulk-message', emailData.to, emailData.subject);
+          logEmailSent(emailData.to, emailData.subject, true);
         },
         {
           retries: EMAIL_RETRY_ATTEMPTS,
           factor: EMAIL_RETRY_FACTOR,
           minTimeout: EMAIL_RETRY_MIN_TIMEOUT,
           maxTimeout: EMAIL_RETRY_MAX_TIMEOUT,
-          onRetry: (error, attempt) => {
+          onRetry: (error: any, attempt) => {
             logger.warn('Retrying bulk email send', {
               attempt,
               to: redactEmail(emailData.to),

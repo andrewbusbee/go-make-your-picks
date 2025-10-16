@@ -14,6 +14,7 @@ import {
   championNameClasses,
   championYearClasses,
   championsGridClasses,
+  championsGridMobileClasses,
   emptyChampionPlateClasses,
   screwsContainerClasses,
   plateContentClasses,
@@ -60,6 +61,7 @@ export default function ChampionsPage() {
   const [championsData, setChampionsData] = useState<ChampionsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Update page meta tags
   usePageMeta({
@@ -69,6 +71,18 @@ export default function ChampionsPage() {
 
   useEffect(() => {
     loadChampionsData();
+  }, []);
+
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const loadChampionsData = async () => {
@@ -182,8 +196,8 @@ export default function ChampionsPage() {
           </div>
         </div>
 
-        {/* Champions Grid - 4×6 Layout */}
-        <div className={championsGridClasses}>
+        {/* Champions Grid - Responsive Layout */}
+        <div className={isMobile ? championsGridMobileClasses : championsGridClasses}>
           {(() => {
             // Group champions by season AND points to handle ties properly
             const groupedChampions = champions.reduce((acc, champion) => {
@@ -207,59 +221,9 @@ export default function ChampionsPage() {
             const sortedChampions = Object.values(groupedChampions)
               .sort((a, b) => b.year_end - a.year_end);
 
-            // Create array of 24 slots (4×6 grid)
-            const gridSlots = Array.from({ length: 24 }, (_, index) => {
-              const champion = sortedChampions[index];
-              
-              if (champion) {
-                // Champion plate
-                return (
-                  <div key={`champion-${champion.season_id}-${champion.total_points}`} className={championPlateClasses}>
-                    {/* Screws in four corners */}
-                    <div className={screwsContainerClasses}>
-                      <div className={screwTopLeftClasses}/>
-                      <div className={screwTopRightClasses}/>
-                      <div className={screwBottomLeftClasses}/>
-                      <div className={screwBottomRightClasses}/>
-                    </div>
-                    
-                    {/* Brass sheen effect - moved after screws */}
-                    <div className={brassPlateSheenClasses}></div>
-                    
-                    <div className={plateContentClasses}>
-                      <div className={championNameClasses}>
-                        {champion.champions.map((name, nameIndex) => (
-                          <div key={nameIndex}>{name}</div>
-                        ))}
-                      </div>
-                      <div className={championYearClasses}>
-                        {champion.year_end}
-                      </div>
-                    </div>
-                  </div>
-                );
-              } else {
-                // Empty plate
-                return (
-                  <div key={`empty-${index}`} className={emptyChampionPlateClasses}>
-                    {/* Screws in four corners */}
-                    <div className={screwsContainerClasses}>
-                      <div className={screwTopLeftClasses}/>
-                      <div className={screwTopRightClasses}/>
-                      <div className={screwBottomLeftClasses}/>
-                      <div className={screwBottomRightClasses}/>
-                    </div>
-                    
-                    {/* Brass sheen effect - moved after screws */}
-                    <div className={brassPlateSheenClasses}></div>
-                  </div>
-                );
-              }
-            });
-
-            // Add overflow champions (after 24) as individual plates
-            const overflowChampions = sortedChampions.slice(24).map((champion) => (
-              <div key={`overflow-${champion.season_id}-${champion.total_points}`} className={championPlateClasses}>
+            // Render champion plate component
+            const renderChampionPlate = (champion: any, key: string) => (
+              <div key={key} className={championPlateClasses}>
                 {/* Screws in four corners */}
                 <div className={screwsContainerClasses}>
                   <div className={screwTopLeftClasses}/>
@@ -273,7 +237,7 @@ export default function ChampionsPage() {
                 
                 <div className={plateContentClasses}>
                   <div className={championNameClasses}>
-                    {champion.champions.map((name, nameIndex) => (
+                    {champion.champions.map((name: string, nameIndex: number) => (
                       <div key={nameIndex}>{name}</div>
                     ))}
                   </div>
@@ -282,9 +246,47 @@ export default function ChampionsPage() {
                   </div>
                 </div>
               </div>
-            ));
+            );
 
-            return [...gridSlots, ...overflowChampions];
+            if (isMobile) {
+              // Mobile: Only show champions, no empty plates
+              return sortedChampions.map((champion) => 
+                renderChampionPlate(champion, `champion-${champion.season_id}-${champion.total_points}`)
+              );
+            } else {
+              // Desktop: Show full 4×6 grid with empty plates
+              // Create array of 24 slots (4×6 grid)
+              const gridSlots = Array.from({ length: 24 }, (_, index) => {
+                const champion = sortedChampions[index];
+                
+                if (champion) {
+                  return renderChampionPlate(champion, `champion-${champion.season_id}-${champion.total_points}`);
+                } else {
+                  // Empty plate
+                  return (
+                    <div key={`empty-${index}`} className={emptyChampionPlateClasses}>
+                      {/* Screws in four corners */}
+                      <div className={screwsContainerClasses}>
+                        <div className={screwTopLeftClasses}/>
+                        <div className={screwTopRightClasses}/>
+                        <div className={screwBottomLeftClasses}/>
+                        <div className={screwBottomRightClasses}/>
+                      </div>
+                      
+                      {/* Brass sheen effect - moved after screws */}
+                      <div className={brassPlateSheenClasses}></div>
+                    </div>
+                  );
+                }
+              });
+
+              // Add overflow champions (after 24) as individual plates
+              const overflowChampions = sortedChampions.slice(24).map((champion) => 
+                renderChampionPlate(champion, `overflow-${champion.season_id}-${champion.total_points}`)
+              );
+
+              return [...gridSlots, ...overflowChampions];
+            }
           })()}
         </div>
       </div>
