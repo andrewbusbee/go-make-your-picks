@@ -25,16 +25,16 @@ export default function Footer() {
     <footer className={`fixed bottom-0 left-0 right-0 w-full ${cardClasses} ${dividerClasses} py-3 md:py-2 z-10 rounded-none`}>
       <div className="container mx-auto px-4">
         <div className={`flex flex-col md:flex-row justify-between items-center text-sm ${bodyTextClasses}`}>
-          {/* Left: App title and version (hidden on mobile) */}
+          {/* Left: Software attribution (hidden on mobile) */}
           <div className="hidden md:block">
-            {appTitle}{' '}
+            Built with{' '}
             <a 
               href={`https://github.com/andrewbusbee/go-make-your-picks/releases/tag/v${packageJson.version}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 dark:text-blue-400 underline"
             >
-              v{packageJson.version}
+              Go Make Your Picks v{packageJson.version}
             </a>
           </div>
           
