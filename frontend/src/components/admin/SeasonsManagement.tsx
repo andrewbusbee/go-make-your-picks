@@ -143,8 +143,9 @@ export default function SeasonsManagement() {
   const loadUsers = async () => {
     try {
       const res = await api.get('/admin/users');
-      // Filter out deactivated players from new season selection
-      const activeUsers = res.data.filter((u: any) => u.is_active !== false);
+      // Filter out deactivated players from new season selection - only show active users
+      const activeUsers = res.data.filter((u: any) => u.is_active === true || u.is_active === 1);
+      console.log(`Loaded ${res.data.length} total users, ${activeUsers.length} active users for season selection`);
       setAllUsers(activeUsers);
     } catch (error) {
       console.error('Error loading users:', error);
@@ -734,21 +735,28 @@ export default function SeasonsManagement() {
                       </button>
                     </div>
                     <div className="border border-gray-300 dark:border-gray-600 rounded-md max-h-48 overflow-y-auto">
-                      {allUsers.map((user) => (
-                        <label
-                          key={user.id}
-                          className={interactiveListItemClasses}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedParticipants.includes(user.id)}
-                            onChange={() => toggleParticipant(user.id)}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                          <span className={`ml-3 ${labelClasses}`}>{user.name}</span>
-                          <span className={`ml-auto ${helpTextClasses}`}>{user.email}</span>
-                        </label>
-                      ))}
+                      {allUsers.map((user) => {
+                        const isActive = user.is_active === true || user.is_active === 1;
+                        return (
+                          <label
+                            key={user.id}
+                            className={`${interactiveListItemClasses} ${!isActive ? 'opacity-50' : ''}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedParticipants.includes(user.id)}
+                              onChange={() => toggleParticipant(user.id)}
+                              disabled={!isActive}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className={`ml-3 ${labelClasses}`}>
+                              {user.name}
+                              {!isActive && <span className="text-red-500 ml-2">(Inactive)</span>}
+                            </span>
+                            <span className={`ml-auto ${helpTextClasses}`}>{user.email}</span>
+                          </label>
+                        );
+                      })}
                     </div>
                     <p className={`mt-1 ${helpTextClasses}`}>
                       {selectedParticipants.length} participant(s) selected
