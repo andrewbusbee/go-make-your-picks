@@ -169,7 +169,6 @@ router.get('/champions', async (req, res) => {
         s.name as season_name,
         s.year_start,
         s.year_end,
-        s.commissioner,
         s.ended_at,
         sw.place,
         sw.total_points,
@@ -265,8 +264,8 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
       }
 
       const [seasonResult] = await connection.query<ResultSetHeader>(
-        'INSERT INTO seasons (name, year_start, year_end, commissioner, is_active, is_default) VALUES (?, ?, ?, ?, ?, ?)',
-        [name, yearStart, yearEnd, commissioner || null, true, isDefault || false]
+        'INSERT INTO seasons (name, year_start, year_end, is_active, is_default) VALUES (?, ?, ?, ?, ?)',
+        [name, yearStart, yearEnd, true, isDefault || false]
       );
 
       const seasonId = seasonResult.insertId;
@@ -414,8 +413,8 @@ router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) =>
 
       // Update season
       await connection.query(
-        'UPDATE seasons SET name = ?, year_start = ?, year_end = ?, commissioner = ?, is_default = ? WHERE id = ?',
-        [name, yearStart, yearEnd, commissioner || null, isDefault || false, seasonId]
+        'UPDATE seasons SET name = ?, year_start = ?, year_end = ?, is_default = ? WHERE id = ?',
+        [name, yearStart, yearEnd, isDefault || false, seasonId]
       );
 
       // Copy sports if requested

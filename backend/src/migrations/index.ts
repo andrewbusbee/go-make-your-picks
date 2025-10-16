@@ -7,6 +7,7 @@
  */
 import { Migration } from './Migration';
 import { AddChampionshipPageTitleMigration } from './20250115000000_add_championship_page_title';
+import { RemoveSeasonCommissionerMigration } from './20250116000000_remove_season_commissioner';
 
 /**
  * All migrations in order of execution
@@ -14,6 +15,7 @@ import { AddChampionshipPageTitleMigration } from './20250115000000_add_champion
  */
 export const allMigrations: Migration[] = [
   new AddChampionshipPageTitleMigration(),
+  new RemoveSeasonCommissionerMigration(),
   // Add new migrations here as needed
 ];
 

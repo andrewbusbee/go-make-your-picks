@@ -32,6 +32,7 @@ export default function PickPage() {
   const [success, setSuccess] = useState('');
   const [appTitle, setAppTitle] = useState('Go Make Your Picks');
   const [appTagline, setAppTagline] = useState('Predict. Compete. Win.');
+  const [currentCommissioner, setCurrentCommissioner] = useState<string | null>(null);
 
   // Update page meta tags dynamically
   usePageMeta({
@@ -41,6 +42,7 @@ export default function PickPage() {
 
   useEffect(() => {
     loadSettings();
+    loadCommissioner();
     loadPickData();
   }, [token]);
 
@@ -52,6 +54,16 @@ export default function PickPage() {
     } catch (error) {
       console.error('Error loading settings:', error);
       // Don't throw - just use default values
+    }
+  };
+
+  const loadCommissioner = async () => {
+    try {
+      const res = await api.get('/admin/admins/commissioner');
+      setCurrentCommissioner(res.data.name);
+    } catch (error) {
+      console.error('Error loading commissioner:', error);
+      setCurrentCommissioner(null);
     }
   };
 
@@ -181,7 +193,7 @@ export default function PickPage() {
 
   // Show locked picks page if past lock time
   if (pickData && isPicksLocked()) {
-    const commissioner = pickData.round.commissioner || 'The Commissioner';
+    const commissioner = currentCommissioner || 'The Commissioner';
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 py-8 px-4 pb-20 transition-colors">
@@ -240,10 +252,7 @@ export default function PickPage() {
             </div>
           </div>
           
-          {/* Footer */}
-          <div className="text-center mt-8">
-            <p className="text-gray-500 dark:text-gray-400">{appTagline}</p>
-          </div>
+
         </div>
       </div>
     );

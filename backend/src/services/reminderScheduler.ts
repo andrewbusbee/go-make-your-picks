@@ -41,7 +41,7 @@ export const checkAndSendReminders = async () => {
     // Get all active rounds that haven't been completed (with commissioner from season)
     logger.debug('🔍 Querying active rounds...');
     const [rounds] = await db.query<RowDataPacket[]>(
-      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status, s.commissioner 
+      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status
        FROM rounds r
        JOIN seasons s ON r.season_id = s.id 
        WHERE r.status = 'active' 
@@ -129,7 +129,7 @@ export const autoLockExpiredRounds = async () => {
   try {
     // Find active rounds that have passed their lock time (with commissioner from season)
     const [expiredRounds] = await db.query<RowDataPacket[]>(
-      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status, s.commissioner 
+      `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status
        FROM rounds r
        JOIN seasons s ON r.season_id = s.id 
        WHERE r.status = 'active' 
@@ -333,7 +333,7 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
           ? `${reminderText}\n\n${round.email_message}`
           : reminderText;
 
-        return sendMagicLink(user.email, user.name, round.sport_name, magicLink, customMessage, round.commissioner)
+        return sendMagicLink(user.email, user.name, round.sport_name, magicLink, customMessage)
           .catch(emailError => {
             logger.error(`Failed to send reminder`, { emailError, emailRedacted: redactEmail(user.email) });
           });
@@ -470,7 +470,7 @@ export const sendLockedNotificationIfNotSent = async (round: any) => {
     // Send locked notification (one per unique email, merged if shared)
     await Promise.allSettled(
       Array.from(usersByEmail.entries()).map(([email, names]) =>
-        sendLockedNotification(email, names, round.sport_name, leaderboardLink, undefined, round.commissioner)
+        sendLockedNotification(email, names, round.sport_name, leaderboardLink)
           .catch(emailError => {
             logger.error(`Failed to send locked notification`, { emailError, emailRedacted: redactEmail(email) });
           })
@@ -496,7 +496,7 @@ export const sendLockedNotificationIfNotSent = async (round: any) => {
 // Manual trigger functions for admin use
 export const manualSendReminder = async (roundId: number, reminderType: 'first' | 'final') => {
   const [rounds] = await db.query<RowDataPacket[]>(
-    'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, s.commissioner FROM rounds r JOIN seasons s ON r.season_id = s.id WHERE r.id = ?',
+    'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status FROM rounds r JOIN seasons s ON r.season_id = s.id WHERE r.id = ?',
     [roundId]
   );
 
@@ -591,7 +591,7 @@ export const manualSendGenericReminder = async (roundId: number) => {
           ? `${reminderText}\n\n${round.email_message}`
           : reminderText;
 
-        return sendMagicLink(user.email, user.name, round.sport_name, magicLink, customMessage, round.commissioner)
+        return sendMagicLink(user.email, user.name, round.sport_name, magicLink, customMessage)
           .catch(emailError => {
             logger.error(`Failed to send reminder`, { emailError, emailRedacted: redactEmail(user.email) });
           });
@@ -682,7 +682,7 @@ export const manualSendGenericReminder = async (roundId: number) => {
 
 export const manualSendLockedNotification = async (roundId: number) => {
   const [rounds] = await db.query<RowDataPacket[]>(
-    'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status, s.commissioner FROM rounds r JOIN seasons s ON r.season_id = s.id WHERE r.id = ?',
+    'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status FROM rounds r JOIN seasons s ON r.season_id = s.id WHERE r.id = ?',
     [roundId]
   );
 

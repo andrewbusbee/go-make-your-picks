@@ -833,12 +833,11 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
       const APP_URL = process.env.APP_URL || 'http://localhost:3003';
       const leaderboardLink = `${APP_URL}`;
 
-      // Get commissioner from season
-      const [roundData] = await db.query<RowDataPacket[]>(
-        'SELECT s.commissioner FROM rounds r JOIN seasons s ON r.season_id = s.id WHERE r.id = ?',
-        [roundId]
+      // Get current commissioner from admins table
+      const [commissionerRows] = await db.query<RowDataPacket[]>(
+        'SELECT name FROM admins WHERE is_commissioner = TRUE LIMIT 1'
       );
-      const roundCommissioner = roundData[0]?.commissioner || null;
+      const currentCommissioner = commissionerRows[0]?.name || null;
 
       // Prepare shared data once (reduces 500+ queries to ~5 queries)
       const sharedData = await prepareCompletionEmailData(roundId, seasonId[0].season_id);
@@ -900,7 +899,7 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
                 firstUserData.finalResults,
                 firstUserData.leaderboard,
                 leaderboardLink,
-                roundCommissioner
+                currentCommissioner
               );
               
               logger.debug('Successfully sent completion email', { 

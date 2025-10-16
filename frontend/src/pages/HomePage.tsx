@@ -216,14 +216,6 @@ export default function HomePage() {
                   })}
                 </select>
                 
-                {/* Commissioner Display */}
-                {selectedSeason?.commissioner && (
-                  <div className="mt-2">
-                    <p className={labelClasses}>
-                      Commissioner: {selectedSeason.commissioner}
-                    </p>
-                  </div>
-                )}
               </div>
             )}
 

@@ -37,7 +37,6 @@ interface Champion {
   season_name: string;
   year_start: number;
   year_end: number;
-  commissioner: string | null;
   ended_at: string;
   place: number;
   total_points: number;

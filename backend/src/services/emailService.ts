@@ -77,6 +77,18 @@ async function getUsersWithEmail(email: string): Promise<Array<{ id: number; nam
   }
 }
 
+async function getCurrentCommissioner(): Promise<string | null> {
+  try {
+    const [commissionerRows] = await db.query<RowDataPacket[]>(
+      'SELECT name FROM admins WHERE is_commissioner = TRUE LIMIT 1'
+    );
+    return commissionerRows[0]?.name || null;
+  } catch (error) {
+    logger.error('Error getting current commissioner', { error });
+    return null;
+  }
+}
+
 function getCommissionerSignature(commissioner?: string, appTitle?: string): string {
   // Shown centered just below header. Two-line variant depending on presence of commissioner
   const baseStyle = 'text-align: center; margin: 18px 0 22px 0; color: #666; font-style: italic;';
@@ -256,6 +268,7 @@ export const sendMagicLink = async (
   }
 
   const settings = await getSettings();
+  const currentCommissioner = await getCurrentCommissioner();
   const fromName = settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
   
@@ -271,7 +284,7 @@ export const sendMagicLink = async (
       </div>`
     : '';
   
-  const commissionerHeader = getCommissionerSignature(commissioner, settings.app_title);
+  const commissionerHeader = getCommissionerSignature(currentCommissioner || undefined, settings.app_title);
   const bodyHtml = `
     ${commissionerHeader}
     <h2>Hi ${nameFormatted}!</h2>
@@ -337,6 +350,7 @@ export const sendLockedNotification = async (
   }
 
   const settings = await getSettings();
+  const currentCommissioner = await getCurrentCommissioner();
   const fromName = settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
   
@@ -346,7 +360,7 @@ export const sendLockedNotification = async (
     ? names.map(n => `<span style="color: #dc2626; font-weight: bold;">${n}</span>`).join(', ')
     : names[0];
   
-  const commissionerHeader = getCommissionerSignature(commissioner, settings.app_title);
+  const commissionerHeader = getCommissionerSignature(currentCommissioner || undefined, settings.app_title);
   const bodyHtml = `
     ${commissionerHeader}
     <h2>Hi ${namesFormatted}!</h2>
@@ -409,6 +423,7 @@ export const sendSportCompletionEmail = async (
   }
 
   const settings = await getSettings();
+  const currentCommissioner = await getCurrentCommissioner();
   const pointsSettings = await SettingsService.getPointsSettings();
   const fromName = settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
@@ -485,7 +500,7 @@ export const sendSportCompletionEmail = async (
     ? `You earned ${users[0].points} points!`
     : `Results!`;
   
-  const commissionerHeader = getCommissionerSignature(commissioner, settings.app_title);
+  const commissionerHeader = getCommissionerSignature(currentCommissioner || undefined, settings.app_title);
   const bodyHtml = `
     ${commissionerHeader}
     <h2>Hi ${namesFormatted}!</h2>

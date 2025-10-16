@@ -65,10 +65,9 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS seasons (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
-    year_start INT NOT NULL,
-    year_end INT NOT NULL,
-    commissioner VARCHAR(255) DEFAULT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
+  year_start INT NOT NULL,
+  year_end INT NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
     is_default BOOLEAN DEFAULT FALSE,
     ended_at TIMESTAMP NULL DEFAULT NULL,
     deleted_at TIMESTAMP NULL DEFAULT NULL,

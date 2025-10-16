@@ -84,8 +84,6 @@ export default function SeasonsManagement() {
   const [name, setName] = useState('');
   const [yearStart, setYearStart] = useState('');
   const [yearEnd, setYearEnd] = useState('');
-  const [commissioner, setCommissioner] = useState('');
-  const [defaultCommissionerName, setDefaultCommissionerName] = useState<string | null>(null);
   const [isDefault, setIsDefault] = useState(true);
   const [selectedParticipants, setSelectedParticipants] = useState<number[]>([]);
   const [error, setError] = useState('');
@@ -96,7 +94,6 @@ export default function SeasonsManagement() {
   const [editName, setEditName] = useState('');
   const [editYearStart, setEditYearStart] = useState('');
   const [editYearEnd, setEditYearEnd] = useState('');
-  const [editCommissioner, setEditCommissioner] = useState('');
   const [editIsDefault, setEditIsDefault] = useState(false);
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
@@ -109,7 +106,6 @@ export default function SeasonsManagement() {
   const [editSourceSeasonId, setEditSourceSeasonId] = useState('');
 
   useEffect(() => {
-    loadCommissioner();
     loadCopySourceSeasons();
   }, []);
 
@@ -155,15 +151,6 @@ export default function SeasonsManagement() {
     }
   };
 
-  const loadCommissioner = async () => {
-    try {
-      const res = await api.get('/admin/admins/commissioner');
-      setDefaultCommissionerName(res.data.name);
-    } catch (error) {
-      console.error('Error loading commissioner:', error);
-      setDefaultCommissionerName(null);
-    }
-  };
 
   const loadCopySourceSeasons = async () => {
     try {
@@ -179,8 +166,6 @@ export default function SeasonsManagement() {
     setName('');
     setYearStart('');
     setYearEnd('');
-    // Pre-fill commissioner with current commissioner name
-    setCommissioner(defaultCommissionerName || '');
     setIsDefault(true);
     setSelectedParticipants([]);
     setError('');
@@ -221,7 +206,6 @@ export default function SeasonsManagement() {
         name,
         yearStart: parseInt(yearStart),
         yearEnd: parseInt(yearEnd),
-        commissioner: commissioner || null,
         isDefault,
         participantIds: selectedParticipants,
         copySports,
@@ -242,7 +226,6 @@ export default function SeasonsManagement() {
     setEditName(season.name);
     setEditYearStart(season.year_start.toString());
     setEditYearEnd(season.year_end.toString());
-    setEditCommissioner(season.commissioner || '');
     setEditIsDefault(season.is_default === 1);
     setEditError('');
     setEditCopySports(false);
@@ -256,7 +239,6 @@ export default function SeasonsManagement() {
     setEditName('');
     setEditYearStart('');
     setEditYearEnd('');
-    setEditCommissioner('');
     setEditIsDefault(false);
     setEditError('');
     setEditCopySports(false);
@@ -274,7 +256,6 @@ export default function SeasonsManagement() {
         name: editName,
         yearStart: parseInt(editYearStart),
         yearEnd: parseInt(editYearEnd),
-        commissioner: editCommissioner || null,
         isDefault: editIsDefault,
         copySports: editCopySports,
         sourceSeasonId: editCopySports ? parseInt(editSourceSeasonId) : undefined
@@ -675,22 +656,6 @@ export default function SeasonsManagement() {
                 </div>
               </div>
 
-              <div>
-                <label className={labelClasses}>
-                  Commissioner (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={commissioner}
-                  onChange={(e) => setCommissioner(e.target.value)}
-                  placeholder="e.g., John Smith"
-                  maxLength={255}
-                  className={inputClasses}
-                />
-                <p className={`mt-1 ${helpTextClasses}`}>
-                  This field is pre-filled with the current commissioner from the admin list, but you can change it if needed. Appears in email signatures for all sports in this season.
-                </p>
-              </div>
 
               <div className={flexItemsGapClasses}>
                 <input
@@ -881,22 +846,6 @@ export default function SeasonsManagement() {
                 </div>
               </div>
 
-              <div>
-                <label className={labelClasses}>
-                  Commissioner (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={editCommissioner}
-                  onChange={(e) => setEditCommissioner(e.target.value)}
-                  placeholder="e.g., John Smith"
-                  maxLength={255}
-                  className={inputClasses}
-                />
-                <p className={`mt-1 ${helpTextClasses}`}>
-                  This field is pre-filled with the current commissioner from the admin list, but you can change it if needed. Appears in email signatures for all sports in this season.
-                </p>
-              </div>
 
               <div className={flexItemsGapClasses}>
                 <input
