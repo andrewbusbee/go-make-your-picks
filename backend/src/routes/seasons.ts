@@ -222,14 +222,17 @@ router.get('/champions', async (req, res) => {
     const appTitle = settings.find(s => s.setting_key === 'app_title')?.setting_value || 'Go Make Your Picks';
     const appTagline = settings.find(s => s.setting_key === 'app_tagline')?.setting_value || 'Predict. Compete. Win.';
 
-    // Get years active range from ended seasons only
+    // Get years active range - established year is the earliest of seasons or historical champions
     const [yearRange] = await db.query<RowDataPacket[]>(
       `SELECT 
-        MIN(year_end) as first_year,
-        MAX(year_end) as last_year
-       FROM seasons 
-       WHERE ended_at IS NOT NULL 
-       AND deleted_at IS NULL`
+        LEAST(
+          COALESCE((SELECT MIN(year_end) FROM seasons WHERE ended_at IS NOT NULL AND deleted_at IS NULL), 9999),
+          COALESCE((SELECT MIN(end_year) FROM historical_champions), 9999)
+        ) as first_year,
+        GREATEST(
+          COALESCE((SELECT MAX(year_end) FROM seasons WHERE ended_at IS NOT NULL AND deleted_at IS NULL), 0),
+          COALESCE((SELECT MAX(end_year) FROM historical_champions), 0)
+        ) as last_year`
     );
 
     // Get current commissioner from admins table (authoritative)

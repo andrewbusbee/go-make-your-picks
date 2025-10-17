@@ -233,7 +233,13 @@ export default function HistoricalChampionsManagement() {
                   <input
                     type="text"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Don't allow empty values
+                      if (value.trim() !== '') {
+                        setName(value);
+                      }
+                    }}
                     className={historicalChampionsInputClasses}
                     placeholder="Enter champion name"
                     required
@@ -247,11 +253,18 @@ export default function HistoricalChampionsManagement() {
                   <input
                     type="number"
                     value={endYear}
-                    onChange={(e) => setEndYear(e.target.value)}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Only allow numeric input, 4 digits max, minimum 1900, no empty values
+                      if (/^\d+$/.test(value) && value.length <= 4 && parseInt(value) >= 1900) {
+                        setEndYear(value);
+                      }
+                    }}
                     className={historicalChampionsInputClasses}
                     placeholder="Enter end year (e.g., 2020)"
                     min="1900"
                     max={new Date().getFullYear() + 1}
+                    maxLength={4}
                     required
                   />
                 </div>
