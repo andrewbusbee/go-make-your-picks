@@ -24,6 +24,7 @@ import ChangeName from '../components/admin/ChangeName';
 import InitialSetup from '../components/admin/InitialSetup';
 import GettingStarted from '../components/admin/GettingStarted';
 import Settings from '../components/admin/Settings';
+import packageJson from '../../package.json';
 
 export default function AdminDashboard() {
   const [adminData, setAdminData] = useState<any>(null);
@@ -257,7 +258,7 @@ export default function AdminDashboard() {
                 <span className="text-3xl">🏆</span>
                 <span className="text-xl font-bold text-white">{appTitle}</span>
               </Link>
-              <span className="text-sm text-blue-100 hidden md:inline">Admin Dashboard</span>
+              <span className="text-sm text-blue-100 hidden md:inline">Admin Dashboard - App version v{packageJson.version}</span>
             </div>
 
             {/* User Menu & Theme Toggle */}

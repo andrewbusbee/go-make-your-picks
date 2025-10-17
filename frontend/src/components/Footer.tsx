@@ -24,7 +24,7 @@ export default function Footer() {
         <div className={`flex flex-col md:flex-row justify-between items-center text-sm ${bodyTextClasses}`}>
           {/* Left: Software attribution (hidden on mobile) */}
           <div className="hidden md:block">
-            Built with{' '}
+            Powered by{' '}
             <a 
               href={`https://github.com/andrewbusbee/go-make-your-picks`}
               target="_blank"
