@@ -11,7 +11,7 @@ import { logInfo, logError, logWarn, logDebug } from './logger';
 
 export async function validateDatabaseConnection(): Promise<void> {
   logInfo('Checking database connection');
-  console.log('🔌 Checking database connection...');
+  logInfo('🔌 Checking database connection...');
   
   try {
     // Test basic connection
@@ -49,8 +49,8 @@ export async function validateDatabaseConnection(): Promise<void> {
     
     if (missingTables.length > 0) {
       logWarn('Database tables not found, initializing database', { missingTables });
-      console.log('\n📦 Database tables not found. Initializing database...');
-      missingTables.forEach(table => console.log(`   - Missing: ${table}`));
+      logInfo('📦 Database tables not found. Initializing database...');
+      missingTables.forEach(table => logInfo(`   - Missing: ${table}`));
       
       // Run database initialization
       await initializeDatabase(connection);
@@ -62,49 +62,49 @@ export async function validateDatabaseConnection(): Promise<void> {
       
       if (stillMissing.length > 0) {
         logError('Failed to initialize database tables', null, { stillMissing });
-        console.error('\n❌ CRITICAL: Failed to initialize database tables:');
-        stillMissing.forEach(table => console.error(`   - ${table}`));
+        logError('❌ CRITICAL: Failed to initialize database tables:');
+        stillMissing.forEach(table => logError(`   - ${table}`));
         connection.release();
         process.exit(1);
       }
       
       logInfo('Database initialized successfully');
-      console.log('✅ Database initialized successfully!');
+      logInfo('✅ Database initialized successfully!');
     }
     
     connection.release();
     logInfo('Database connection successful', { tableCount: requiredTables.length });
-    console.log('✅ Database connection successful!');
-    console.log(`   Tables validated: ${requiredTables.length} tables found\n`);
+    logInfo('✅ Database connection successful!');
+    logInfo(`   Tables validated: ${requiredTables.length} tables found`);
     
   } catch (error: any) {
     logError('Database connection failed', error, { 
       errorCode: error.code,
       errorMessage: error.message 
     });
-    console.error('\n❌ CRITICAL: Database connection failed!');
-    console.error('   Error:', error.message);
+    logError('❌ CRITICAL: Database connection failed!');
+    logError('   Error:', error.message);
     
     if (error.code === 'ECONNREFUSED') {
       logError('Database server connection refused', error);
-      console.error('\n   The database server is not running or not accepting connections.');
-      console.error('   Please check:');
-      console.error('   1. Database server is running');
-      console.error('   2. DB_HOST and DB_PORT are correct');
-      console.error('   3. Firewall/network settings allow connection\n');
+      logError('   The database server is not running or not accepting connections.');
+      logError('   Please check:');
+      logError('   1. Database server is running');
+      logError('   2. DB_HOST and DB_PORT are correct');
+      logError('   3. Firewall/network settings allow connection');
     } else if (error.code === 'ER_ACCESS_DENIED_ERROR') {
       logError('Database access denied', error);
-      console.error('\n   Database credentials are invalid.');
-      console.error('   Please check:');
-      console.error('   1. DB_USER is correct');
-      console.error('   2. DB_PASSWORD is correct');
-      console.error('   3. User has proper permissions\n');
+      logError('   Database credentials are invalid.');
+      logError('   Please check:');
+      logError('   1. DB_USER is correct');
+      logError('   2. DB_PASSWORD is correct');
+      logError('   3. User has proper permissions');
     } else if (error.code === 'ER_BAD_DB_ERROR') {
       logError('Database does not exist', error);
-      console.error('\n   Database does not exist.');
-      console.error('   Please check:');
-      console.error('   1. DB_NAME is correct');
-      console.error('   2. Database has been created\n');
+      logError('   Database does not exist.');
+      logError('   Please check:');
+      logError('   1. DB_NAME is correct');
+      logError('   2. Database has been created');
     }
     
     process.exit(1);
@@ -121,7 +121,7 @@ async function initializeDatabase(connection: any): Promise<void> {
     const initSqlPath = path.join(__dirname, '../../database/init.sql');
     
     logDebug('Looking for init.sql file', { path: initSqlPath });
-    console.log(`   Looking for init.sql at: ${initSqlPath}`);
+    logInfo(`   Looking for init.sql at: ${initSqlPath}`);
     
     if (!fs.existsSync(initSqlPath)) {
       const dbDir = path.join(__dirname, '../../database');
@@ -136,13 +136,13 @@ async function initializeDatabase(connection: any): Promise<void> {
         filesInDir
       });
       
-      console.error(`   init.sql not found! Checked: ${initSqlPath}`);
-      console.error(`   __dirname is: ${__dirname}`);
+      logError(`   init.sql not found! Checked: ${initSqlPath}`);
+      logError(`   __dirname is: ${__dirname}`);
       // List what files are in the database directory
       if (dirExists) {
-        console.error(`   Files in ${dbDir}:`, filesInDir);
+        logError(`   Files in ${dbDir}:`, filesInDir);
       } else {
-        console.error(`   Directory ${dbDir} does not exist`);
+        logError(`   Directory ${dbDir} does not exist`);
       }
       throw new Error(`init.sql not found at ${initSqlPath}`);
     }
@@ -152,12 +152,12 @@ async function initializeDatabase(connection: any): Promise<void> {
       fileSize: initSql.length,
       path: initSqlPath 
     });
-    console.log(`   Read ${initSql.length} bytes from init.sql`);
+    logInfo(`   Read ${initSql.length} bytes from init.sql`);
     
     // Remove comments for cleaner execution
     const lines = initSql.split('\n');
     logDebug('Processing init.sql file', { lineCount: lines.length });
-    console.log(`   File has ${lines.length} lines`);
+    logInfo(`   File has ${lines.length} lines`);
     
     const sqlWithoutComments = lines
       .filter(line => {
@@ -170,32 +170,32 @@ async function initializeDatabase(connection: any): Promise<void> {
       originalSize: initSql.length,
       processedSize: sqlWithoutComments.length 
     });
-    console.log(`   After removing comments: ${sqlWithoutComments.length} bytes`);
+    logInfo(`   After removing comments: ${sqlWithoutComments.length} bytes`);
     
     // Execute entire SQL file at once using mysql2's built-in support
     // This properly handles triggers, stored procedures, and complex statements
     logInfo('Executing database initialization SQL');
-    console.log(`   Executing SQL file as single batch...`);
+    logInfo(`   Executing SQL file as single batch...`);
     
     try {
       // mysql2 natively handles multiple statements when separated by semicolons
       // This is safer than manual splitting which can break triggers/procedures
       await connection.query(sqlWithoutComments);
       logInfo('Database initialization SQL executed successfully');
-      console.log('   ✅ All SQL statements executed successfully');
+      logInfo('   ✅ All SQL statements executed successfully');
     } catch (error: any) {
       logError('Failed to execute database initialization SQL', error, {
         errorCode: error.code,
         sqlState: error.sqlState
       });
-      console.error(`   ✗ Failed to execute SQL:`, error.message);
-      console.error(`   Error code:`, error.code);
-      console.error(`   SQL State:`, error.sqlState);
+      logError(`   ✗ Failed to execute SQL:`, error.message);
+      logError(`   Error code:`, error.code);
+      logError(`   SQL State:`, error.sqlState);
       
       // If multipleStatements not enabled, try statement-by-statement as fallback
       if (error.code === 'ER_PARSE_ERROR' && error.message.includes('syntax')) {
         logInfo('Attempting statement-by-statement execution as fallback');
-        console.log('   Attempting statement-by-statement execution as fallback...');
+        logInfo('   Attempting statement-by-statement execution as fallback...');
         
         // Split carefully, only on top-level semicolons (not in triggers/procedures)
         const statements = sqlWithoutComments
@@ -204,7 +204,7 @@ async function initializeDatabase(connection: any): Promise<void> {
           .filter(stmt => stmt.length > 0);
         
         logDebug('Executing SQL statements individually', { statementCount: statements.length });
-        console.log(`   Executing ${statements.length} statements individually...`);
+        logInfo(`   Executing ${statements.length} statements individually...`);
         
         for (let i = 0; i < statements.length; i++) {
           const statement = statements[i];
@@ -214,28 +214,28 @@ async function initializeDatabase(connection: any): Promise<void> {
               statementIndex: i + 1, 
               totalStatements: statements.length 
             });
-            console.log(`   ✓ Statement ${i + 1}/${statements.length} executed`);
+            logInfo(`   ✓ Statement ${i + 1}/${statements.length} executed`);
           } catch (stmtError: any) {
             logError('SQL statement execution failed', stmtError, {
               statementIndex: i + 1,
               totalStatements: statements.length,
               statement: statement.substring(0, 100)
             });
-            console.error(`   ✗ Failed on statement ${i + 1}:`, stmtError.message);
-            console.error(`   Statement: ${statement.substring(0, 100)}...`);
+            logError(`   ✗ Failed on statement ${i + 1}:`, stmtError.message);
+            logError(`   Statement: ${statement.substring(0, 100)}...`);
             throw stmtError;
           }
         }
         
         logInfo('All SQL statements executed successfully via fallback method');
-        console.log('   ✅ All statements executed successfully via fallback method');
+        logInfo('   ✅ All statements executed successfully via fallback method');
       } else {
         throw error;
       }
     }
   } catch (error: any) {
     logError('Failed to initialize database', error);
-    console.error('   ❌ Failed to initialize database:', error.message);
+    logError('   ❌ Failed to initialize database:', error.message);
     throw error;
   }
 }

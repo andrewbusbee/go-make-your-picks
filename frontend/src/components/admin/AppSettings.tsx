@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../utils/api';
+import logger from '../../utils/logger';
 import {
   headingClasses,
   bodyTextClasses,
@@ -118,7 +119,7 @@ export default function AppSettings() {
       
       setLoadingSettings(false);
     } catch (error) {
-      console.error('Error loading settings:', error);
+      logger.error('Error loading settings:', error);
       setLoadingSettings(false);
     }
   };

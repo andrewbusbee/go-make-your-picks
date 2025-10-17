@@ -1,6 +1,7 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import api from '../utils/api';
+import logger from '../utils/logger';
 import { useTheme } from '../contexts/ThemeContext';
 import { 
   themeToggleButtonClasses, 
@@ -71,7 +72,7 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
       setAppTitle(res.data.app_title || 'Go Make Your Picks');
       setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
     } catch (error) {
-      console.error('Error loading settings:', error);
+      logger.error('Error loading settings:', error);
     }
   };
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
+import logger from '../../utils/logger';
 import MessageAllPlayersModal from './MessageAllPlayersModal';
 import {
   headingClasses,
@@ -132,7 +133,7 @@ export default function SeasonsManagement() {
       const res = await api.get('/admin/seasons');
       setSeasons(res.data);
     } catch (error) {
-      console.error('Error loading seasons:', error);
+      logger.error('Error loading seasons:', error);
     }
   };
 
@@ -141,7 +142,7 @@ export default function SeasonsManagement() {
       const res = await api.get('/admin/seasons/deleted');
       setDeletedSeasons(res.data);
     } catch (error) {
-      console.error('Error loading deleted seasons:', error);
+      logger.error('Error loading deleted seasons:', error);
     }
   };
 
@@ -150,10 +151,10 @@ export default function SeasonsManagement() {
       const res = await api.get('/admin/users');
       // Filter out deactivated players from new season selection - only show active users
       const activeUsers = res.data.filter((u: any) => u.is_active === true || u.is_active === 1);
-      console.log(`Loaded ${res.data.length} total users, ${activeUsers.length} active users for season selection`);
+      logger.info(`Loaded ${res.data.length} total users, ${activeUsers.length} active users for season selection`);
       setAllUsers(activeUsers);
     } catch (error) {
-      console.error('Error loading users:', error);
+      logger.error('Error loading users:', error);
     }
   };
 
@@ -163,7 +164,7 @@ export default function SeasonsManagement() {
       const res = await api.get('/admin/seasons/copy-sources');
       setCopySourceSeasons(res.data);
     } catch (error) {
-      console.error('Error loading copy source seasons:', error);
+      logger.error('Error loading copy source seasons:', error);
       setCopySourceSeasons([]);
     }
   };

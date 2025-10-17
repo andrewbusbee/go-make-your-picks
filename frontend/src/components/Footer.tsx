@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
+import logger from '../utils/logger';
 import { bodyTextClasses, dividerClasses, cardClasses } from '../styles/commonClasses';
 
 export default function Footer() {
@@ -14,7 +15,7 @@ export default function Footer() {
       const res = await api.get('/public/settings');
       setFooterMessage(res.data.footer_message || 'Built for Sports Fans');
     } catch (error) {
-      console.error('Error loading footer settings:', error);
+      logger.error('Error loading footer settings:', error);
     }
   };
 

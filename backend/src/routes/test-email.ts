@@ -64,7 +64,6 @@ router.post('/', authenticateAdmin, testEmailLimiter, async (req: AuthRequest, r
       to: email, 
       adminEmail 
     });
-    console.error('Test email error:', error);
     res.status(500).json({ 
       error: 'Failed to send test email',
       details: error.message

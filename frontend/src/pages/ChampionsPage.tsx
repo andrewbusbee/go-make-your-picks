@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import api from '../utils/api';
+import logger from '../utils/logger';
 import { usePageMeta } from '../utils/usePageMeta';
 import {
   pageContainerClasses,
@@ -90,7 +91,7 @@ export default function ChampionsPage() {
       setChampionsData(res.data);
       setError(null);
     } catch (error) {
-      console.error('Error loading champions data:', error);
+      logger.error('Error loading champions data:', error);
       setError('Failed to load champions data');
     } finally {
       setLoading(false);

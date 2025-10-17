@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
+import logger from '../../utils/logger';
 import {
   headingClasses,
   bodyTextClasses,
@@ -75,7 +76,7 @@ export default function SeasonDetail() {
 
       setLoading(false);
     } catch (error) {
-      console.error('Error loading season data:', error);
+      logger.error('Error loading season data:', error);
       setLoading(false);
     }
   };
@@ -91,7 +92,7 @@ export default function SeasonDetail() {
       setShowAddModal(false);
       setSelectedUserId('');
     } catch (error) {
-      console.error('Error adding participant:', error);
+      logger.error('Error adding participant:', error);
       alert('Failed to add participant');
     }
   };
@@ -106,7 +107,7 @@ export default function SeasonDetail() {
       await loadSeasonData();
       alert(response.data.message || 'All players added successfully!');
     } catch (error) {
-      console.error('Error adding all participants:', error);
+      logger.error('Error adding all participants:', error);
       alert('Failed to add all participants');
     }
   };
@@ -120,7 +121,7 @@ export default function SeasonDetail() {
       await api.delete(`/admin/season-participants/${seasonId}/participants/${userId}`);
       await loadSeasonData();
     } catch (error) {
-      console.error('Error removing participant:', error);
+      logger.error('Error removing participant:', error);
       alert('Failed to remove participant');
     }
   };

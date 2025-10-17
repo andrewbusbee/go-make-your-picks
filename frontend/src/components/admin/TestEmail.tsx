@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../utils/api';
+import logger from '../../utils/logger';
 import TimezoneSelector from '../TimezoneSelector';
 import {
   headingClasses,
@@ -81,7 +82,7 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
           email: response.data.email
         });
       } catch (err) {
-        console.error('Failed to load current user:', err);
+        logger.error('Failed to load current user:', err);
         setError('Failed to load user information. Please refresh the page.');
       } finally {
         setLoadingUser(false);
@@ -93,7 +94,7 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
         const response = await api.get('/public/settings');
         setEmailNotificationsEnabled(response.data.email_notifications_enabled === 'true');
       } catch (err) {
-        console.error('Failed to load settings:', err);
+        logger.error('Failed to load settings:', err);
       } finally {
         setLoadingSettings(false);
       }
@@ -119,7 +120,7 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
         setOriginalReminderFinalHours(parseInt(res.data.reminder_final_hours) || 6);
         setOriginalSendAdminSummary(res.data.send_admin_summary !== undefined ? res.data.send_admin_summary : true);
       } catch (err) {
-        console.error('Failed to load reminder settings:', err);
+        logger.error('Failed to load reminder settings:', err);
       } finally {
         setLoadingReminderSettings(false);
       }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../utils/api';
+import logger from '../../utils/logger';
 import {
   headingClasses,
   labelClasses,
@@ -66,13 +67,13 @@ export default function UsersManagement() {
           const dataRes = await api.get(`/admin/users/${user.id}/has-data`);
           dataStatus[user.id] = dataRes.data.hasData;
         } catch (error) {
-          console.error(`Error checking data for user ${user.id}:`, error);
+          logger.error(`Error checking data for user ${user.id}:`, error);
           dataStatus[user.id] = false; // Default to safe value
         }
       }
       setUserDataStatus(dataStatus);
     } catch (error) {
-      console.error('Error loading users:', error);
+      logger.error('Error loading users:', error);
     }
   };
 

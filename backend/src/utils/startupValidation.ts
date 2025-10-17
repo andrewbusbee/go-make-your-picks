@@ -47,7 +47,7 @@ export function validateJwtSecret(): void {
   if (dangerousDefaults.some(bad => JWT_SECRET.toLowerCase().includes(bad.toLowerCase()))) {
     logger.error('FATAL: JWT_SECRET appears to be a default/example value!');
     logger.error('Please generate a secure random secret.');
-    logger.error('Run: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
+    logger.error('Run: node -e "require(\'crypto\').randomBytes(32).toString(\'hex\')"');
     
     if (NODE_ENV === 'production') {
       process.exit(1);

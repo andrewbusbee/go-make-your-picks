@@ -32,7 +32,6 @@ router.get('/:seasonId', authenticateAdmin, async (req: AuthRequest, res: Respon
     res.json(participants);
   } catch (error) {
     logError('Get participants error', error, { seasonId, adminEmail });
-    console.error('Get participants error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -60,7 +59,6 @@ router.post('/:seasonId/participants', authenticateAdmin, async (req: AuthReques
     res.json({ message: 'Participant added successfully' });
   } catch (error) {
     logError('Add participant error', error, { seasonId, userId, adminEmail });
-    console.error('Add participant error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -97,7 +95,6 @@ router.post('/:seasonId/participants/bulk', authenticateAdmin, async (req: AuthR
     res.json({ message: 'All players added successfully', added: users.length });
   } catch (error) {
     logError('Add all participants error', error, { seasonId, adminEmail });
-    console.error('Add all participants error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -120,7 +117,6 @@ router.delete('/:seasonId/participants/:userId', authenticateAdmin, async (req: 
     res.json({ message: 'Participant removed successfully' });
   } catch (error) {
     logError('Remove participant error', error, { seasonId, userId, adminEmail });
-    console.error('Remove participant error:', error);
     res.status(500).json({ error: 'Server error' });
   }
 });

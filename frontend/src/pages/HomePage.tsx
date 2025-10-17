@@ -5,6 +5,7 @@ import Footer from '../components/Footer';
 import LeaderboardTable from '../components/LeaderboardTable';
 import CumulativeGraph from '../components/CumulativeGraph';
 import api from '../utils/api';
+import logger from '../utils/logger';
 import { usePageMeta } from '../utils/usePageMeta';
 import {
   pageContainerClasses,
@@ -98,7 +99,7 @@ export default function HomePage() {
         await loadWinners(seasonId);
       }
     } catch (error) {
-      console.error('Error loading season data:', error);
+      logger.error('Error loading season data:', error);
     } finally {
       // Only update loading state if this is still the current operation
       if (loadingRef.current === currentLoadId) {
@@ -145,7 +146,7 @@ export default function HomePage() {
       setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
       setChampionshipPageTitle(res.data.championship_page_title || 'Hall of Fame');
     } catch (error) {
-      console.error('Error loading settings:', error);
+      logger.error('Error loading settings:', error);
       // Don't throw - just use default values
     }
   };
@@ -171,7 +172,7 @@ export default function HomePage() {
         setWinners([]);
       }
     } catch (error) {
-      console.error('Error loading seasons:', error);
+      logger.error('Error loading seasons:', error);
       // On error, ensure we show the welcome screen
       setAllSeasons([]);
       setSelectedSeasonId(null);
@@ -188,7 +189,7 @@ export default function HomePage() {
       const res = await api.get(`/public/leaderboard/season/${seasonId}`);
       setLeaderboardData(res.data || null);
     } catch (error) {
-      console.error('Error loading leaderboard:', error);
+      logger.error('Error loading leaderboard:', error);
       setLeaderboardData(null);
     }
   };
@@ -198,7 +199,7 @@ export default function HomePage() {
       const res = await api.get(`/public/leaderboard/season/${seasonId}/graph`);
       setGraphData(res.data || []);
     } catch (error) {
-      console.error('Error loading graph data:', error);
+      logger.error('Error loading graph data:', error);
       setGraphData([]);
     }
   };
@@ -208,7 +209,7 @@ export default function HomePage() {
       const res = await api.get(`/public/seasons/${seasonId}/winners`);
       setWinners(res.data || []);
     } catch (error) {
-      console.error('Error loading winners:', error);
+      logger.error('Error loading winners:', error);
       setWinners([]);
     }
   };

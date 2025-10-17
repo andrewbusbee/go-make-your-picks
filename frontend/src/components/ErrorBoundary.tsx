@@ -42,7 +42,7 @@ class ErrorBoundary extends Component<Props, State> {
     });
     
     // Also log to console for immediate debugging
-    console.error('Error Boundary caught an error:', error, errorInfo);
+    logger.error('Error Boundary caught an error:', { error, errorInfo });
     
     // TODO: Send error to logging service (e.g., Sentry)
     // logErrorToService(error, errorInfo);

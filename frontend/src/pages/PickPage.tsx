@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../utils/api';
+import logger from '../utils/logger';
 import { usePageMeta } from '../utils/usePageMeta';
 import {
   labelClasses,
@@ -51,7 +52,7 @@ export default function PickPage() {
       setAppTitle(res.data.app_title || 'Go Make Your Picks');
       setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
     } catch (error) {
-      console.error('Error loading settings:', error);
+      logger.error('Error loading settings:', error);
       // Don't throw - just use default values
     }
   };
@@ -61,7 +62,7 @@ export default function PickPage() {
       const res = await api.get('/admin/admins/commissioner/public');
       setCurrentCommissioner(res.data.name);
     } catch (error) {
-      console.error('Error loading commissioner:', error);
+      logger.error('Error loading commissioner:', error);
       setCurrentCommissioner(null);
     }
   };

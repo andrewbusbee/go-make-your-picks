@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import api from '../utils/api';
+import logger from '../utils/logger';
 
 type Theme = 'light' | 'dark';
 type ThemeMode = 'dark_only' | 'light_only' | 'user_choice';
@@ -37,7 +38,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
           setTheme((saved as Theme) || 'dark');
         }
       } catch (error) {
-        console.error('Error fetching theme mode:', error);
+        logger.error('Error fetching theme mode:', error);
         // Fallback to user_choice with dark default
         setThemeMode('user_choice');
         const saved = localStorage.getItem('theme');

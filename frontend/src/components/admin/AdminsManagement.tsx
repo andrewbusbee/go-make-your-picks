@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../utils/api';
+import logger from '../../utils/logger';
 import {
   headingClasses,
   bodyTextClasses,
@@ -66,7 +67,7 @@ export default function AdminsManagement({ isMainAdmin }: AdminsManagementProps)
       const commissioner = res.data.find((admin: any) => admin.is_commissioner === 1);
       setSelectedCommissioner(commissioner?.id || null);
     } catch (error) {
-      console.error('Error loading admins:', error);
+      logger.error('Error loading admins:', error);
     }
   };
 
@@ -190,7 +191,7 @@ export default function AdminsManagement({ isMainAdmin }: AdminsManagementProps)
       await api.delete(`/admin/admins/${adminId}`);
       await loadAdmins();
     } catch (error) {
-      console.error('Error deleting admin:', error);
+      logger.error('Error deleting admin:', error);
       alert('Failed to delete admin');
     }
   };

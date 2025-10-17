@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../utils/api';
+import logger from '../../utils/logger';
 import {
   headingClasses,
   labelClasses,
@@ -116,7 +117,7 @@ export default function AdminPicksManagement() {
       setRounds([]);
       setSelectedRoundId(null);
     } catch (error) {
-      console.error('Error loading seasons:', error);
+      logger.error('Error loading seasons:', error);
     }
   };
 
@@ -129,7 +130,7 @@ export default function AdminPicksManagement() {
       setPicks([]);
       setRoundDetails(null);
     } catch (error) {
-      console.error('Error loading rounds:', error);
+      logger.error('Error loading rounds:', error);
     }
   };
 
@@ -138,7 +139,7 @@ export default function AdminPicksManagement() {
       const res = await api.get(`/admin/rounds/${roundId}`);
       setRoundDetails(res.data);
     } catch (error) {
-      console.error('Error loading round details:', error);
+      logger.error('Error loading round details:', error);
     }
   };
 
@@ -147,7 +148,7 @@ export default function AdminPicksManagement() {
       const res = await api.get(`/admin/season-participants/${seasonId}`);
       setParticipants(res.data);
     } catch (error) {
-      console.error('Error loading participants:', error);
+      logger.error('Error loading participants:', error);
     }
   };
 
@@ -165,7 +166,7 @@ export default function AdminPicksManagement() {
       });
       setPicks(roundPicks);
     } catch (error) {
-      console.error('Error loading picks:', error);
+      logger.error('Error loading picks:', error);
     }
   };
 

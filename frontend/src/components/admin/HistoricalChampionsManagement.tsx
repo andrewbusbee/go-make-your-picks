@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../../utils/api';
+import logger from '../../utils/logger';
 import {
   headingClasses,
   subheadingClasses,
@@ -57,7 +58,7 @@ export default function HistoricalChampionsManagement() {
       const response = await api.get('/admin/historical-champions');
       setChampions(response.data);
     } catch (error) {
-      console.error('Error loading historical champions:', error);
+      logger.error('Error loading historical champions:', error);
       setError('Failed to load historical champions');
     } finally {
       setLoading(false);
@@ -123,7 +124,7 @@ export default function HistoricalChampionsManagement() {
       await loadChampions();
       closeModal();
     } catch (error: any) {
-      console.error('Error saving historical champion:', error);
+      logger.error('Error saving historical champion:', error);
       setError(error.response?.data?.error || 'Failed to save historical champion');
     } finally {
       setSubmitting(false);
@@ -139,7 +140,7 @@ export default function HistoricalChampionsManagement() {
       await api.delete(`/admin/historical-champions/${champion.id}`);
       await loadChampions();
     } catch (error: any) {
-      console.error('Error deleting historical champion:', error);
+      logger.error('Error deleting historical champion:', error);
       alert(error.response?.data?.error || 'Failed to delete historical champion');
     }
   };

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../../utils/api';
+import logger from '../../utils/logger';
 import TimezoneSelector from '../TimezoneSelector';
 import DateTimePicker from '../DateTimePicker';
 import {
@@ -202,7 +203,7 @@ export default function RoundsManagement() {
       setPointsSixthPlusPlace(parseInt(res.data.points_sixth_plus_place) || 1);
       setPointsNoPick(parseInt(res.data.points_no_pick) || 0);
     } catch (error) {
-      console.error('Error loading settings:', error);
+      logger.error('Error loading settings:', error);
     }
   };
 
@@ -211,7 +212,7 @@ export default function RoundsManagement() {
       const res = await api.get('/admin/settings');
       setReminderType(res.data.reminder_type || 'daily');
     } catch (error) {
-      console.error('Error loading reminder settings:', error);
+      logger.error('Error loading reminder settings:', error);
     }
   };
 
@@ -235,7 +236,7 @@ export default function RoundsManagement() {
         setCurrentSeason(allRes.data[0]);
       }
     } catch (error) {
-      console.error('Error loading seasons:', error);
+      logger.error('Error loading seasons:', error);
     }
   };
 
@@ -248,7 +249,7 @@ export default function RoundsManagement() {
       setRounds(roundsRes.data);
       setDeletedRounds(deletedRes.data);
     } catch (error) {
-      console.error('Error loading rounds:', error);
+      logger.error('Error loading rounds:', error);
     }
   };
 
@@ -301,7 +302,7 @@ export default function RoundsManagement() {
       setError('');
       setShowEditModal(true);
     } catch (error) {
-      console.error('Error loading round:', error);
+      logger.error('Error loading round:', error);
       alert('Failed to load round details');
     }
   };
@@ -483,7 +484,7 @@ export default function RoundsManagement() {
       setError('');
       setShowCompleteModal(true);
     } catch (error) {
-      console.error('Error loading completion data:', error);
+      logger.error('Error loading completion data:', error);
       alert('Failed to load round data');
     }
   };

@@ -356,8 +356,8 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
       sqlState: error.sqlState,
       sqlMessage: error.sqlMessage
     });
-    console.error('Seed sample data error:', error);
-    console.error('Error details:', {
+    logError('Seed sample data error:', error);
+    logError('Error details:', {
       message: error.message,
       code: error.code,
       sqlState: error.sqlState,
@@ -437,7 +437,6 @@ router.post('/clear-test-data', authenticateAdmin, requireMainAdmin, async (req:
 
   } catch (error) {
     logError('Clear sample data error', error);
-    console.error('Clear sample data error:', error);
     res.status(500).json({ error: 'Failed to delete sample data' });
   }
 });

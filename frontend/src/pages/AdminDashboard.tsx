@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../utils/api';
+import logger from '../utils/logger';
 import { useTheme } from '../contexts/ThemeContext';
 import { usePageMeta } from '../utils/usePageMeta';
 import Footer from '../components/Footer';
@@ -125,7 +126,7 @@ export default function AdminDashboard() {
       setHasSeasons(seasonsRes.data && seasonsRes.data.length > 0);
       setHasSports(sportsRes.data && sportsRes.data.length > 0);
     } catch (error) {
-      console.error('Error checking system status:', error);
+      logger.error('Error checking system status:', error);
     }
   };
 
@@ -175,7 +176,7 @@ export default function AdminDashboard() {
         )
       });
     } catch (error) {
-      console.error('Error loading settings:', error);
+      logger.error('Error loading settings:', error);
     }
   };
 
@@ -184,7 +185,7 @@ export default function AdminDashboard() {
       const res = await api.get('/public/config');
       setEnableDevTools(res.data.enableDevTools || false);
     } catch (error) {
-      console.error('Error loading config:', error);
+      logger.error('Error loading config:', error);
       setEnableDevTools(false);
     }
   };

@@ -1,4 +1,5 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import logger from '../utils/logger';
 import { 
   cardClasses, 
   bodyTextClasses, 
@@ -269,7 +270,7 @@ const CumulativeGraph = memo(function CumulativeGraph({ data }: CumulativeGraphP
       });
     }
   } catch (error) {
-    console.error('Error transforming chart data:', error);
+    logger.error('Error transforming chart data:', error);
     return (
       <div className={`${cardClasses} shadow-lg text-center`}>
         <p className={bodyTextClasses}>Error loading graph data. Please try again.</p>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import api from '../utils/api';
+import logger from '../utils/logger';
 import PasswordInput from '../components/PasswordInput';
 import { usePageMeta } from '../utils/usePageMeta';
 import {
@@ -59,7 +60,7 @@ export default function AdminLogin() {
       setAppTitle(res.data.app_title || 'Go Make Your Picks');
       setAppTagline(res.data.app_tagline || 'Predict. Compete. Win.');
     } catch (error) {
-      console.error('Error loading settings:', error);
+      logger.error('Error loading settings:', error);
       // Don't throw - just use default values
     }
   };

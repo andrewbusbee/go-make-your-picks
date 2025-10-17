@@ -86,6 +86,5 @@ export const resetAdminMagicLinkLimit = async (email: string) => {
   } catch (error) {
     // If reset fails, log but don't throw - this is not critical
     logError('Failed to reset rate limit', error, { email });
-    console.error('Failed to reset rate limit:', error);
   }
 };
