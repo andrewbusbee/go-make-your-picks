@@ -1133,7 +1133,7 @@ router.get('/copy-sources', authenticateAdmin, async (req: AuthRequest, res: Res
        HAVING sport_count > 0
        ORDER BY 
          CASE WHEN s.ended_at IS NULL THEN 0 ELSE 1 END,
-         s.ended_at DESC`,
+         s.year_end DESC`,
       []
     );
 
