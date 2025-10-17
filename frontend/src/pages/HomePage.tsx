@@ -231,7 +231,7 @@ export default function HomePage() {
       
       <div className="container mx-auto px-4 py-8">
         {/* Check if there's any data to display */}
-        {allSeasons.length === 0 || (!leaderboardData && !seasonLoading) ? (
+        {!loading && allSeasons.length === 0 ? (
           <div className={`${cardClasses} shadow-lg text-center py-16`}>
             <span className="text-8xl mb-6 block">🏆</span>
             <h2 className={`${headingClasses} text-3xl mb-4`}>{appTitle}</h2>
