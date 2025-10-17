@@ -217,6 +217,21 @@ export const checkAndSendDailyReminder = async (round: any, now: Date, reminderS
       return;
     }
     
+    // Check 4: Was this round created today? (Skip if forcing)
+    if (!forceOverride) {
+      const [createdToday] = await db.query<RowDataPacket[]>(
+        'SELECT id FROM rounds WHERE id = ? AND DATE(created_at) = CURDATE()',
+        [round.id]
+      );
+      
+      if (createdToday.length > 0) {
+        logger.debug(`Round ${round.id} was created today, skipping daily reminder to avoid spam`);
+        return;
+      }
+    } else {
+      logger.debug(`Force override enabled for round ${round.id}, bypassing same-day creation check`);
+    }
+    
     // All checks passed - send reminder
     logger.debug(`All checks passed, sending daily reminder for round ${round.id}`);
     await sendReminderIfNotSent(round, 'daily', 0, forceOverride);
