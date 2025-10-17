@@ -3,11 +3,10 @@
  * Provides structured logging with different transports for dev/prod
  */
 
-import winston from 'winston';
-import path from 'path';
+import winston, { LeveledLogMethod } from 'winston';
 import crypto from 'crypto';
 
-const { combine, timestamp, printf, colorize, errors, json } = winston.format;
+const { combine, timestamp, printf, colorize, errors } = winston.format;
 
 /**
  * Redact email addresses for privacy/GDPR compliance
@@ -41,15 +40,17 @@ export function hashEmail(email: string): string {
 
 // Define log levels
 const levels = {
-  error: 0,
-  warn: 1,
-  info: 2,
-  http: 3,
-  debug: 4,
+  fatal: 0,
+  error: 1,
+  warn: 2,
+  info: 3,
+  http: 4,
+  debug: 5,
 };
 
 // Define colors for each level
 const colors = {
+  fatal: 'red',
   error: 'red',
   warn: 'yellow',
   info: 'green',
@@ -59,11 +60,30 @@ const colors = {
 
 winston.addColors(colors);
 
-// Determine log level based on environment
+// Determine log level based on LOG_LEVEL environment variable
 const level = () => {
+  const logLevel = process.env.LOG_LEVEL?.toUpperCase();
+  
+  // Validate log level
+  const validLevels = ['FATAL', 'ERROR', 'WARN', 'INFO', 'HTTP', 'DEBUG', 'SILENT'];
+  if (logLevel && !validLevels.includes(logLevel)) {
+    console.warn(`Invalid LOG_LEVEL "${logLevel}". Valid levels: ${validLevels.join(', ')}. Using INFO.`);
+    return 'info';
+  }
+  
+  // Handle SILENT level
+  if (logLevel === 'SILENT') {
+    return 'fatal'; // Only show fatal errors when silent
+  }
+  
+  // Return the specified level or default based on environment
+  if (logLevel) {
+    return logLevel.toLowerCase();
+  }
+  
+  // Fallback to environment-based defaults
   const env = process.env.NODE_ENV || 'development';
-  const isDevelopment = env === 'development';
-  return isDevelopment ? 'debug' : 'info';
+  return env === 'development' ? 'debug' : 'info';
 };
 
 // Custom format for console output (human-readable)
@@ -83,12 +103,7 @@ const consoleFormat = printf(({ level, message, timestamp, stack, ...metadata })
   return msg;
 });
 
-// Custom format for file output (JSON for easy parsing)
-const fileFormat = combine(
-  timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-  errors({ stack: true }),
-  json()
-);
+// File logging is disabled - no file format needed
 
 // Create transports
 const transports: winston.transport[] = [];
@@ -104,40 +119,31 @@ transports.push(
   })
 );
 
-// File transports (only in production or if LOG_TO_FILE is true)
-const shouldLogToFile = process.env.NODE_ENV === 'production' || process.env.LOG_TO_FILE === 'true';
-
-if (shouldLogToFile) {
-  const logsDir = process.env.LOGS_DIR || 'logs';
-  
-  // Error log file (errors only)
-  transports.push(
-    new winston.transports.File({
-      filename: path.join(logsDir, 'error.log'),
-      level: 'error',
-      format: fileFormat,
-      maxsize: 5242880, // 5MB
-      maxFiles: 5,
-    })
-  );
-  
-  // Combined log file (all levels)
-  transports.push(
-    new winston.transports.File({
-      filename: path.join(logsDir, 'combined.log'),
-      format: fileFormat,
-      maxsize: 5242880, // 5MB
-      maxFiles: 10,
-    })
-  );
-}
+// File logging is DISABLED - logs only go to console
+// This ensures logs are captured by Docker/container logging systems
+// and don't create files that need to be managed
 
 // Create the logger
-const logger = winston.createLogger({
+const baseLogger = winston.createLogger({
   level: level(),
   levels,
   transports,
   exitOnError: false,
+});
+
+// Extend logger with fatal method
+const logger = Object.assign(baseLogger, {
+  fatal: baseLogger.error
+}) as winston.Logger & { fatal: LeveledLogMethod };
+
+// Log the selected log level on startup
+const selectedLevel = level();
+const envLogLevel = process.env.LOG_LEVEL?.toUpperCase() || 'default';
+logger.info(`🔧 Logger initialized with level: ${selectedLevel.toUpperCase()}`, {
+  selectedLevel: selectedLevel.toUpperCase(),
+  envLogLevel,
+  availableLevels: ['FATAL', 'ERROR', 'WARN', 'INFO', 'HTTP', 'DEBUG', 'SILENT'],
+  environment: process.env.NODE_ENV || 'development'
 });
 
 // Create a stream for Morgan HTTP logging
@@ -151,12 +157,32 @@ export const stream = {
  * Helper functions for common logging patterns
  */
 
+export const logFatal = (message: string, error?: any, metadata?: any) => {
+  logger.fatal(message, {
+    error: error?.message || error,
+    stack: error?.stack,
+    ...metadata,
+  });
+};
+
 export const logError = (message: string, error?: any, metadata?: any) => {
   logger.error(message, {
     error: error?.message || error,
     stack: error?.stack,
     ...metadata,
   });
+};
+
+export const logWarn = (message: string, metadata?: any) => {
+  logger.warn(message, metadata);
+};
+
+export const logInfo = (message: string, metadata?: any) => {
+  logger.info(message, metadata);
+};
+
+export const logDebug = (message: string, metadata?: any) => {
+  logger.debug(message, metadata);
 };
 
 export const logRequest = (req: any, message: string) => {

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import logger from './logger';
 
 const API_BASE_URL = '/api';
 
@@ -11,6 +12,12 @@ const api = axios.create({
 // Request interceptor - Simple prefix-based token management
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('adminToken');
+  
+  logger.debug('API Request', {
+    url: config.url,
+    method: config.method,
+    hasToken: !!token
+  });
   
   if (!token) {
     return config;
@@ -27,16 +34,34 @@ api.interceptors.request.use((config) => {
 
 // Global response interceptor to handle errors
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    logger.debug('API Response', {
+      url: response.config.url,
+      method: response.config.method,
+      status: response.status
+    });
+    return response;
+  },
   (error) => {
-    // Log all errors for debugging
-    console.error('API Error:', {
+    // Log all errors with appropriate levels
+    const errorData = {
       url: error.config?.url,
       method: error.config?.method,
       status: error.response?.status,
       message: error.message,
       data: error.response?.data
-    });
+    };
+
+    if (error.response?.status >= 500) {
+      logger.error('API Server Error', errorData);
+    } else if (error.response?.status >= 400) {
+      logger.warn('API Client Error', errorData);
+    } else {
+      logger.error('API Network Error', errorData);
+    }
+
+    // Also log to console for immediate debugging
+    console.error('API Error:', errorData);
 
     // Handle 401 Unauthorized errors
     if (error.response?.status === 401) {

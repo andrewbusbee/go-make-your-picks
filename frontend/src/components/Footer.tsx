@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import api from '../utils/api';
-import packageJson from '../../package.json';
 import { bodyTextClasses, dividerClasses, cardClasses } from '../styles/commonClasses';
 
 export default function Footer() {

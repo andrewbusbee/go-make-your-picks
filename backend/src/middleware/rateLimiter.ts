@@ -3,6 +3,7 @@ import {
   ADMIN_MAGIC_LINK_RATE_LIMIT_WINDOW_MS, 
   ADMIN_MAGIC_LINK_RATE_LIMIT_MAX 
 } from '../config/constants';
+import { logError } from '../utils/logger';
 
 // Login rate limiter - prevent brute force attacks
 export const loginLimiter = rateLimit({
@@ -84,6 +85,7 @@ export const resetAdminMagicLinkLimit = async (email: string) => {
     }
   } catch (error) {
     // If reset fails, log but don't throw - this is not critical
+    logError('Failed to reset rate limit', error, { email });
     console.error('Failed to reset rate limit:', error);
   }
 };

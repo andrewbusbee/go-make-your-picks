@@ -42,6 +42,12 @@ services:
       # Run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
       # Or use .env file override (recommended)
       JWT_SECRET: ${JWT_SECRET}
+      # Log Level Configuration
+      # Available levels: DEBUG, INFO, WARN, ERROR, FATAL, SILENT
+      # Production default: INFO (shows info, warn, error, fatal)
+      # Development: DEBUG (shows all logs)
+      # Set LOG_LEVEL in .env file or override in docker-compose.override.yml
+      LOG_LEVEL: ${LOG_LEVEL}
       SMTP_HOST: ${SMTP_HOST}
       SMTP_PORT: ${SMTP_PORT}
       SMTP_SECURE: ${SMTP_SECURE}

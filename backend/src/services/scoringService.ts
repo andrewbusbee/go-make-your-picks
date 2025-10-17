@@ -44,8 +44,11 @@ export class ScoringService {
     leaderboard: LeaderboardEntry[];
   }> {
     try {
+      logger.debug('Calculating leaderboard for season', { seasonId });
+      
       // Get point values from settings (uses historical settings for ended seasons)
       const points = await SettingsService.getPointsSettingsForSeason(seasonId);
+      logger.debug('Retrieved point settings for season', { seasonId, points });
 
       // Get all rounds for the season (excluding soft-deleted)
       const [rounds] = await db.query<RowDataPacket[]>(
@@ -186,6 +189,13 @@ export class ScoringService {
           currentRank = index + 1;
         }
         entry.rank = currentRank;
+      });
+
+      logger.debug('Leaderboard calculation completed', { 
+        seasonId, 
+        userCount: leaderboard.length,
+        roundCount: rounds.length,
+        topScore: leaderboard[0]?.totalPoints || 0
       });
 
       return {

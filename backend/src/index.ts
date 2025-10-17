@@ -34,11 +34,29 @@ import { migrationRunner, allMigrations } from './migrations';
 // Load environment variables first
 dotenv.config();
 
+// Log startup process
+logger.info('Starting Go Make Your Picks application', {
+  nodeVersion: process.version,
+  platform: process.platform,
+  environment: process.env.NODE_ENV || 'development',
+  logLevel: process.env.LOG_LEVEL || 'default'
+});
+
+// Log logging configuration details
+logger.info('📊 Logging Configuration', {
+  logLevel: process.env.LOG_LEVEL || 'default',
+  environment: process.env.NODE_ENV || 'development',
+  fileLogging: 'disabled (console only)',
+  availableLevels: ['FATAL', 'ERROR', 'WARN', 'INFO', 'HTTP', 'DEBUG', 'SILENT']
+});
+
 // Validate environment variables before doing anything else
+logger.info('Validating environment configuration');
 validateEnvironment();
 printEnvironmentSummary();
 
 // Run startup validation (JWT_SECRET, etc.)
+logger.info('Running startup validation checks');
 runStartupValidation();
 
 const app = express();
@@ -226,8 +244,17 @@ async function startServer() {
     await migrationRunner.runAll(allMigrations);
     logger.info('✅ Database migrations completed');
     
+    // Verify SMTP connection (non-blocking)
+    logger.info('📧 Verifying SMTP configuration...');
+    try {
+      await verifySmtpConnection();
+      logger.info('✅ SMTP connection verified successfully');
+    } catch (error: any) {
+      logger.warn('⚠️ SMTP verification failed - email functionality may not work', { error: error.message });
+    }
+    
     // Start the server
-    app.listen(PORT, '0.0.0.0', () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
       logger.info('═══════════════════════════════════════════════');
       logger.info('🏆 Go Make Your Picks API Server');
       logger.info('═══════════════════════════════════════════════');
@@ -237,10 +264,30 @@ async function startServer() {
       logger.info('═══════════════════════════════════════════════');
       
       // Start the reminder scheduler
+      logger.info('⏰ Starting reminder scheduler...');
       startReminderScheduler();
       
       logger.info('✨ Server ready to accept requests!');
     });
+    
+    // Graceful shutdown handling
+    const gracefulShutdown = (signal: string) => {
+      logger.info(`🛑 Received ${signal}, shutting down gracefully...`);
+      
+      server.close(() => {
+        logger.info('✅ HTTP server closed');
+        process.exit(0);
+      });
+      
+      // Force close after 30 seconds
+      setTimeout(() => {
+        logger.error('⚠️ Forced shutdown after timeout');
+        process.exit(1);
+      }, 30000);
+    };
+    
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
   } catch (error) {
     logger.error('💥 Failed to start server', { error });
     process.exit(1);

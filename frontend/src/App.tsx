@@ -6,8 +6,17 @@ import PickPage from './pages/PickPage';
 import ChampionsPage from './pages/ChampionsPage';
 import ForgotPassword from './components/admin/ForgotPassword';
 import ResetPassword from './components/admin/ResetPassword';
+import logger from './utils/logger';
 
 function App() {
+  // Log frontend application startup
+  logger.info('🚀 Frontend Application Started', {
+    environment: import.meta.env.MODE,
+    logLevel: logger.getLevel(),
+    availableLevels: ['FATAL', 'ERROR', 'WARN', 'INFO', 'DEBUG', 'SILENT'],
+    localStorageLogs: logger.getLogs().length
+  });
+
   return (
     <Router>
       <Routes>

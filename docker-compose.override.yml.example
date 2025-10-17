@@ -24,6 +24,13 @@ services:
       # Enable development tools in local development (set to "false" for production)
       ENABLE_DEV_TOOLS: "true"
       
+      # Log Level Configuration
+      # Available levels: DEBUG, INFO, WARN, ERROR, FATAL, SILENT
+      # Development default: DEBUG (shows all logs)
+      # Production default: INFO (shows info, warn, error, fatal)
+      # This will be logged on startup so you can verify it's working
+      LOG_LEVEL: INFO
+      
       # SMTP Configuration - Required for sending magic links. Gmail requires an app password, not your personal password
       SMTP_HOST: smtp.gmail.com
       SMTP_PORT: 587

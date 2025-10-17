@@ -11,6 +11,12 @@ export interface AuthRequest extends Request {
   adminId?: number;
   email?: string;
   isMainAdmin?: boolean;
+  user?: {
+    id: number;
+    email: string;
+    name: string;
+    isMainAdmin: boolean;
+  };
 }
 
 export const authenticateAdmin = async (req: AuthRequest, res: Response, next: NextFunction) => {
@@ -46,6 +52,12 @@ export const authenticateAdmin = async (req: AuthRequest, res: Response, next: N
     req.adminId = admin.id;
     req.email = admin.email;
     req.isMainAdmin = admin.is_main_admin;
+    req.user = {
+      id: admin.id,
+      email: admin.email,
+      name: admin.email, // We don't store names in admins table, use email
+      isMainAdmin: admin.is_main_admin
+    };
     
     next();
   } catch (error) {

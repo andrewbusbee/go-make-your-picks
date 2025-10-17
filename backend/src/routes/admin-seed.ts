@@ -5,6 +5,7 @@ import { ResultSetHeader, RowDataPacket } from 'mysql2';
 import { SettingsService } from '../services/settingsService';
 import { withTransaction } from '../utils/transactionWrapper';
 import { QueryCacheService } from '../services/queryCacheService';
+import { logError, logInfo, logWarn, logDebug } from '../utils/logger';
 
 const router = express.Router();
 
@@ -349,6 +350,12 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
     });
 
   } catch (error: any) {
+    logError('Seed sample data error', error, {
+      message: error.message,
+      code: error.code,
+      sqlState: error.sqlState,
+      sqlMessage: error.sqlMessage
+    });
     console.error('Seed sample data error:', error);
     console.error('Error details:', {
       message: error.message,
@@ -429,6 +436,7 @@ router.post('/clear-test-data', authenticateAdmin, requireMainAdmin, async (req:
     res.json({ message: 'Sample data deleted successfully!' });
 
   } catch (error) {
+    logError('Clear sample data error', error);
     console.error('Clear sample data error:', error);
     res.status(500).json({ error: 'Failed to delete sample data' });
   }
