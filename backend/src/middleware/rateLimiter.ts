@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit';
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { 
   ADMIN_MAGIC_LINK_RATE_LIMIT_WINDOW_MS, 
   ADMIN_MAGIC_LINK_RATE_LIMIT_MAX 
@@ -67,9 +67,9 @@ export const adminMagicLinkLimiter = rateLimit({
   message: { error: 'Too many login link requests. Please try again later or contact the main administrator.' },
   standardHeaders: true,
   legacyHeaders: false,
-  // Key by email from request body
+  // Key by email from request body, fallback to IP with proper IPv6 handling
   keyGenerator: (req) => {
-    return req.body.email || req.ip;
+    return req.body.email || ipKeyGenerator(req.ip || 'unknown');
   },
   // Skip on successful attempts (handled manually in auth routes)
   skipSuccessfulRequests: false,
