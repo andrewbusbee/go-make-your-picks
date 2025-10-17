@@ -27,12 +27,12 @@ export default function Footer() {
           <div className="hidden md:block">
             Built with{' '}
             <a 
-              href={`https://github.com/andrewbusbee/go-make-your-picks/releases/tag/v${packageJson.version}`}
+              href={`https://github.com/andrewbusbee/go-make-your-picks`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 dark:text-blue-400 underline"
             >
-              Go Make Your Picks v{packageJson.version}
+              Go Make Your Picks
             </a>
           </div>
           

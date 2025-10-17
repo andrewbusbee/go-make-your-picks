@@ -230,7 +230,7 @@ export default function HomePage() {
       
       <div className="container mx-auto px-4 py-8">
         {/* Check if there's any data to display */}
-        {allSeasons.length === 0 || !leaderboardData ? (
+        {allSeasons.length === 0 || (!leaderboardData && !seasonLoading) ? (
           <div className={`${cardClasses} shadow-lg text-center py-16`}>
             <span className="text-8xl mb-6 block">🏆</span>
             <h2 className={`${headingClasses} text-3xl mb-4`}>{appTitle}</h2>
@@ -243,6 +243,11 @@ export default function HomePage() {
             <p className={`${bodyTextClasses} mt-2`}>
               Please contact an administrator to set up the first season and get started.
             </p>
+          </div>
+        ) : seasonLoading ? (
+          <div className={`${cardClasses} shadow-lg text-center py-16`}>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className={bodyTextClasses}>Loading season data...</p>
           </div>
         ) : (
           <>

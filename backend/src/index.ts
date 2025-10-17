@@ -16,6 +16,7 @@ import leaderboardRoutes from './routes/leaderboard';
 import testEmailRoutes from './routes/test-email';
 import settingsRoutes from './routes/settings';
 import configRoutes from './routes/config';
+import historicalChampionsRoutes from './routes/historical-champions';
 // ⚠️ TEMPORARY - ONLY LOAD IN DEVELOPMENT ⚠️
 import adminSeedRoutes from './routes/admin-seed';
 import { startReminderScheduler } from './services/reminderScheduler';
@@ -167,6 +168,7 @@ app.use('/api/admin/picks', adminPicksRoutes);
 app.use('/api/admin/leaderboard', leaderboardRoutes);
 app.use('/api/admin/test-email', testEmailRoutes);
 app.use('/api/admin/settings', settingsRoutes);
+app.use('/api/admin/historical-champions', historicalChampionsRoutes);
 
 // ⚠️ Seed routes - Only shown in UI when ENABLE_DEV_TOOLS=true ⚠️
 // Routes are protected by admin authentication

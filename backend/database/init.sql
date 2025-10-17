@@ -323,3 +323,13 @@ ON DUPLICATE KEY UPDATE setting_key=setting_key;
 -- Insert default settings row
 INSERT INTO settings (send_admin_summary) VALUES (TRUE)
 ON DUPLICATE KEY UPDATE id=id;
+
+-- Historical champions table for manually added champions
+CREATE TABLE IF NOT EXISTS historical_champions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    end_year INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_end_year (end_year)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

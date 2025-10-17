@@ -163,7 +163,7 @@ router.get('/:id/winners', async (req, res) => {
 router.get('/champions', async (req, res) => {
   try {
     // Get all ended seasons with their champions (1st place only)
-    const [champions] = await db.query<RowDataPacket[]>(
+    const [seasonChampions] = await db.query<RowDataPacket[]>(
       `SELECT 
         s.id as season_id,
         s.name as season_name,
@@ -172,7 +172,8 @@ router.get('/champions', async (req, res) => {
         s.ended_at,
         sw.place,
         sw.total_points,
-        u.name as user_name
+        u.name as user_name,
+        'season' as champion_type
        FROM seasons s
        JOIN season_winners sw ON s.id = sw.season_id
        JOIN users u ON sw.user_id = u.id
@@ -181,6 +182,35 @@ router.get('/champions', async (req, res) => {
        AND sw.place = 1
        ORDER BY s.year_end DESC, s.id DESC, sw.total_points DESC, u.name ASC`
     );
+
+    // Get historical champions
+    const [historicalChampions] = await db.query<RowDataPacket[]>(
+      `SELECT 
+        id as season_id,
+        name as season_name,
+        end_year as year_end,
+        name as user_name,
+        'historical' as champion_type,
+        NULL as year_start,
+        NULL as ended_at,
+        NULL as place,
+        NULL as total_points
+       FROM historical_champions
+       ORDER BY end_year DESC, name ASC`
+    );
+
+    // Combine and sort all champions by year_end (descending)
+    const allChampions = [...seasonChampions, ...historicalChampions].sort((a, b) => {
+      const aYear = a.year_end || 0;
+      const bYear = b.year_end || 0;
+      if (aYear !== bYear) {
+        return bYear - aYear; // Descending by year
+      }
+      // If same year, season champions come before historical
+      if (a.champion_type === 'season' && b.champion_type === 'historical') return -1;
+      if (a.champion_type === 'historical' && b.champion_type === 'season') return 1;
+      return 0;
+    });
 
     // Get app settings for display
     const [settings] = await db.query<RowDataPacket[]>(
@@ -209,7 +239,7 @@ router.get('/champions', async (req, res) => {
     const currentCommissioner = commissionerRows[0]?.name || null;
 
     res.json({
-      champions,
+      champions: allChampions,
       appTitle,
       appTagline,
       currentCommissioner,

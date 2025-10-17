@@ -475,6 +475,7 @@ export default function AdminDashboard() {
           <Route path="/settings" element={<Settings isMainAdmin={adminData?.is_main_admin || false} />} />
           <Route path="/settings/email" element={<Settings isMainAdmin={adminData?.is_main_admin || false} />} />
           <Route path="/settings/admins" element={<Settings isMainAdmin={adminData?.is_main_admin || false} />} />
+          <Route path="/settings/champions" element={<Settings isMainAdmin={adminData?.is_main_admin || false} />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </div>

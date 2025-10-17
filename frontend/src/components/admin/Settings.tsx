@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import AppSettings from './AppSettings';
 import TestEmail from './TestEmail';
 import AdminsManagement from './AdminsManagement';
+import HistoricalChampionsManagement from './HistoricalChampionsManagement';
 import {
   tabContainerClasses,
   tabButtonActiveClasses,
@@ -16,7 +17,7 @@ interface SettingsProps {
 export default function Settings({ isMainAdmin }: SettingsProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'customize' | 'email' | 'admins'>('customize');
+  const [activeTab, setActiveTab] = useState<'customize' | 'email' | 'admins' | 'champions'>('customize');
 
   // Determine active tab based on URL
   useEffect(() => {
@@ -24,12 +25,14 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
       setActiveTab('email');
     } else if (location.pathname.includes('/admin/settings/admins')) {
       setActiveTab('admins');
+    } else if (location.pathname.includes('/admin/settings/champions')) {
+      setActiveTab('champions');
     } else {
       setActiveTab('customize');
     }
   }, [location.pathname]);
 
-  const handleTabChange = (tab: 'customize' | 'email' | 'admins') => {
+  const handleTabChange = (tab: 'customize' | 'email' | 'admins' | 'champions') => {
     setActiveTab(tab);
     if (tab === 'customize') {
       navigate('/admin/settings');
@@ -38,7 +41,7 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
     }
   };
 
-  const getSubTabClass = (tab: 'customize' | 'email' | 'admins') => {
+  const getSubTabClass = (tab: 'customize' | 'email' | 'admins' | 'champions') => {
     return activeTab === tab ? tabButtonActiveClasses : tabButtonInactiveClasses;
   };
 
@@ -64,6 +67,12 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
         >
           Admins
         </button>
+        <button
+          onClick={() => handleTabChange('champions')}
+          className={getSubTabClass('champions')}
+        >
+          Manually add a Champion
+        </button>
       </div>
 
       {/* Content */}
@@ -71,6 +80,7 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
         {activeTab === 'customize' && <AppSettings />}
         {activeTab === 'email' && <TestEmail isMainAdmin={isMainAdmin} />}
         {activeTab === 'admins' && <AdminsManagement isMainAdmin={isMainAdmin} />}
+        {activeTab === 'champions' && <HistoricalChampionsManagement />}
       </div>
     </div>
   );
