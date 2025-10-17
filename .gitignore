@@ -98,8 +98,8 @@ test-results/
 $RECYCLE.BIN/
 ehthumbs_vista.db
 
-# Linux (covered by IDE section line 54)
-# *~
+# Linux
+*~
 
 # Backup files
 *.bak
@@ -188,9 +188,8 @@ docker-compose.override.local.yml
 *.seed
 *.pid.lock
 
-# WebStorm (duplicate of line 51)
-# *.iml
-# .idea/
+# WebStorm
+*.iml
 
 # VS Code workspace settings (keep general settings but ignore workspace-specific)
 .vscode/settings.json
@@ -217,7 +216,7 @@ backend/test-*.ts
 backend/scratch-*.js
 backend/scratch-*.ts
 
-# TypeScript compiled output (redundant with dist/ but explicit)
+# TypeScript compiled output
 *.js.map
 *.d.ts.map
 

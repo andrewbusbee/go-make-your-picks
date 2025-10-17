@@ -27,8 +27,7 @@ const productionConfig: EnvConfig = {
     'MYSQL_PORT',
     'PORT',
     'SMTP_PORT',
-    'SMTP_SECURE',
-    'SMTP_FROM'
+    'SMTP_SECURE'
   ]
 };
 
