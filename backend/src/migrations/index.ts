@@ -9,6 +9,7 @@ import { Migration } from './Migration';
 import { AddChampionshipPageTitleMigration } from './20250115000000_add_championship_page_title';
 import { RemoveSeasonCommissionerMigration } from './20250116000000_remove_season_commissioner';
 import { AddHistoricalChampions } from './20250117000000_add_historical_champions';
+import AddEmailMagicLinks from './20250118000000_add_email_magic_links';
 
 /**
  * All migrations in order of execution
@@ -18,6 +19,7 @@ export const allMigrations: Migration[] = [
   new AddChampionshipPageTitleMigration(),
   new RemoveSeasonCommissionerMigration(),
   new AddHistoricalChampions(),
+  new AddEmailMagicLinks(),
   // Add new migrations here as needed
 ];
 

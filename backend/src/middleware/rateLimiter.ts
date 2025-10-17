@@ -44,7 +44,7 @@ export const testEmailLimiter = rateLimit({
 // Pick submission limiter - prevent spam
 export const pickSubmissionLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 10, // 10 submissions per hour (allows updates)
+  max: 100, // 50 submissions per hour (allows updates and shared email auto-save)
   message: { error: 'Too many pick submissions. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,

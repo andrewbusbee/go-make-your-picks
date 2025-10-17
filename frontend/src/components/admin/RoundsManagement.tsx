@@ -101,7 +101,7 @@ export default function RoundsManagement() {
   const [selectedSeasonId, setSelectedSeasonId] = useState<number | null>(null);
   const [sportName, setSportName] = useState('');
   const [pickType, setPickType] = useState<'single' | 'multiple'>('single');
-  const [numWriteInPicks, setNumWriteInPicks] = useState(1);
+  // numWriteInPicks removed - manual entry always uses 1 pick
   const [emailMessage, setEmailMessage] = useState('');
   const [lockTime, setLockTime] = useState('');
   const [timezone, setTimezone] = useState('America/New_York');
@@ -257,7 +257,7 @@ export default function RoundsManagement() {
     setSelectedSeasonId(currentSeason?.id || null);
     setSportName('');
     setPickType('single');
-    setNumWriteInPicks(1);
+    // numWriteInPicks removed - manual entry always uses 1 pick
     setEmailMessage('');
     setLockTime('');
     setTimezone(defaultTimezone); // Use default timezone from settings
@@ -283,7 +283,7 @@ export default function RoundsManagement() {
       setSelectedSeasonId(roundData.season_id);
       setSportName(roundData.sport_name);
       setPickType(roundData.pick_type || 'single');
-      setNumWriteInPicks(roundData.num_write_in_picks || 1);
+      // numWriteInPicks removed - manual entry always uses 1 pick
       setEmailMessage(roundData.email_message || '');
       
       // Convert MySQL datetime to datetime-local format
@@ -344,9 +344,9 @@ export default function RoundsManagement() {
         teams: pickType === 'single' ? teams : []
       };
 
-      // Only include numWriteInPicks if pick type is multiple
+      // Only include numWriteInPicks if pick type is multiple (always 1 for manual entry)
       if (pickType === 'multiple') {
-        payload.numWriteInPicks = numWriteInPicks;
+        payload.numWriteInPicks = 1;
       }
 
       await api.post('/admin/rounds', payload);
@@ -380,9 +380,9 @@ export default function RoundsManagement() {
         timezone
       };
 
-      // Only include numWriteInPicks if pick type is multiple
+      // Only include numWriteInPicks if pick type is multiple (always 1 for manual entry)
       if (pickType === 'multiple') {
-        payload.numWriteInPicks = numWriteInPicks;
+        payload.numWriteInPicks = 1;
       }
 
       // Update basic round info
@@ -1146,8 +1146,8 @@ export default function RoundsManagement() {
                   onChange={(e) => setPickType(e.target.value as 'single' | 'multiple')}
                   className={inputClasses}
                 >
-                  <option value="single">Single team/player</option>
-                  <option value="multiple">Multiple teams/players</option>
+                  <option value="single">Select From Available Teams</option>
+                  <option value="multiple">Manual Entry</option>
                 </select>
               </div>
 
@@ -1170,23 +1170,11 @@ export default function RoundsManagement() {
                 </div>
               )}
 
-              {/* Conditional: Number of Write-in Picks (for multiple pick type) */}
+              {/* Manual Entry always uses 1 pick */}
               {pickType === 'multiple' && (
                 <div>
-                  <label className={labelClasses}>
-                    Number of Write-in Picks (1-10)
-                  </label>
-                  <select
-                    value={numWriteInPicks}
-                    onChange={(e) => setNumWriteInPicks(parseInt(e.target.value))}
-                    className={`${inputClasses} max-w-xs`}
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-                      <option key={num} value={num}>{num}</option>
-                    ))}
-                  </select>
-                  <p className={`mt-1 ${helpTextClasses}`}>
-                    Users will see {numWriteInPicks} blank text {numWriteInPicks === 1 ? 'box' : 'boxes'} to write in their picks
+                  <p className={`${helpTextClasses} bg-blue-50 p-3 rounded-md`}>
+                    <strong>Manual Entry:</strong> Users will see 1 blank text box to write in their pick
                   </p>
                 </div>
               )}
@@ -1332,8 +1320,8 @@ export default function RoundsManagement() {
                   onChange={(e) => setPickType(e.target.value as 'single' | 'multiple')}
                   className={inputClasses}
                 >
-                  <option value="single">Single team/player</option>
-                  <option value="multiple">Multiple teams/players</option>
+                  <option value="single">Select From Available Teams</option>
+                  <option value="multiple">Manual Entry</option>
                 </select>
               </div>
 
@@ -1356,23 +1344,11 @@ export default function RoundsManagement() {
                 </div>
               )}
 
-              {/* Conditional: Number of Write-in Picks (for multiple pick type) */}
+              {/* Manual Entry always uses 1 pick */}
               {pickType === 'multiple' && (
                 <div>
-                  <label className={labelClasses}>
-                    Number of Write-in Picks (1-10)
-                  </label>
-                  <select
-                    value={numWriteInPicks}
-                    onChange={(e) => setNumWriteInPicks(parseInt(e.target.value))}
-                    className={`${inputClasses} max-w-xs`}
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-                      <option key={num} value={num}>{num}</option>
-                    ))}
-                  </select>
-                  <p className={`mt-1 ${helpTextClasses}`}>
-                    Users will see {numWriteInPicks} blank text {numWriteInPicks === 1 ? 'box' : 'boxes'} to write in their picks
+                  <p className={`${helpTextClasses} bg-blue-50 p-3 rounded-md`}>
+                    <strong>Manual Entry:</strong> Users will see 1 blank text box to write in their pick
                   </p>
                 </div>
               )}

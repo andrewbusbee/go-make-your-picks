@@ -26,6 +26,7 @@ export default function PickPage() {
   const [pickData, setPickData] = useState<any>(null);
   const [championPick, setChampionPick] = useState('');
   const [writeInPicks, setWriteInPicks] = useState<string[]>([]);
+  const [userPicks, setUserPicks] = useState<{[userId: number]: {championPick: string, writeInPicks: string[]}}>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -74,29 +75,76 @@ export default function PickPage() {
       
       const pickType = res.data.round.pickType || 'single';
       
-      if (res.data.currentPick && res.data.currentPick.pickItems) {
-        // Load existing pick items
-        const items = res.data.currentPick.pickItems;
+      if (res.data.isSharedEmail) {
+        // Handle shared email scenario
+        const newUserPicks: {[userId: number]: {championPick: string, writeInPicks: string[]}} = {};
         
-        if (pickType === 'single') {
-          // Single pick type - set first item
-          setChampionPick(items.length > 0 ? items[0].pickValue : '');
-        } else if (pickType === 'multiple') {
-          // Multiple pick type - load all items
-          const numPicks = res.data.round.numWriteInPicks || 1;
-          const picks = new Array(numPicks).fill('');
-          items.forEach((item: any) => {
-            if (item.pickNumber - 1 < numPicks) {
-              picks[item.pickNumber - 1] = item.pickValue;
+        res.data.users.forEach((user: any) => {
+          if (user.currentPick && user.currentPick.pickItems) {
+            const items = user.currentPick.pickItems;
+            
+            if (pickType === 'single') {
+              newUserPicks[user.id] = {
+                championPick: items.length > 0 ? items[0].pickValue : '',
+                writeInPicks: []
+              };
+            } else if (pickType === 'multiple') {
+              const numPicks = res.data.round.numWriteInPicks || 1;
+              const picks = new Array(numPicks).fill('');
+              items.forEach((item: any) => {
+                if (item.pickNumber - 1 < numPicks) {
+                  picks[item.pickNumber - 1] = item.pickValue;
+                }
+              });
+              newUserPicks[user.id] = {
+                championPick: '',
+                writeInPicks: picks
+              };
             }
-          });
-          setWriteInPicks(picks);
-        }
+          } else {
+            // No current pick - initialize based on pick type
+            if (pickType === 'multiple') {
+              const numPicks = res.data.round.numWriteInPicks || 1;
+              newUserPicks[user.id] = {
+                championPick: '',
+                writeInPicks: new Array(numPicks).fill('')
+              };
+            } else {
+              newUserPicks[user.id] = {
+                championPick: '',
+                writeInPicks: []
+              };
+            }
+          }
+        });
+        
+        setUserPicks(newUserPicks);
       } else {
-        // No current pick - initialize based on pick type
-        if (pickType === 'multiple') {
-          const numPicks = res.data.round.numWriteInPicks || 1;
-          setWriteInPicks(new Array(numPicks).fill(''));
+        // Handle single user scenario (legacy)
+        if (res.data.currentPick && res.data.currentPick.pickItems) {
+          // Load existing pick items
+          const items = res.data.currentPick.pickItems;
+          
+          if (pickType === 'single') {
+            // Single pick type - set first item
+            setChampionPick(items.length > 0 ? items[0].pickValue : '');
+          } else if (pickType === 'multiple') {
+            // Multiple pick type - load all items
+            const numPicks = res.data.round.numWriteInPicks || 1;
+            const picks = new Array(numPicks).fill('');
+            items.forEach((item: any) => {
+              if (item.pickNumber - 1 < numPicks) {
+                picks[item.pickNumber - 1] = item.pickValue;
+              }
+            });
+            setWriteInPicks(picks);
+          }
+        } else {
+          // No current pick - initialize based on pick type
+          if (pickType === 'multiple') {
+            const numPicks = res.data.round.numWriteInPicks || 1;
+            setWriteInPicks(new Array(numPicks).fill(''));
+          }
         }
       }
       
@@ -104,6 +152,35 @@ export default function PickPage() {
     } catch (err: any) {
       setError(err.response?.data?.error || 'Invalid or expired link');
       setLoading(false);
+    }
+  };
+
+  // Auto-save function removed - picks now save only on "Submit All Picks"
+
+  // Handle individual pick changes with auto-save
+  const handleUserPickChange = async (userId: number, pickType: 'single' | 'multiple', value: string | string[], index?: number) => {
+    const newUserPicks = { ...userPicks };
+    
+    if (!newUserPicks[userId]) {
+      newUserPicks[userId] = { championPick: '', writeInPicks: [] };
+    }
+    
+    if (pickType === 'single') {
+      newUserPicks[userId].championPick = value as string;
+      setUserPicks(newUserPicks);
+      
+      // Auto-save removed for multi-user picks - saves only on "Submit All Picks"
+    } else if (pickType === 'multiple') {
+      const newWriteInPicks = [...newUserPicks[userId].writeInPicks];
+      if (typeof index === 'number') {
+        newWriteInPicks[index] = value as string;
+      } else {
+        newWriteInPicks.splice(0, newWriteInPicks.length, ...(value as string[]));
+      }
+      newUserPicks[userId].writeInPicks = newWriteInPicks;
+      setUserPicks(newUserPicks);
+      
+      // Auto-save removed for multi-user picks - saves only on "Submit All Picks"
     }
   };
 
@@ -116,32 +193,66 @@ export default function PickPage() {
     const pickType = pickData.round.pickType || 'single';
 
     try {
-      let picksToSubmit: string[] = [];
-
-      if (pickType === 'single') {
-        // Single pick type - submit champion pick
-        if (!championPick) {
-          setError('Please select a team/player');
-          setSubmitting(false);
-          return;
-        }
-        picksToSubmit = [championPick];
-      } else if (pickType === 'multiple') {
-        // Multiple pick type - submit write-in picks
-        picksToSubmit = writeInPicks.filter(p => p && p.trim().length > 0);
+      if (pickData.isSharedEmail) {
+        // Handle shared email scenario - submit all user picks sequentially
+        let hasAnyPicks = false;
         
-        if (picksToSubmit.length === 0) {
-          setError('Please enter at least one pick');
+        for (const [userId, userPick] of Object.entries(userPicks)) {
+          let picksToSubmit: string[] = [];
+          
+          if (pickType === 'single') {
+            if (userPick.championPick) {
+              picksToSubmit = [userPick.championPick];
+            }
+          } else if (pickType === 'multiple') {
+            picksToSubmit = userPick.writeInPicks.filter(p => p && p.trim().length > 0);
+          }
+          
+          if (picksToSubmit.length > 0) {
+            hasAnyPicks = true;
+            // Submit each user's picks sequentially to avoid deadlocks
+            await api.post(`/picks/${token}`, {
+              picks: picksToSubmit,
+              userId: parseInt(userId)
+            });
+          }
+        }
+        
+        if (!hasAnyPicks) {
+          setError('Please make at least one pick');
           setSubmitting(false);
           return;
         }
-      }
+        setSuccess('All picks have been submitted successfully! You can return to this page and update them anytime before the lock time.');
+      } else {
+        // Handle single user scenario (legacy)
+        let picksToSubmit: string[] = [];
 
-      await api.post(`/picks/${token}`, {
-        picks: picksToSubmit
-      });
-      
-      setSuccess('Your pick has been submitted successfully! You can return to this page and update it anytime before the lock time.');
+        if (pickType === 'single') {
+          // Single pick type - submit champion pick
+          if (!championPick) {
+            setError('Please select a team/player');
+            setSubmitting(false);
+            return;
+          }
+          picksToSubmit = [championPick];
+        } else if (pickType === 'multiple') {
+          // Multiple pick type - submit write-in picks
+          picksToSubmit = writeInPicks.filter(p => p && p.trim().length > 0);
+          
+          if (picksToSubmit.length === 0) {
+            setError('Please enter at least one pick');
+            setSubmitting(false);
+            return;
+          }
+        }
+
+        await api.post(`/picks/${token}`, {
+          picks: picksToSubmit
+        });
+        
+        setSuccess('Your pick has been submitted successfully! You can return to this page and update it anytime before the lock time.');
+      }
       
       // Reload pick data to show submitted picks
       await loadPickData();
@@ -295,10 +406,22 @@ export default function PickPage() {
             <div className="mb-6">
 
             <h2 className={`${headingClasses} mb-2`}>
-                Hello, <span className="font-semibold">{pickData.user.name}</span>!
+                Hello, <span className="font-semibold">
+                  {pickData.isSharedEmail 
+                    ? pickData.users.map((user: any, index: number) => {
+                        if (index === 0) return user.name;
+                        if (index === pickData.users.length - 1) return `, and ${user.name}`;
+                        return `, ${user.name}`;
+                      }).join('')
+                    : pickData.user.name
+                  }!
+                </span>
               </h2>
               <p className="text-lg text-gray-700 dark:text-gray-300 mb-4">
-                It's time to make Your Pick{pickType === 'multiple' && 's'} for {pickData.round.sportName}
+                {pickData.isSharedEmail 
+                  ? `Make your picks for ${pickData.round.sportName} below:`
+                  : `It's time to make Your Pick${pickType === 'multiple' && 's'} for ${pickData.round.sportName}`
+                }
               </p>
 
               {/* Commissioner Message */}
@@ -325,15 +448,37 @@ export default function PickPage() {
                   </svg>
                   <div>
                     <p className={`${alertSuccessTextClasses} font-medium`}>{success}</p>
-                    {pickData.currentPick && pickData.currentPick.pickItems && (
+                    {pickData.isSharedEmail ? (
+                      /* Show all users' submitted picks */
                       <div className="mt-3">
-                        <p className={`${alertSuccessTextClasses} font-semibold mb-2`}>Your submitted picks:</p>
-                        <ul className={`${alertSuccessTextClasses} list-disc list-inside`}>
-                          {pickData.currentPick.pickItems.map((item: any, i: number) => (
-                            <li key={i}>{item.pickValue}</li>
-                          ))}
-                        </ul>
+                        <p className={`${alertSuccessTextClasses} font-semibold mb-2`}>Submitted picks:</p>
+                        {pickData.users.map((user: any) => (
+                          <div key={user.id} className="mb-2">
+                            <p className={`${alertSuccessTextClasses} font-medium`}>{user.name}:</p>
+                            {user.currentPick && user.currentPick.pickItems ? (
+                              <ul className={`${alertSuccessTextClasses} list-disc list-inside ml-4`}>
+                                {user.currentPick.pickItems.map((item: any, i: number) => (
+                                  <li key={i}>{item.pickValue}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p className={`${alertSuccessTextClasses} text-sm italic`}>No picks submitted</p>
+                            )}
+                          </div>
+                        ))}
                       </div>
+                    ) : (
+                      /* Show single user's submitted picks */
+                      pickData.currentPick && pickData.currentPick.pickItems && (
+                        <div className="mt-3">
+                          <p className={`${alertSuccessTextClasses} font-semibold mb-2`}>Your submitted picks:</p>
+                          <ul className={`${alertSuccessTextClasses} list-disc list-inside`}>
+                            {pickData.currentPick.pickItems.map((item: any, i: number) => (
+                              <li key={i}>{item.pickValue}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )
                     )}
                   </div>
                 </div>
@@ -350,74 +495,154 @@ export default function PickPage() {
             {/* Pick Form - Hide after successful submission */}
             {!success && (
               <form onSubmit={handleSubmit} className="space-y-6">
-              {pickType === 'single' ? (
-                /* Single Pick Type - Dropdown */
-                <div>
-                  <label className={labelClasses}>
-                    Your Pick:
-                  </label>
-                  {pickData.teams && pickData.teams.length > 0 ? (
-                    <select
-                      value={championPick}
-                      onChange={(e) => setChampionPick(e.target.value)}
-                      className={`${selectClasses} py-3`}
-                      required
-                    >
-                      <option value="">Select a team/player...</option>
-                      {pickData.teams.map((team: string) => (
-                        <option key={team} value={team}>{team}</option>
-                      ))}
-                    </select>
-                  ) : (
-                    <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md p-4 text-center">
-                      <p className={bodyTextClasses}>No teams available for this round.</p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                /* Multiple Pick Type - Write-in Text Boxes */
-                <div className="space-y-4">
-                  <div className={`${alertInfoClasses} mb-4`}>
-                    <p className={alertInfoTextClasses}>
-                        <strong>Instructions:</strong> {pickData.round.sportName} requires a manual pick.  Please enter your picks below and click submit.
-                    </p>
+                {pickData.isSharedEmail ? (
+                  /* Shared Email Scenario - Multiple Users */
+                  <div className="space-y-6">
+                    {/* Instructions for multiple pick type - show only once above first user */}
+                    {pickType === 'multiple' && (
+                      <div className={`${alertInfoClasses} mb-4`}>
+                        <p className={alertInfoTextClasses}>
+                          <strong>Instructions:</strong> {pickData.round.sportName} requires a manual pick. Please enter your picks below.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {pickData.users.map((user: any) => (
+                      <div key={user.id} className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+                        <div className="flex items-center mb-4">
+                          <span className="text-2xl mr-3">👤</span>
+                          <div>
+                            <h3 className="font-semibold text-gray-900 dark:text-white">{user.name}'s Pick</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Status: {user.currentPick ? '✅ Submitted' : 'Not submitted'}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {pickType === 'single' ? (
+                          /* Single Pick Type - Dropdown */
+                          <div>
+                            <label className={labelClasses}>
+                              Your Pick:
+                            </label>
+                            {pickData.teams && pickData.teams.length > 0 ? (
+                              <select
+                                value={userPicks[user.id]?.championPick || ''}
+                                onChange={(e) => handleUserPickChange(user.id, 'single', e.target.value)}
+                                className={`${selectClasses} py-3`}
+                              >
+                                <option value="">Select a team/player...</option>
+                                {pickData.teams.map((team: string) => (
+                                  <option key={team} value={team}>{team}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <div className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-4 text-center">
+                                <p className={bodyTextClasses}>No teams available for this round.</p>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          /* Multiple Pick Type - Write-in Text Boxes */
+                          <div className="space-y-4">
+                            {(userPicks[user.id]?.writeInPicks || []).map((pick, index) => (
+                              <div key={index}>
+                                <label className={labelClasses}>
+                                  Pick {index + 1} {index === 0 && '*'}
+                                </label>
+                                <input
+                                  type="text"
+                                  value={pick}
+                                  onChange={(e) => {
+                                    const newPicks = [...(userPicks[user.id]?.writeInPicks || [])];
+                                    newPicks[index] = e.target.value;
+                                    handleUserPickChange(user.id, 'multiple', newPicks);
+                                  }}
+                                  placeholder={`Enter team/player name for pick ${index + 1}`}
+                                  className={`${inputClasses} py-3`}
+                                />
+                              </div>
+                            ))}
+                            
+                            <p className={`${helpTextClasses} italic`}>
+                              * At least one pick is required
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  
-                  {writeInPicks.map((pick, index) => (
-                    <div key={index}>
+                ) : (
+                  /* Single User Scenario (Legacy) */
+                  pickType === 'single' ? (
+                    /* Single Pick Type - Dropdown */
+                    <div>
                       <label className={labelClasses}>
-                        Pick {index + 1} {index === 0 && '*'}
+                        Your Pick:
                       </label>
-                      <input
-                        type="text"
-                        value={pick}
-                        onChange={(e) => {
-                          const newPicks = [...writeInPicks];
-                          newPicks[index] = e.target.value;
-                          setWriteInPicks(newPicks);
-                        }}
-                        placeholder={`Enter team/player name for pick ${index + 1}`}
-                        className={`${inputClasses} py-3`}
-                        required={index === 0}
-                      />
+                      {pickData.teams && pickData.teams.length > 0 ? (
+                        <select
+                          value={championPick}
+                          onChange={(e) => setChampionPick(e.target.value)}
+                          className={`${selectClasses} py-3`}
+                          required
+                        >
+                          <option value="">Select a team/player...</option>
+                          {pickData.teams.map((team: string) => (
+                            <option key={team} value={team}>{team}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md p-4 text-center">
+                          <p className={bodyTextClasses}>No teams available for this round.</p>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                  
-                  <p className={`${helpTextClasses} italic`}>
-                    * At least one pick is required
-                  </p>
-                </div>
-              )}
+                  ) : (
+                    /* Multiple Pick Type - Write-in Text Boxes */
+                    <div className="space-y-4">
+                      <div className={`${alertInfoClasses} mb-4`}>
+                        <p className={alertInfoTextClasses}>
+                            <strong>Instructions:</strong> {pickData.round.sportName} requires a manual pick.  Please enter your picks below and click submit.
+                        </p>
+                      </div>
+                      
+                      {writeInPicks.map((pick, index) => (
+                        <div key={index}>
+                          <label className={labelClasses}>
+                            Pick {index + 1} {index === 0 && '*'}
+                          </label>
+                          <input
+                            type="text"
+                            value={pick}
+                            onChange={(e) => {
+                              const newPicks = [...writeInPicks];
+                              newPicks[index] = e.target.value;
+                              setWriteInPicks(newPicks);
+                            }}
+                            placeholder={`Enter team/player name for pick ${index + 1}`}
+                            className={`${inputClasses} py-3`}
+                            required={index === 0}
+                          />
+                        </div>
+                      ))}
+                      
+                      <p className={`${helpTextClasses} italic`}>
+                        * At least one pick is required
+                      </p>
+                    </div>
+                  )
+                )}
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-md font-semibold hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                {submitting ? 'Submitting...' : pickType === 'multiple' ? 'Submit Picks' : 'Submit Pick'}
-              </button>
-            </form>
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-md font-semibold hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  {submitting ? 'Submitting...' : pickData.isSharedEmail ? 'Submit All Picks' : (pickType === 'multiple' ? 'Submit Picks' : 'Submit Pick')}
+                </button>
+              </form>
             )}
 
             {/* Lock Time Warning */}

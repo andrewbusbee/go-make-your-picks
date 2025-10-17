@@ -49,7 +49,7 @@ export const ACTIVATION_RATE_LIMIT_MAX = 10;
 export const TEST_EMAIL_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 export const TEST_EMAIL_RATE_LIMIT_MAX = 5;
 export const PICK_SUBMISSION_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-export const PICK_SUBMISSION_RATE_LIMIT_MAX = 10;
+export const PICK_SUBMISSION_RATE_LIMIT_MAX = 100;
 export const PUBLIC_RATE_LIMIT_WINDOW_MS = 1 * 60 * 1000; // 1 minute
 export const PUBLIC_RATE_LIMIT_MAX = 100;
 

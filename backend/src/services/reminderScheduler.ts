@@ -341,19 +341,60 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       reminderText = `🚨 Final reminder: You only have about ${reminderHours} hours left to make your pick!`;
     }
 
-    // Send reminder emails in parallel
-    logger.debug(`📤 Sending ${reminderType} reminder emails to ${usersWithoutPicks.length} user(s)...`);
+    // Group users by email address to send combined emails for shared addresses
+    const usersByEmail = new Map<string, any[]>();
+    usersWithoutPicks.forEach(user => {
+      if (!usersByEmail.has(user.email)) {
+        usersByEmail.set(user.email, []);
+      }
+      usersByEmail.get(user.email)!.push(user);
+    });
+
+    // Send reminder emails in parallel (one per unique email address)
+    logger.debug(`📤 Sending ${reminderType} reminder emails to ${usersByEmail.size} unique email address(es) for ${usersWithoutPicks.length} user(s)...`);
     const emailStartTime = Date.now();
     await Promise.allSettled(
-      usersWithoutPicks.map(user => {
-        const magicLink = `${APP_URL}/pick/${user.token}`;
+      Array.from(usersByEmail.entries()).map(async ([email, emailUsers]) => {
+        let magicLink: string;
+        let displayName: string;
+        let usersForEmail: any[];
+
+        // Check if this is a shared email (has email-based magic link)
+        const [emailLinks] = await db.query<RowDataPacket[]>(
+          'SELECT token FROM email_magic_links WHERE email = ? AND round_id = ?',
+          [email, round.id]
+        );
+
+        if (emailLinks.length > 0) {
+          // Shared email - use email-based magic link
+          magicLink = `${APP_URL}/pick/${emailLinks[0].token}`;
+          displayName = emailUsers.length > 1 
+            ? emailUsers.map((u, index) => {
+                if (index === 0) return u.name;
+                if (index === emailUsers.length - 1) return `, and ${u.name}`;
+                return `, ${u.name}`;
+              }).join('')
+            : emailUsers[0].name;
+          usersForEmail = emailUsers;
+        } else {
+          // Individual user - use user-based magic link
+          const primaryUser = emailUsers[0];
+          if (!primaryUser.token) {
+            logger.warn(`No magic link found for user ${primaryUser.id} (${email}), skipping reminder`);
+            return;
+          }
+          magicLink = `${APP_URL}/pick/${primaryUser.token}`;
+          displayName = primaryUser.name;
+          usersForEmail = [primaryUser];
+        }
+
         const customMessage = round.email_message 
           ? `${reminderText}\n\n${round.email_message}`
           : reminderText;
 
-        return sendMagicLink(user.email, user.name, round.sport_name, magicLink, customMessage)
+        return sendMagicLink(email, displayName, round.sport_name, magicLink, customMessage, round.commissioner, usersForEmail)
           .catch(emailError => {
-            logger.error(`Failed to send reminder`, { emailError, emailRedacted: redactEmail(user.email) });
+            logger.error(`Failed to send reminder`, { emailError, emailRedacted: redactEmail(email) });
           });
       })
     );

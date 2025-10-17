@@ -564,46 +564,92 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
 
     const APP_URL = process.env.APP_URL || 'http://localhost:3003';
 
-    // Generate magic links for season participants
-    const magicLinksData: Array<{ user: any; token: string; magicLink: string }> = [];
-    const userIds = users.map(u => u.id);
-    const expiresAt = round.lock_time;
+    // Group users by email address
+    const usersByEmail = new Map<string, any[]>();
+    users.forEach(user => {
+      if (!usersByEmail.has(user.email)) {
+        usersByEmail.set(user.email, []);
+      }
+      usersByEmail.get(user.email)!.push(user);
+    });
+
+    // Separate shared emails from single-user emails
+    const sharedEmails: Array<{ email: string; users: any[] }> = [];
+    const singleUserEmails: Array<{ user: any }> = [];
     
-    // Delete all old magic links for these users in one query
-    if (userIds.length > 0) {
-      await db.query(
-        'DELETE FROM magic_links WHERE user_id IN (?) AND round_id = ?',
-        [userIds, roundId]
-      );
+    for (const [email, emailUsers] of usersByEmail) {
+      if (emailUsers.length > 1) {
+        // Multiple users share this email - use email-based magic links
+        sharedEmails.push({ email, users: emailUsers });
+      } else {
+        // Single user with this email - use user-based magic links
+        singleUserEmails.push({ user: emailUsers[0] });
+      }
     }
 
-    // Generate tokens and prepare batch insert data
-    const magicLinkValues = users.map(user => {
+    // Delete all old magic links for this round (both types)
+    await db.query('DELETE FROM email_magic_links WHERE round_id = ?', [roundId]);
+    await db.query('DELETE FROM magic_links WHERE round_id = ?', [roundId]);
+
+    const expiresAt = round.lock_time;
+    const magicLinksData: Array<{ email: string; users: any[]; token: string; magicLink: string }> = [];
+    const userMagicLinkValues: Array<[number, number, string, Date]> = [];
+    const emailMagicLinkValues: Array<[string, number, string, Date]> = [];
+
+    // Generate email-based magic links for shared emails
+    for (const { email, users } of sharedEmails) {
       const token = crypto.randomBytes(32).toString('hex');
       magicLinksData.push({
-        user,
+        email,
+        users,
         token,
         magicLink: `${APP_URL}/pick/${token}`
       });
-      return [user.id, roundId, token, expiresAt];
-    });
+      emailMagicLinkValues.push([email, roundId, token, expiresAt]);
+    }
 
-    // Create all new magic links in one query
-    if (magicLinkValues.length > 0) {
+    // Generate user-based magic links for single-user emails
+    for (const { user } of singleUserEmails) {
+      const token = crypto.randomBytes(32).toString('hex');
+      magicLinksData.push({
+        email: user.email,
+        users: [user],
+        token,
+        magicLink: `${APP_URL}/pick/${token}`
+      });
+      userMagicLinkValues.push([user.id, roundId, token, expiresAt]);
+    }
+
+    // Create email-based magic links for shared emails
+    if (emailMagicLinkValues.length > 0) {
+      await db.query(
+        'INSERT INTO email_magic_links (email, round_id, token, expires_at) VALUES ?',
+        [emailMagicLinkValues]
+      );
+    }
+
+    // Create user-based magic links for single users
+    if (userMagicLinkValues.length > 0) {
       await db.query(
         'INSERT INTO magic_links (user_id, round_id, token, expires_at) VALUES ?',
-        [magicLinkValues]
+        [userMagicLinkValues]
       );
     }
 
     // Send all emails in parallel (much faster than sequential)
     await Promise.allSettled(
-      magicLinksData.map(({ user, magicLink }) =>
-        sendMagicLink(user.email, user.name, round.sport_name, magicLink, round.email_message, round.commissioner)
+      magicLinksData.map(({ email, users, magicLink }) => {
+        // Use the first user's name for the email, or create a family name
+        const primaryUser = users[0];
+        const displayName = users.length > 1 
+          ? `${primaryUser.name} Family` 
+          : primaryUser.name;
+        
+        return sendMagicLink(email, displayName, round.sport_name, magicLink, round.email_message, round.commissioner, users)
           .catch(emailError => {
-            logger.error(`Failed to send email`, { emailError, emailRedacted: redactEmail(user.email) });
-          })
-      )
+            logger.error(`Failed to send email`, { emailError, emailRedacted: redactEmail(email) });
+          });
+      })
     );
 
     logger.info('Round activated', { 

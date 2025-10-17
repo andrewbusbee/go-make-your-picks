@@ -255,7 +255,8 @@ export const sendMagicLink = async (
   sportName: string,
   magicLink: string,
   customMessage?: string,
-  commissioner?: string
+  commissioner?: string,
+  users?: any[] // Optional array of users for shared emails
 ): Promise<void> => {
   // Check if email notifications are globally enabled
   const notificationsEnabled = await areEmailNotificationsEnabled();
@@ -274,15 +275,39 @@ export const sendMagicLink = async (
   
   // Check if email is shared by multiple players
   const emailIsShared = await isEmailShared(email);
-  const nameFormatted = emailIsShared 
-    ? `<span style="color: #dc2626; font-weight: bold;">${name}</span>`
-    : name;
   
-  const sharedEmailNote = emailIsShared 
-    ? `<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
-        <p style="margin: 0; color: #856404;"><strong>⚠️ Note:</strong> This email is shared with multiple players. This link is specifically for <strong>${name}</strong>.</p>
-      </div>`
-    : '';
+  // Format the name based on whether we have user details or just a name
+  let nameFormatted: string;
+  let sharedEmailNote: string;
+  
+  if (emailIsShared && users && users.length > 1) {
+    // Use the list of user names for shared emails
+    const userNames = users.map((user, index) => {
+      if (index === 0) return user.name;
+      if (index === users.length - 1) {
+        // Only add "and" if there are more than 2 users
+        return users.length > 2 ? `, and ${user.name}` : ` and ${user.name}`;
+      }
+      return `, ${user.name}`;
+    }).join('');
+    
+    nameFormatted = `<span style="font-weight: bold;">${userNames}</span>`;
+    
+    sharedEmailNote = `<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
+        <p style="margin: 0; color: #856404;"><strong>⚠️ Note:</strong> This email is shared with multiple players. This link is specifically for players sharing the <strong>${email}</strong> email.</p>
+      </div>`;
+  } else {
+    // Use the provided name for single users
+    nameFormatted = emailIsShared 
+      ? `<span style="font-weight: bold;">${name}</span>`
+      : name;
+    
+    sharedEmailNote = emailIsShared 
+      ? `<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">
+          <p style="margin: 0; color: #856404;"><strong>⚠️ Note:</strong> This email is shared with multiple players. This link is specifically for <strong>${name}</strong>.</p>
+        </div>`
+      : '';
+  }
   
   const commissionerHeader = getCommissionerSignature(currentCommissioner || undefined, settings.app_title);
   const bodyHtml = `
@@ -357,7 +382,11 @@ export const sendLockedNotification = async (
   // Format names for greeting
   const isShared = names.length > 1;
   const namesFormatted = isShared
-    ? names.map(n => `<span style="color: #dc2626; font-weight: bold;">${n}</span>`).join(', ')
+    ? `<span style="font-weight: bold;">${names.map((n, index) => {
+        if (index === 0) return n;
+        if (index === names.length - 1) return `, and ${n}`;
+        return `, ${n}`;
+      }).join('')}</span>`
     : names[0];
   
   const commissionerHeader = getCommissionerSignature(currentCommissioner || undefined, settings.app_title);
@@ -472,9 +501,9 @@ export const sendSportCompletionEmail = async (
   };
 
   // Format leaderboard with user highlight
-  const formatLeaderboard = (leaderboard: Array<{name: string, points: number, isCurrentUser: boolean}>) => {
+  const formatLeaderboard = (leaderboard: Array<{name: string, points: number, isCurrentUser: boolean}>, isSharedEmail: boolean = false) => {
     return leaderboard.map((entry, index) => {
-      const highlight = entry.isCurrentUser ? ' (You)' : '';
+      const highlight = (entry.isCurrentUser && !isSharedEmail) ? ' (You)' : '';
       return `${index + 1}. ${entry.name}${highlight} - ${entry.points} points`;
     }).join('<br>');
   };
@@ -482,13 +511,17 @@ export const sendSportCompletionEmail = async (
   // Format names for greeting
   const isShared = users.length > 1;
   const namesFormatted = isShared
-    ? users.map(u => `<span style="color: #dc2626; font-weight: bold;">${u.name}</span>`).join(', ')
+    ? `<span style="font-weight: bold;">${users.map((u, index) => {
+        if (index === 0) return u.name;
+        if (index === users.length - 1) return `, and ${u.name}`;
+        return `, ${u.name}`;
+      }).join('')}</span>`
     : users[0].name;
   
   // Build individual result sections for each user
   const userResultsSections = users.map(user => `
     <div class="user-highlight">
-      <div class="section-title">🎯 ${isShared ? `Results for <span style="color: #dc2626; font-weight: bold;">${user.name}</span>` : 'Your Result'}:</div>
+      <div class="section-title">🎯 ${isShared ? `Results for <span style="font-weight: bold;">${user.name}</span>` : 'Your Result'}:</div>
       <p>✅ Your pick: <strong>${user.pick}</strong></p>
       <p>🏆 You earned <strong>${user.points} points</strong>!</p>
     </div>
@@ -512,7 +545,7 @@ export const sendSportCompletionEmail = async (
     </div>
     <div class="leaderboard-box">
       <div class="section-title">📈 Current Leaderboard (Top 5):</div>
-      <p>${formatLeaderboard(leaderboard)}</p>
+      <p>${formatLeaderboard(leaderboard, isShared)}</p>
     </div>
     <div style="text-align: center;">
       <a href="${leaderboardLink}" class="button">View Full Leaderboard</a>
@@ -530,7 +563,7 @@ export const sendSportCompletionEmail = async (
   const mailOptions = {
     from: `"${fromName}" <${fromEmail}>`,
     to: email,
-    subject: `${settings.app_title} - ${sportName} Complete - ${subjectPoints}`,
+    subject: `${settings.app_title} - ${sportName} is Complete - ${subjectPoints}`,
     html,
   };
 

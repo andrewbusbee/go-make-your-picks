@@ -16,6 +16,44 @@ export interface SubmitPickOptions {
 
 export class PicksService {
   /**
+   * Retry wrapper for deadlock handling
+   */
+  private static async retryOnDeadlock<T>(
+    operation: () => Promise<T>,
+    maxRetries: number = 3,
+    baseDelay: number = 100
+  ): Promise<T> {
+    let lastError: any;
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        lastError = error;
+        
+        // Check if it's a deadlock error
+        if (error.code === 'ER_LOCK_DEADLOCK' || error.errno === 1213) {
+          if (attempt < maxRetries) {
+            // Exponential backoff with jitter
+            const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 100;
+            logger.warn(`Deadlock detected, retrying in ${delay}ms (attempt ${attempt}/${maxRetries})`, {
+              error: error.message,
+              attempt
+            });
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+        }
+        
+        // If it's not a deadlock or we've exhausted retries, throw the error
+        throw error;
+      }
+    }
+    
+    throw lastError;
+  }
+
+  /**
    * Validates picks against available teams for a round
    */
   static async validatePicksAgainstTeams(
@@ -59,7 +97,7 @@ export class PicksService {
   ): Promise<void> {
     const { userId, roundId, picks, validateTeams = false } = options;
 
-    try {
+    return this.retryOnDeadlock(async () => {
       // Validate pick values (length only)
       for (const pick of picks) {
         if (pick && pick.length > 100) {
@@ -121,10 +159,7 @@ export class PicksService {
       }
 
       logger.debug('Pick submitted successfully', { userId, roundId, pickCount: picks.length });
-    } catch (error) {
-      logger.error('Error in submitPick', { error, userId, roundId });
-      throw error;
-    }
+    });
   }
 
   /**
