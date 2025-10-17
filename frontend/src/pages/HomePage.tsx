@@ -292,10 +292,10 @@ export default function HomePage() {
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 dark:from-purple-800 dark:to-blue-800 rounded-lg shadow-lg p-8 mb-8">
             <div className="text-center text-white mb-6">
               <span className="text-5xl mb-2 block">🏆</span>
-              <h2 className="text-3xl font-bold mb-2">{selectedSeason.year_start} - {selectedSeason.year_end}</h2>
-              <p className="text-purple-100 text-xl">
+              <h2 className="text-2xl font-bold text-white mb-2">{selectedSeason.year_start} - {selectedSeason.year_end}</h2>
+              <h3 className="text-2xl font-bold text-white">
                 Season Complete!
-              </p>
+              </h3>
             </div>
 
             {winners.length > 0 && winners[0]?.user_name && (
@@ -410,9 +410,6 @@ export default function HomePage() {
                   );
                 })()}
 
-                <p className={`${bodyTextClasses} text-center mt-4`}>
-                  Full final standings available below
-                </p>
                 
                 {/* Champions Button */}
                 <div className="text-center mt-6">
