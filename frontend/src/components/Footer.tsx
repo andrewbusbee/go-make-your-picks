@@ -4,7 +4,6 @@ import packageJson from '../../package.json';
 import { bodyTextClasses, dividerClasses, cardClasses } from '../styles/commonClasses';
 
 export default function Footer() {
-  const [appTitle, setAppTitle] = useState('Go Make Your Picks');
   const [footerMessage, setFooterMessage] = useState('Built for Sports Fans');
 
   useEffect(() => {
@@ -14,7 +13,6 @@ export default function Footer() {
   const loadSettings = async () => {
     try {
       const res = await api.get('/public/settings');
-      setAppTitle(res.data.app_title || 'Go Make Your Picks');
       setFooterMessage(res.data.footer_message || 'Built for Sports Fans');
     } catch (error) {
       console.error('Error loading footer settings:', error);

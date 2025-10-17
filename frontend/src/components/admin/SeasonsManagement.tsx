@@ -600,18 +600,6 @@ export default function SeasonsManagement() {
                 {/* First Row of Buttons */}
                 <div className="flex flex-wrap gap-2 mb-2">
                   <button
-                    onClick={() => navigate(`/admin/seasons/${season.id}`)}
-                    className={`flex-1 min-w-[140px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonPrimaryClasses}`}
-                  >
-                    Manage Participants
-                  </button>
-                  <button
-                    onClick={() => openEditModal(season)}
-                    className={`flex-1 min-w-[100px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonSecondaryClasses}`}
-                  >
-                    Edit Season
-                  </button>
-                  <button
                     onClick={() => handleReopenSeason(season.id)}
                     className={`flex-1 min-w-[110px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonSuccessClasses}`}
                   >
@@ -622,7 +610,7 @@ export default function SeasonsManagement() {
                 {/* Second Row of Buttons */}
                 <div className={flexWrapGapClasses}>
                   <div className="flex-1 min-w-[120px] text-xs py-2 px-3 text-gray-500 dark:text-gray-400 italic text-center">
-                    🔒 Cannot delete: Season has ended (preserving history)
+                    🔒 Cannot modify. Season has ended
                   </div>
                 </div>
               </div>
