@@ -47,7 +47,6 @@ const developmentConfig: EnvConfig = {
     'SMTP_PASSWORD',
     'SMTP_PORT',
     'SMTP_SECURE',
-    'SMTP_FROM',
     'APP_URL'
   ]
 };
