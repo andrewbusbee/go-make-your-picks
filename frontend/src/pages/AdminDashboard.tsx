@@ -260,7 +260,17 @@ export default function AdminDashboard() {
                 <span className="text-3xl">🏆</span>
                 <span className="text-xl font-bold text-white">{appTitle}</span>
               </Link>
-              <span className="text-sm text-blue-100 hidden md:inline">Admin Dashboard - App version v{packageJson.version}</span>
+              <span className="text-sm text-blue-100 hidden md:inline">
+                Admin Dashboard - App version{' '}
+                <a 
+                  href="https://github.com/andrewbusbee/go-make-your-picks/releases" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="underline hover:text-white transition-colors"
+                >
+                  v{packageJson.version}
+                </a>
+              </span>
             </div>
 
             {/* User Menu & Theme Toggle */}
