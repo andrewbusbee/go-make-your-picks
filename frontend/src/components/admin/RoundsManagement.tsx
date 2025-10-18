@@ -106,6 +106,7 @@ export default function RoundsManagement() {
   const [lockTime, setLockTime] = useState('');
   const [timezone, setTimezone] = useState('America/New_York');
   const [teamsInput, setTeamsInput] = useState('');
+  const [teamsUnlocked, setTeamsUnlocked] = useState(false);
   
   // Validation function to check if a sport can be activated
   const canActivateRound = (round: any): boolean => {
@@ -311,6 +312,7 @@ export default function RoundsManagement() {
     setShowEditModal(false);
     setError('');
     setEditingRound(null);
+    setTeamsUnlocked(false);
   };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
@@ -1264,7 +1266,7 @@ export default function RoundsManagement() {
               <div className={`${alertWarningClasses} mb-4`}>
                 <p className={alertWarningTextClasses}>
                   <strong>Warning:</strong> This sport is {editingRound.status}. 
-                  Editing may affect user picks and magic links.
+                  Editing available teams may affect user picks and final scoring.
                 </p>
               </div>
             )}
@@ -1328,6 +1330,24 @@ export default function RoundsManagement() {
               {/* Conditional: Available Teams (for single pick type) */}
               {pickType === 'single' && (
                 <div>
+                  {/* Second warning for active/locked sports */}
+                  {editingRound.status !== 'draft' && (
+                    <div className={`${alertWarningClasses} mb-4`}>
+                      <p className={alertWarningTextClasses}>
+                        <strong>Warning:</strong> Editing or changing the available teams below will cause scoring issues for any users who have already picked. You will need to adjust their picks manually if you change names below.
+                      </p>
+                      {!teamsUnlocked && (
+                        <button
+                          type="button"
+                          onClick={() => setTeamsUnlocked(true)}
+                          className="mt-3 bg-orange-600 text-white py-2 px-4 rounded-md font-semibold hover:bg-orange-700 transition-colors"
+                        >
+                          I understand
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                   <label className={labelClasses}>
                     Available Teams (one per line)
                   </label>
@@ -1336,7 +1356,8 @@ export default function RoundsManagement() {
                     onChange={(e) => setTeamsInput(e.target.value)}
                     rows={4}
                     placeholder="Yankees&#10;Red Sox&#10;Dodgers&#10;..."
-                    className={`${inputClasses} font-mono text-sm`}
+                    className={`${inputClasses} font-mono text-sm ${editingRound.status !== 'draft' && !teamsUnlocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    disabled={editingRound.status !== 'draft' && !teamsUnlocked}
                   />
                   <p className={`mt-1 ${helpTextClasses}`}>
                     Users will pick from this list
@@ -1353,22 +1374,24 @@ export default function RoundsManagement() {
                 </div>
               )}
 
-              {/* Email Message to Players */}
-              <div>
-                <label className={labelClasses}>
-                  Email Message to Players (Optional)
-                </label>
-                <textarea
-                  value={emailMessage}
-                  onChange={(e) => setEmailMessage(e.target.value)}
-                  rows={3}
-                  placeholder="Add a personal message that will be included in the magic link email..."
-                  className={inputClasses}
-                />
-                <p className={`mt-1 ${helpTextClasses}`}>
-                  This message will be included in the email sent to players with their pick link
-                </p>
-              </div>
+              {/* Email Message to Players - Hide only for locked sports */}
+              {editingRound.status !== 'locked' && (
+                <div>
+                  <label className={labelClasses}>
+                    Email Message to Players (Optional)
+                  </label>
+                  <textarea
+                    value={emailMessage}
+                    onChange={(e) => setEmailMessage(e.target.value)}
+                    rows={3}
+                    placeholder="Add a personal message that will be included in the magic link email..."
+                    className={inputClasses}
+                  />
+                  <p className={`mt-1 ${helpTextClasses}`}>
+                    This message will be included in the email sent to players with their pick link
+                  </p>
+                </div>
+              )}
 
               {/* Lock Date & Time */}
               <div className={formGridTwoColClasses}>
