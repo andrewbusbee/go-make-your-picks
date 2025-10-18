@@ -255,8 +255,8 @@ export default function HistoricalChampionsManagement() {
                     value={endYear}
                     onChange={(e) => {
                       const value = e.target.value;
-                      // Only allow numeric input, 4 digits max, minimum 1900, no empty values
-                      if (/^\d+$/.test(value) && value.length <= 4 && parseInt(value) >= 1900) {
+                      // Allow typing numeric input, max 4 digits
+                      if (value === '' || (/^\d+$/.test(value) && value.length <= 4)) {
                         setEndYear(value);
                       }
                     }}
