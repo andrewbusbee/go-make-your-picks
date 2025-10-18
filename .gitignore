@@ -195,6 +195,7 @@ docker-compose.override.local.yml
 .vscode/settings.json
 .vscode/launch.json
 .vscode/tasks.json
+*.code-workspace
 
 # Nx
 .nx/cache
