@@ -239,20 +239,35 @@ export default function TimezoneSelector({ value, onChange, className }: Timezon
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       
-      // Calculate if dropdown should open upward
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
-        const spaceBelow = viewportHeight - rect.bottom;
-        const spaceAbove = rect.top;
-        const dropdownHeight = 240; // Approximate height of dropdown
-        
-        if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
-          setDropdownPosition('above');
-        } else {
-          setDropdownPosition('below');
+      // Calculate if dropdown should open upward with a small delay to ensure DOM is ready
+      setTimeout(() => {
+        if (containerRef.current) {
+          const rect = containerRef.current.getBoundingClientRect();
+          const viewportHeight = window.innerHeight;
+          const spaceBelow = viewportHeight - rect.bottom;
+          const spaceAbove = rect.top;
+          const dropdownHeight = 300; // Increased height to be more conservative
+          
+          // Check if we're inside a modal by looking for modal classes in parent elements
+          const isInModal = containerRef.current.closest('[class*="modal"], [class*="fixed"], [class*="absolute"]');
+          
+          // More aggressive upward positioning for modals
+          // If we're in a modal (detected by checking if we're near the bottom of viewport)
+          const isNearBottom = spaceBelow < 200;
+          const hasEnoughSpaceAbove = spaceAbove > dropdownHeight;
+          
+          // Force upward positioning if we're in a modal and near the bottom
+          if (isInModal && isNearBottom && hasEnoughSpaceAbove) {
+            setDropdownPosition('above');
+          } else if (isNearBottom && hasEnoughSpaceAbove) {
+            setDropdownPosition('above');
+          } else if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+            setDropdownPosition('above');
+          } else {
+            setDropdownPosition('below');
+          }
         }
-      }
+      }, 10);
     }
 
     return () => {
@@ -300,7 +315,7 @@ export default function TimezoneSelector({ value, onChange, className }: Timezon
 
       {/* Dropdown */}
       {isOpen && (
-        <div className={`absolute z-[60] w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-hidden flex flex-col ${
+        <div className={`absolute z-[9999] w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-hidden flex flex-col ${
           dropdownPosition === 'above' ? 'bottom-full mb-1' : 'top-full mt-1'
         }`}>
           {/* Search input */}
