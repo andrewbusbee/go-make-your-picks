@@ -24,73 +24,97 @@ A modern, player-friendly sports prediction platform that brings people together
 - Docker and Docker Compose
 - Email service credentials (Gmail, SendGrid, etc.)
 
-### Installation
 
-1. **Clone and navigate to the project**
-   ```bash
-   git clone <repository-url>
-   cd go-make-your-picks
-   ```
-
-2. **Create your environment configuration**
-   ```bash
-   cp docker-compose.override.yml.example docker-compose.override.yml
-   ```
-
-3. **Start the application**
-   ```bash
-   docker-compose up -d
-   ```
-
-4. **Access your application**
-   - **Main Site**: http://localhost:3003
-   - **Admin Panel**: http://localhost:3003/admin/login
 
 ### First-Time Setup
 
 **Default Admin Login:**
-- Username: `user`
+- Username: `admin@example.com`
 - Password: `password`
 
 ⚠️ **You'll be prompted to change the password on first login**
 
-## 📋 Example Docker Compose Configuration
+## 🐳 Installation via Docker Compose (Recommended)
 
-Here's a complete example of your `docker-compose.override.yml` file:
+The application is designed to run with Docker Compose, providing a complete stack with MariaDB database and the application server. This approach ensures consistent deployment across different environments and simplifies setup.
+
+**Key Benefits:**
+- **One-command deployment** with `docker-compose up`
+- **Automatic database initialization** with schema and default data
+- **Health checks** ensure services start in the correct order
+- **Environment isolation** with containerized services
+- **Easy scaling** and maintenance
+
 
 ```yaml
-# Local development configuration
-# This file overrides the production image with local builds
-
 services:
-  app:
-    # Use local build instead of published image
-    build:
-      context: .
-      dockerfile: Dockerfile
-    
+  mariadb:
+    image: mariadb:11.8
+    container_name: mariadb
+    restart: always
+    networks:
+      - go-make-your-picks-network
     environment:
-      # Enable development features
-      ENABLE_DEV_TOOLS: "true"
-      
-      # Email Configuration
-      SMTP_HOST: smtp.gmail.com
-      SMTP_PORT: 587
-      SMTP_SECURE: false
-      SMTP_USER: your-email@gmail.com
-      SMTP_PASSWORD: your-gmail-app-password
-      SMTP_FROM: noreply@yourfamily.com
-      SMTP_FROM_NAME: "Your League Picks"
-      
-      # Application Settings
-      APP_URL: http://localhost:3003
-      
-      # Security (generate a strong secret!)
-      JWT_SECRET: your-super-secure-jwt-secret-here
-      
-      # Optional: Custom database passwords
-      # DB_PASSWORD: your-custom-password
-      # MYSQL_PASSWORD: your-custom-password
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+    volumes:
+      - mariadb-data:/var/lib/mysql
+    # Database port - REMOVED FOR SECURITY
+    # MariaDB is accessible via Docker network (mariadb:3306) - no external exposure needed
+    # Uncomment below ONLY for local debugging with database admin tools
+    # ports:
+    #   - "127.0.0.1:3306:3306"  # Only accessible from VM localhost, not internet
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  go-make-your-picks:
+    image: ghcr.io/andrewbusbee/go-make-your-picks:latest
+    container_name: go-make-your-picks
+    restart: always
+    networks:
+      - go-make-your-picks-network
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      MARIADB_HOST: mariadb
+      MARIADB_PORT: 3306
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      # ⚠️ CRITICAL SECURITY: Generate a strong JWT secret!
+      # Run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+      # Or use .env file override (recommended)
+      JWT_SECRET: ${JWT_SECRET}
+      # Log Level Configuration
+      # Available levels: DEBUG, INFO, WARN, ERROR, FATAL, SILENT
+      # Production default: INFO (shows info, warn, error, fatal)
+      # Development: DEBUG (shows all logs)
+      # Set LOG_LEVEL in .env file or override in docker-compose.override.yml
+      LOG_LEVEL: ${LOG_LEVEL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_SECURE: ${SMTP_SECURE}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      APP_URL: ${APP_URL}
+      ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS}
+    depends_on:
+      mariadb:
+        condition: service_healthy
+
+networks:
+  go-make-your-picks-network:
+    driver: bridge
+    internal: false  # false required for magic link functionality
+
+volumes:
+  mariadb-data:
 ```
 
 ## ⚙️ Environment Variables
@@ -100,23 +124,21 @@ services:
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `SMTP_HOST` | Email server hostname | `smtp.gmail.com` |
+| `SMTP_PORT` | Email server port | `587` |
+| `SMTP_SECURE` | Use SSL/TLS encryption | `false` |
 | `SMTP_USER` | Email account username | `your-email@gmail.com` |
 | `SMTP_PASSWORD` | Email account password/app password | `your-app-password` |
 | `SMTP_FROM` | Sender email address | `noreply@yourfamily.com` |
-| `SMTP_FROM_NAME` | Display name for emails | `"Your League"` |
 | `APP_URL` | Your application's public URL | `http://localhost:3003` |
 | `JWT_SECRET` | Secret key for admin authentication | `generate-a-strong-random-string` |
 
-### Optional Configuration
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SMTP_PORT` | Email server port | `587` |
-| `SMTP_SECURE` | Use SSL/TLS encryption | `false` |
 | `ENABLE_DEV_TOOLS` | Show development tools in admin | `false` |
-| `MYSQL_DATABASE` | Database name | `sports_picks` |
-| `MYSQL_USER` | Database username | `picksuser` |
-| `MYSQL_PASSWORD` | Database password | `pickspass` |
+| `MARIADB_DATABASE` | Database name | `gomakeyourpicks` |
+| `MARIADB_USER` | Database username | `gomakeyourpicksuser` |
+| `MARIADB_PASSWORD` | Database password | `your-secure-password` |
+| `MARIADB_HOST` | Database host | `mariadb` |
+| `MARIADB_PORT` | Database port | `3306` |
 
 ### Email Provider Examples
 
@@ -188,45 +210,14 @@ Use the built-in email test feature in the admin panel:
 4. **Update your picks** anytime before the deadline
 5. **View the leaderboard** to see how everyone is doing
 
-## 🔧 Development Setup
 
-### With Docker (Recommended)
-
-```bash
-# Use the override file for local development
-cp docker-compose.override.yml.example docker-compose.override.yml
-# Edit with your settings, then:
-docker-compose up -d
-```
-
-### Without Docker
-
-1. **Install dependencies**:
-   ```bash
-   cd backend && npm install
-   cd ../frontend && npm install
-   ```
-
-2. **Setup MySQL database**:
-   - Create database and run `backend/database/init.sql`
-
-3. **Configure environment**:
-   ```bash
-   # Backend
-   cd backend
-   npm run dev
-   
-   # Frontend (new terminal)
-   cd frontend
-   npm run dev
-   ```
 
 ## 🛠️ Technical Details
 
 ### Architecture
 - **Frontend**: React 18 with TypeScript and Tailwind CSS
 - **Backend**: Node.js with Express and TypeScript
-- **Database**: MySQL 8.0 with comprehensive schema
+- **Database**: MariaDB 11.8 LTS with comprehensive schema
 - **Email**: Configurable SMTP with automatic retry logic
 - **Deployment**: Docker containers with health checks
 
@@ -263,22 +254,9 @@ docker-compose up -d
 - Use the built-in email test feature in admin settings
 
 **Database Connection Problems:**
-- Ensure MySQL container is running: `docker-compose ps`
+- Ensure MariaDB container is running: `docker-compose ps`
 - Wait for database initialization (30-60 seconds on first start)
 - Verify database credentials match your configuration
-
-**Port Conflicts:**
-```bash
-# Check what's using port 3003
-lsof -i :3003  # macOS/Linux
-netstat -ano | findstr :3003  # Windows
-```
-
-### Getting Help
-
-- Check the application logs: `docker-compose logs app`
-- Review the troubleshooting section above
-- Open an issue on the repository with details about your setup
 
 ## 📄 License
 
@@ -286,4 +264,9 @@ MIT License - feel free to use this for your league's fun and competition!
 
 ---
 
-**Built with ❤️ for bringing people together through friendly competition.**
+## 🤖 AI-Assisted Development
+
+This project was built with the support of modern **AI coding tools** to accelerate prototyping and implementation.  
+- AI was used to generate scaffolding, boilerplate, and draft functions.  
+- All code has been **curated, reviewed, and tested** by a human before release.  
+- The use of AI allowed for faster iteration and a focus on architecture, usability, and overall project quality.  
