@@ -17,6 +17,7 @@ import testEmailRoutes from './routes/test-email';
 import settingsRoutes from './routes/settings';
 import configRoutes from './routes/config';
 import historicalChampionsRoutes from './routes/historical-champions';
+import apiDocsRoutes from './routes/api-docs';
 // ⚠️ TEMPORARY - ONLY LOAD IN DEVELOPMENT ⚠️
 import adminSeedRoutes from './routes/admin-seed';
 import { startReminderScheduler } from './services/reminderScheduler';
@@ -172,6 +173,9 @@ app.use('/api/public/config', publicLimiter, configRoutes);
 app.use('/api/public/seasons', publicLimiter, seasonsRoutes);
 app.use('/api/public/leaderboard', publicLimiter, leaderboardRoutes);
 app.use('/api/public/settings', publicLimiter, settingsRoutes);
+
+// API Documentation (public)
+app.use('/api/docs', publicLimiter, apiDocsRoutes);
 
 // Magic link pick submission (uses magic link token, not admin token)
 app.use('/api/picks', picksRoutes);

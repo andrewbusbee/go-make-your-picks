@@ -229,20 +229,9 @@ Use the built-in email test feature in the admin panel:
 - CORS configuration
 - Input validation and sanitization
 
-### API Endpoints
+## API Documentation
 
-**Public Endpoints:**
-- `GET /api/seasons` - List all seasons
-- `GET /api/leaderboard/season/:id` - Get season leaderboard
-- `GET /api/picks/validate/:token` - Validate magic link
-- `POST /api/picks/:token` - Submit pick via magic link
-
-**Admin Endpoints (Authentication Required):**
-- `POST /api/auth/login` - Admin login
-- `GET /api/users` - Manage players
-- `POST /api/rounds` - Create sports rounds
-- `POST /api/rounds/:id/activate` - Send magic links
-- `POST /api/rounds/:id/complete` - Complete round and score
+Complete API documentation is available at `http://localhost:3003/api/docs` - this provides a comprehensive list of all available endpoints, their methods, required parameters, and response formats.
 
 ## 🔍 Troubleshooting
 
