@@ -12,11 +12,6 @@ services:
       MARIADB_PASSWORD: ${MARIADB_PASSWORD}
     volumes:
       - mariadb-data:/var/lib/mysql
-    # Database port - REMOVED FOR SECURITY
-    # MariaDB is accessible via Docker network (mariadb:3306) - no external exposure needed
-    # Uncomment below ONLY for local debugging with database admin tools
-    # ports:
-    #   - "127.0.0.1:3306:3306"  # Only accessible from VM localhost, not internet
     healthcheck:
       test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
       timeout: 20s
