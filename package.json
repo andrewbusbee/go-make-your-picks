@@ -1,6 +1,6 @@
 {
   "name": "go-make-your-picks",
-  "version": "0.2.4",
+  "version": "0.3.0",
   "description": "Sports championship prediction game for friends and family",
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",

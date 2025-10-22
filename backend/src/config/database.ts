@@ -1,11 +1,11 @@
 import mysql from 'mysql2/promise';
 
 const pool = mysql.createPool({
-  host: process.env.MYSQL_HOST || 'localhost',
-  port: parseInt(process.env.MYSQL_PORT || '3306'),
-  database: process.env.MYSQL_DATABASE || 'sports_picks',
-  user: process.env.MYSQL_USER || 'picksuser',
-  password: process.env.MYSQL_PASSWORD || 'pickspass',
+  host: process.env.MARIADB_HOST || 'localhost',
+  port: parseInt(process.env.MARIADB_PORT || '3306'),
+  database: process.env.MARIADB_DATABASE || 'sports_picks',
+  user: process.env.MARIADB_USER || 'picksuser',
+  password: process.env.MARIADB_PASSWORD || 'pickspass',
   waitForConnections: true,
   connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || '20'), // Increased from 10 for production load
   queueLimit: parseInt(process.env.DB_QUEUE_LIMIT || '100'), // Prevents unlimited queue memory growth

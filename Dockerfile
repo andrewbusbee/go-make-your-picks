@@ -21,12 +21,12 @@ WORKDIR /app
 # Install build dependencies for native modules (like bcrypt)
 RUN apk add --no-cache python3 make g++
 
-# Copy backend
+# Copy backend (only dist and necessary files)
 COPY --from=backend-builder /app/backend/dist ./backend/dist
 COPY --from=backend-builder /app/backend/package*.json ./backend/
 COPY backend/database ./backend/database
 
-# Copy frontend build
+# Copy frontend build (only dist)
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 # Install only production dependencies for backend

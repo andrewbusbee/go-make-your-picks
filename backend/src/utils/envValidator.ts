@@ -13,10 +13,10 @@ interface EnvConfig {
 const productionConfig: EnvConfig = {
   required: [
     'JWT_SECRET',
-    'MYSQL_HOST',
-    'MYSQL_DATABASE',
-    'MYSQL_USER',
-    'MYSQL_PASSWORD',
+    'MARIADB_HOST',
+    'MARIADB_DATABASE',
+    'MARIADB_USER',
+    'MARIADB_PASSWORD',
     'SMTP_HOST',
     'SMTP_USER',
     'SMTP_PASSWORD',
@@ -24,7 +24,7 @@ const productionConfig: EnvConfig = {
     'NODE_ENV'
   ],
   optional: [
-    'MYSQL_PORT',
+    'MARIADB_PORT',
     'PORT',
     'SMTP_PORT',
     'SMTP_SECURE'
@@ -34,13 +34,13 @@ const productionConfig: EnvConfig = {
 const developmentConfig: EnvConfig = {
   required: [
     'JWT_SECRET',
-    'MYSQL_HOST',
-    'MYSQL_DATABASE'
+    'MARIADB_HOST',
+    'MARIADB_DATABASE'
   ],
   optional: [
-    'MYSQL_USER',
-    'MYSQL_PASSWORD',
-    'MYSQL_PORT',
+    'MARIADB_USER',
+    'MARIADB_PASSWORD',
+    'MARIADB_PORT',
     'PORT',
     'SMTP_HOST',
     'SMTP_USER',
@@ -127,11 +127,11 @@ function validateSpecificValues(): void {
     }
   }
   
-  // Validate MYSQL_PORT is a number
-  const mysqlPort = process.env.MYSQL_PORT;
-  if (mysqlPort && isNaN(parseInt(mysqlPort))) {
-    logFatal('MYSQL_PORT must be a number', null, { providedValue: mysqlPort });
-    logFatal(`❌ CRITICAL: MYSQL_PORT must be a number (got: ${mysqlPort})`);
+  // Validate MARIADB_PORT is a number
+  const mariadbPort = process.env.MARIADB_PORT;
+  if (mariadbPort && isNaN(parseInt(mariadbPort))) {
+    logFatal('MARIADB_PORT must be a number', null, { providedValue: mariadbPort });
+    logFatal(`❌ CRITICAL: MARIADB_PORT must be a number (got: ${mariadbPort})`);
     process.exit(1);
   }
   
@@ -185,8 +185,8 @@ function validateSpecificValues(): void {
 export function printEnvironmentSummary(): void {
   const summary = {
     nodeEnvironment: process.env.NODE_ENV || 'development',
-    databaseHost: process.env.MYSQL_HOST,
-    databaseName: process.env.MYSQL_DATABASE,
+    databaseHost: process.env.MARIADB_HOST,
+    databaseName: process.env.MARIADB_DATABASE,
     smtpHost: process.env.SMTP_HOST || 'not configured',
     appUrl: process.env.APP_URL || 'http://localhost:3003',
     port: process.env.PORT || '3003'

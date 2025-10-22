@@ -1,24 +1,24 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: mysql
+  mariadb:
+    image: mariadb:11.8
+    container_name: mariadb
     restart: always
     networks:
       - go-make-your-picks-network
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
     volumes:
-      - mysql-data:/var/lib/mysql
+      - mariadb-data:/var/lib/mysql
     # Database port - REMOVED FOR SECURITY
-    # MySQL is accessible via Docker network (mysql:3306) - no external exposure needed
+    # MariaDB is accessible via Docker network (mariadb:3306) - no external exposure needed
     # Uncomment below ONLY for local debugging with database admin tools
     # ports:
     #   - "127.0.0.1:3306:3306"  # Only accessible from VM localhost, not internet
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
       timeout: 20s
       retries: 10
 
@@ -33,11 +33,11 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3003
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MARIADB_HOST: mariadb
+      MARIADB_PORT: 3306
+      MARIADB_DATABASE: ${MARIADB_DATABASE}
+      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}
       # ⚠️ CRITICAL SECURITY: Generate a strong JWT secret!
       # Run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
       # Or use .env file override (recommended)
@@ -56,7 +56,7 @@ services:
       APP_URL: ${APP_URL}
       ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS}
     depends_on:
-      mysql:
+      mariadb:
         condition: service_healthy
 
 networks:
@@ -65,4 +65,4 @@ networks:
     internal: false  # false required for magic link functionality
 
 volumes:
-  mysql-data:
+  mariadb-data:

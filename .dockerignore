@@ -8,9 +8,8 @@ backend/node_modules
 frontend/node_modules
 mysql-data
 
-# Source files (only need built dist files)
-backend/src
-frontend/src
+# Source files (only need built dist files in final stage)
+# Note: These are needed for build stages, so we handle exclusion differently
 
 # Build artifacts and cache
 backend/dist
