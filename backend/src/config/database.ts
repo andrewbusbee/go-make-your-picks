@@ -13,7 +13,8 @@ const pool = mysql.createPool({
   idleTimeout: 60000, // Close idle connections after 60 seconds
   enableKeepAlive: true, // Prevent connection drops
   keepAliveInitialDelay: 0, // Start keep-alive immediately
-  timezone: '+00:00'
+  timezone: '+00:00',
+  multipleStatements: true // Required for MariaDB to execute multiple SQL statements
 });
 
 export default pool;
