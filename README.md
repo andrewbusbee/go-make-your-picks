@@ -131,14 +131,18 @@ volumes:
 | `SMTP_FROM` | Sender email address | `noreply@yourfamily.com` |
 | `APP_URL` | Your application's public URL | `http://localhost:3003` |
 | `JWT_SECRET` | Secret key for admin authentication | `generate-a-strong-random-string` |
-
-
-| `ENABLE_DEV_TOOLS` | Show development tools in admin | `false` |
 | `MARIADB_DATABASE` | Database name | `gomakeyourpicks` |
 | `MARIADB_USER` | Database username | `gomakeyourpicksuser` |
 | `MARIADB_PASSWORD` | Database password | `your-secure-password` |
 | `MARIADB_HOST` | Database host | `mariadb` |
 | `MARIADB_PORT` | Database port | `3306` |
+
+### Optional Configuration
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `ENABLE_DEV_TOOLS` | Show development tools in admin | `false` |
+
 
 ### Email Provider Examples
 
