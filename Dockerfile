@@ -2,7 +2,7 @@
 FROM node:24-alpine AS backend-builder
 WORKDIR /app/backend
 COPY backend/package*.json ./
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 COPY backend/ ./
 RUN npm run build
 
@@ -10,7 +10,7 @@ RUN npm run build
 FROM node:24-alpine AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 COPY frontend/ ./
 RUN npm run build
 
@@ -22,10 +22,11 @@ LABEL org.opencontainers.image.url="https://github.com/andrewbusbee/go-make-your
 LABEL org.opencontainers.image.source="https://github.com/andrewbusbee/go-make-your-picks"
 LABEL org.opencontainers.image.authors="Andrew Busbee <andrew@andrewbusbee.com>"
 LABEL org.opencontainers.image.licenses="MIT"
-WORKDIR /app
 
-# Install build dependencies for native modules (like bcrypt)
+# Install build dependencies for native modules (like bcrypt) in one layer
 RUN apk add --no-cache python3 make g++
+
+WORKDIR /app
 
 # Copy backend (only dist and necessary files)
 COPY --from=backend-builder /app/backend/dist ./backend/dist
@@ -40,14 +41,13 @@ COPY LICENSE /app/LICENSE
 
 # Install only production dependencies for backend
 WORKDIR /app/backend
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --no-audit --no-fund
 
-# Clean up build dependencies to reduce image size
-RUN apk del python3 make g++
-
-# Install a simple static file server for frontend
+# Clean up build dependencies and npm cache to reduce image size
 WORKDIR /app
-RUN npm install -g concurrently
+RUN apk del python3 make g++ && \
+    npm cache clean --force && \
+    rm -rf /tmp/* /var/cache/apk/*
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
