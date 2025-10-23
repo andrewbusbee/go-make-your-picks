@@ -440,7 +440,7 @@ export default function SeasonsManagement() {
         <div>
           <h2 className={headingClasses}>Seasons</h2>
           <p className={bodyTextClasses + " mt-1"}>
-            Manage multiple concurrent seasons. New seasons automatically become the default.
+            Manage multiple concurrent seasons. New seasons automatically become the default and show first in various dropdowns (can be changed later).
           </p>
         </div>
         <button
@@ -624,7 +624,7 @@ export default function SeasonsManagement() {
       {showModal && (
         <div className={modalBackdropClasses}>
           <div className={modalClasses}>
-            <h3 className={modalTitleClasses}>Create New Season</h3>
+            <h3 className={modalTitleClasses}>Create A New Season</h3>
 
             <div className={alertInfoClasses + " p-3 mb-4"}>
               <p className={alertInfoTextClasses + " text-xs"}>
@@ -699,7 +699,7 @@ export default function SeasonsManagement() {
                 </label>
               </div>
               <p className={`${helpTextClasses} ml-7`}>
-                The report default season is shown on the main homepage. Only one season can be the default at a time.
+                The report default season is shown first on the main homepage. Only one season can be the default at a time.
               </p>
 
               {/* Copy Sports Section */}
@@ -896,7 +896,7 @@ export default function SeasonsManagement() {
                 </label>
               </div>
               <p className={`${helpTextClasses} ml-7`}>
-                The report default season is shown on the main homepage. Only one season can be the default at a time.
+                The report default season is shown first on the main homepage. Only one season can be the default at a time.
               </p>
 
               {/* Copy Sports Section */}

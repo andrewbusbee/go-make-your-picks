@@ -71,7 +71,7 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
           onClick={() => handleTabChange('champions')}
           className={getSubTabClass('champions')}
         >
-          Manually add a Champion
+          Add Previous Champions
         </button>
       </div>
 

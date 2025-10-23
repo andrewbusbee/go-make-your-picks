@@ -261,7 +261,7 @@ export default function AdminDashboard() {
                 <span className="text-xl font-bold text-white">{appTitle}</span>
               </Link>
               <span className="text-sm text-blue-100 hidden md:inline">
-                Admin Dashboard - App version{' '}
+                Application Version{' '}
                 <a 
                   href="https://github.com/andrewbusbee/go-make-your-picks/releases" 
                   target="_blank" 
@@ -345,6 +345,12 @@ export default function AdminDashboard() {
         <div className="mb-6">
           <nav className="flex flex-wrap gap-2 overflow-x-auto">
             <Link
+              to="/admin/getting-started"
+              className={getTabClass('/admin/getting-started')}
+            >
+              Getting Started
+            </Link>
+            <Link
               to="/admin/users"
               className={getTabClass('/admin/users')}
             >
@@ -373,12 +379,6 @@ export default function AdminDashboard() {
               className={getTabClass('/admin/settings')}
             >
               Settings
-            </Link>
-            <Link
-              to="/admin/getting-started"
-              className={getTabClass('/admin/getting-started')}
-            >
-              Getting Started
             </Link>
           </nav>
         </div>

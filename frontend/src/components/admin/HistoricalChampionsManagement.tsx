@@ -156,9 +156,9 @@ export default function HistoricalChampionsManagement() {
   return (
     <div>
       <div className="mb-6">
-        <h2 className={headingClasses}>Manually add a Champion</h2>
+        <h2 className={headingClasses}>Add Previous Champions</h2>
         <p className={`${bodyTextClasses} mt-1`}>
-          Add historical champions that will appear on the champions page alongside season winners.
+          Add historical champions that will appear on the champions page alongside season winners. Season winners are automatically created as champions and do not need to be added here.  This feature is to allow prevous champions to be added without having to maually create seasons.
         </p>
       </div>
 

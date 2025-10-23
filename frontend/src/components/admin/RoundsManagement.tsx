@@ -1100,7 +1100,7 @@ export default function RoundsManagement() {
         <div className={modalOverlayClasses}>
           <div className={`${cardClasses} rounded-lg max-w-2xl w-full my-2 sm:my-8 max-h-[95vh] overflow-y-auto`}>
             <h3 className={`${subheadingClasses} mb-4`}>
-              Add New Sport
+              Add A New Sport
             </h3>
 
             {error && (
@@ -1202,7 +1202,7 @@ export default function RoundsManagement() {
                   value={emailMessage}
                   onChange={(e) => setEmailMessage(e.target.value)}
                   rows={3}
-                  placeholder="Add a personal message that will be included in the magic link email..."
+                  placeholder="Add a personal message that will be included in the magic link email such as a link to standings, rankings, etc..."
                   className={inputClasses}
                 />
                 <p className={`mt-1 ${helpTextClasses}`}>
@@ -1266,7 +1266,7 @@ export default function RoundsManagement() {
       {showEditModal && editingRound && (
         <div className={modalOverlayClasses}>
           <div className={`${cardClasses} max-w-2xl w-full my-2 sm:my-8 max-h-[95vh] overflow-y-auto`}>
-            <h3 className={`${subheadingClasses} mb-4`}>Edit Sport</h3>
+            <h3 className={`${subheadingClasses} mb-4`}>Edit {editingRound.sport_name}</h3>
 
             {error && (
               <div className={`${alertErrorClasses} mb-4`}>
@@ -1396,7 +1396,7 @@ export default function RoundsManagement() {
                     value={emailMessage}
                     onChange={(e) => setEmailMessage(e.target.value)}
                     rows={3}
-                    placeholder="Add a personal message that will be included in the magic link email..."
+                    placeholder="Add a personal message that will be included in the magic link email such as a link to standings, rankings, etc..."
                     className={inputClasses}
                   />
                   <p className={`mt-1 ${helpTextClasses}`}>

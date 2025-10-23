@@ -1,3 +1,6 @@
+import { useState, useEffect } from 'react';
+import api from '../../utils/api';
+import logger from '../../utils/logger';
 import {
   cardClasses,
   headingClasses,
@@ -54,7 +57,21 @@ interface GettingStartedProps {
 }
 
 export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, hasSports, customizationState }: GettingStartedProps) {
+  const [appTitle, setAppTitle] = useState('Go Make Your Picks');
   const isSetupComplete = hasPlayers && hasSeasons && hasSports;
+
+  useEffect(() => {
+    loadAppTitle();
+  }, []);
+
+  const loadAppTitle = async () => {
+    try {
+      const res = await api.get('/public/settings');
+      setAppTitle(res.data.app_title || 'Go Make Your Picks');
+    } catch (error) {
+      logger.error('Error loading app title:', error);
+    }
+  };
   
   // Default customization state if not provided
   const customizations = customizationState || {
@@ -67,7 +84,7 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
     {
       id: 'players',
       title: '1. Add Players',
-      description: 'Create user accounts for people who will participate in the picks competition.',
+      description: 'Create user accounts for those who will participate in the picks competition.',
       completed: hasPlayers,
       action: () => onNavigate('/admin/users'),
       buttonText: hasPlayers ? 'Manage Players' : 'Add Players',
@@ -75,13 +92,14 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
       details: [
         'Add player names and email addresses',
         'Players will receive magic links to make picks',
-        'Only active players can participate in seasons'
+        'Only active players can participate in seasons',
+        'No login required for players to make picks!'
       ]
     },
     {
       id: 'seasons',
       title: '2. Create Seasons',
-      description: 'Set up competition periods where players will compete across multiple sports.',
+      description: 'Set up seasons where players will compete in multiple sports.',
       completed: hasSeasons,
       action: () => onNavigate('/admin/seasons'),
       buttonText: hasSeasons ? 'Manage Seasons' : 'Create Season',
@@ -89,8 +107,7 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
       details: [
         'Define season name and date range',
         'Select which players participate',
-        'Seasons can run concurrently',
-        'One season is marked as default for reporting'
+        'Multiple seasons can run concurrently'
       ]
     },
     {
@@ -102,10 +119,10 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
       buttonText: hasSports ? 'Manage Sports' : 'Add Sports',
       buttonClass: hasSports ? buttonSuccessClasses : buttonPrimaryClasses,
       details: [
-        'Choose sport type (single pick, multi-pick, etc.)',
+        'Choose sport type (single pick, maual entry)',
         'Set lock times for when picks are due',
-        'Add teams/options for players to choose from',
-        'Configure scoring system and point values'
+        'Add teams for players to choose from',
+        'Include a custom message to players'
       ]
     }
   ];
@@ -133,7 +150,7 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
     },
     {
       title: 'Email Reminders',
-      description: 'Automatic 48-hour and 6-hour reminders before pick deadlines.',
+      description: 'Automatic configurable reminders sent before pick deadlines.',
       icon: '⏰'
     },
     {
@@ -149,7 +166,7 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
       <div className={textCenterClasses}>
         <h1 className={`${headingClasses} text-4xl mb-4`}>🏆 Getting Started</h1>
         <p className={`${bodyTextClasses} text-lg max-w-3xl mx-auto`}>
-          Welcome to Go Make Your Picks! Follow these steps to set up your sports picks competition.
+          Welcome to {appTitle}! Follow these steps to set up your personalized sports picks competition.
           This guide will walk you through creating your first season with players and sports.
         </p>
       </div>
@@ -249,7 +266,7 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
               </li>
               <li className={featureCardListItemClasses}>
                 <span className={featureCardBulletClasses}>•</span>
-                <span>Custom timing options</span>
+                <span>Include summary to Admin when reminders go out</span>
               </li>
             </ul>
           </div>
@@ -276,15 +293,15 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
             <ul className={featureCardListClasses}>
               <li className={featureCardListItemClasses}>
                 <span className={featureCardBulletClasses}>•</span>
-                <span>1st place points</span>
+                <span>Champion (1st place) points</span>
               </li>
               <li className={featureCardListItemClasses}>
                 <span className={featureCardBulletClasses}>•</span>
-                <span>2nd place points</span>
+                <span>2nd-6th+ place points</span>
               </li>
               <li className={featureCardListItemClasses}>
                 <span className={featureCardBulletClasses}>•</span>
-                <span>3rd-6th+ place points</span>
+                <span>Points or penalty if picks not made</span>
               </li>
               <li className={featureCardListItemClasses}>
                 <span className={featureCardBulletClasses}>•</span>
@@ -382,8 +399,7 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
             <div>
               <h4 className={`${subheadingClasses} text-lg`}>Setup Phase</h4>
               <p className={bodyTextClasses}>
-                Add players, create a season, and set up your first sports competitions. 
-                Configure scoring and lock times.
+                Add players, create a season, set up your first sports competition, and configure the pick deadline.
               </p>
             </div>
           </div>
@@ -395,8 +411,7 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
             <div>
               <h4 className={`${subheadingClasses} text-lg`}>Active Competition</h4>
               <p className={bodyTextClasses}>
-                Players receive magic links via email to make their picks. 
-                Monitor the leaderboard as results come in.
+                Players receive magic links via email to make their picks. Once picks are complete and the sport locks you can monitor the leaderboard to see who others picked!
               </p>
             </div>
           </div>
@@ -408,8 +423,7 @@ export default function GettingStarted({ onNavigate, hasPlayers, hasSeasons, has
             <div>
               <h4 className={`${subheadingClasses} text-lg`}>Results & Winners</h4>
               <p className={bodyTextClasses}>
-                Enter results for completed sports. End seasons to crown winners 
-                and maintain historical records.
+                Enter results for completed sports and scores are automatically calculated. End seasons to crown winners and maintain historical records.
               </p>
             </div>
           </div>

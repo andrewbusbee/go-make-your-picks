@@ -37,7 +37,8 @@ import {
   flexColumnGapClasses,
   flexSpaceXPtClasses,
   formSectionClasses,
-  flexCenterClasses
+  flexCenterClasses,
+  bodyTextClasses
 } from '../../styles/commonClasses';
 
 export default function UsersManagement() {
@@ -186,7 +187,12 @@ export default function UsersManagement() {
   return (
     <div>
       <div className={`${flexJustifyBetweenClasses} ${mb6Classes}`}>
-        <h2 className={headingClasses}>Players</h2>
+        <div>
+          <h2 className={headingClasses}>Players</h2>
+          <p className={bodyTextClasses + " mt-1"}>
+            Manage players who can be a part of one or more seasons at a time.
+          </p>
+        </div>
         <button
           onClick={() => openModal()}
           className={buttonPrimaryClasses}

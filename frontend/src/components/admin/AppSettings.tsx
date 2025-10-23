@@ -422,9 +422,9 @@ export default function AppSettings() {
 
             {/* Complete Round Team Selection Method */}
             <div className={pt6Classes}>
-              <h3 className={`${subheadingClasses} ${mb4Classes}`}>Complete Round Team Selection Method</h3>
+              <h3 className={`${subheadingClasses} ${mb4Classes}`}>Completed Sport Team Selection Method</h3>
               <p className={`${bodyTextClasses} ${mb4Classes}`}>
-                Choose how teams are selected when completing rounds.
+                Change available teams to selct from when assinging the places for ended sports
               </p>
               
               <div className={mb4Classes}>
@@ -439,10 +439,10 @@ export default function AppSettings() {
                       className="mt-1 mr-3"
                     />
                     <div>
-                      <div className={bodyTextClasses}>Current approach</div>
-                      <div className={`${textSmallClasses} ${textMediumClasses}`}>
-                        All places (1st-5th) can select from full team list
-                      </div>
+                      <span className={`${labelClasses} block`}>Show all available teams</span>
+                      <p className={`${helpTextClasses} ${mt1Classes}`}>
+                        All places (1st-5th) can select from the full team list. Any team can be chosen for any position.
+                      </p>
                     </div>
                   </label>
                 </div>
@@ -458,12 +458,34 @@ export default function AppSettings() {
                       className="mt-1 mr-3"
                     />
                     <div>
-                      <div className={bodyTextClasses}>Player pick approach</div>
-                      <div className={`${textSmallClasses} ${textMediumClasses}`}>
-                        Champion picks from full list, 2nd-5th from picks only
-                      </div>
+                      <span className={`${labelClasses} block`}>Show only teams that were actually picked by players. (Default)</span>
+                      <p className={`${helpTextClasses} ${mt1Classes}`}>
+                        Champion picks from full list, but 2nd-5th are filtered to only show those that were actually picked by participants. If a team was not picked it will not show as an option.  All poisions will have at least one participant earning points.
+                      </p>
                     </div>
                   </label>
+                </div>
+              </div>
+              
+              {/* Examples */}
+              <h4 className={`${subheadingClasses} ${mb4Classes}`}>Example Scenarios</h4>
+              <div className={`${helpTextClasses} ${mt1Classes} p-3 bg-gray-50 dark:bg-gray-800 rounded-md`}>
+                <div className="mb-4">
+                  <strong>Show all available teams:</strong> If 12 teams are available, then:
+                  <ul className="mt-2 ml-4 list-disc">
+                    <li><strong>Champion dropdown:</strong> Shows all 12 teams</li>
+                    <li><strong>2nd-5th place dropdowns:</strong> Show all 12 teams (minus those already selected)</li>
+                    <li><strong>Result:</strong> Any team can be selected for any position, and some positions may not have players earning points</li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <strong>Show only teams that were actually picked by players:</strong> If 12 teams are available but players only picked Dodgers, Yankees, and Red Sox, then:
+                  <ul className="mt-2 ml-4 list-disc">
+                    <li><strong>Champion dropdown:</strong> Shows all 12 teams (since one of the teams won the championship)</li>
+                    <li><strong>2nd-5th place dropdowns:</strong> Only show Dodgers, Yankees, and Red Sox if not already selected as champion above</li>
+                    <li><strong>Result:</strong> Every position will have at least one player earning points</li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -625,9 +647,6 @@ export default function AppSettings() {
                     <p className={`${warningTextYellowSecondaryClasses} ${mt1Classes}`}>
                       Changing these values will <strong>retroactively recalculate scores for all active seasons</strong>. 
                       Ended seasons preserve their original point values and are not affected.
-                    </p>
-                    <p className={`${warningTextYellowSecondaryClasses} ${mt1Classes}`}>
-                      Maximum points per round: {pointsFirstPlace} (1st) + {pointsSecondPlace} (2nd) + ... = up to {pointsFirstPlace} points for the winner.
                     </p>
                   </div>
                 </div>
