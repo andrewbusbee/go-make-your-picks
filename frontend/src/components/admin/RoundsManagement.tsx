@@ -144,12 +144,19 @@ export default function RoundsManagement() {
   
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Team lists for complete round modal
+  const [championTeams, setChampionTeams] = useState<any[]>([]);
+  const [otherTeams, setOtherTeams] = useState<any[]>([]);
 
   // Helper function to get available teams for each dropdown (excludes already selected teams)
-  const getAvailableTeams = (excludeTeams: string[]) => {
-    if (!selectedRound?.teams?.length) return [];
+  const getAvailableTeams = (excludeTeams: string[], isChampion: boolean = false) => {
+    // Use champion teams for 1st place, other teams for 2nd-5th places
+    const teamList = isChampion ? championTeams : otherTeams;
     
-    return selectedRound.teams.filter((team: any) => 
+    if (!teamList?.length) return [];
+    
+    return teamList.filter((team: any) => 
       !excludeTeams.includes(team.team_name)
     );
   };
@@ -434,6 +441,11 @@ export default function RoundsManagement() {
       // Load round details
       const roundRes = await api.get(`/admin/rounds/${round.id}`);
       setSelectedRound(roundRes.data);
+      
+      // Load teams for complete round modal (champion vs other places)
+      const teamsRes = await api.get(`/admin/rounds/${round.id}/complete-teams`);
+      setChampionTeams(teamsRes.data.championTeams || []);
+      setOtherTeams(teamsRes.data.otherTeams || []);
       
       // Load participants and their picks for this round
       const participantsRes = await api.get(`/admin/season-participants/${round.season_id}`);
@@ -1479,7 +1491,7 @@ export default function RoundsManagement() {
                         required
                       >
                         <option value="">Select champion...</option>
-                        {getAvailableTeams([]).map((team: any) => (
+                        {getAvailableTeams([], true).map((team: any) => (
                           <option key={team.id} value={team.team_name}>
                             {team.team_name}
                           </option>
@@ -1511,7 +1523,7 @@ export default function RoundsManagement() {
                           disabled={!firstPlaceTeam}
                         >
                           <option value="">Select 2nd place...</option>
-                          {getAvailableTeams([firstPlaceTeam]).map((team: any) => (
+                          {getAvailableTeams([firstPlaceTeam], false).map((team: any) => (
                             <option key={team.id} value={team.team_name}>
                               {team.team_name}
                             </option>
@@ -1522,7 +1534,7 @@ export default function RoundsManagement() {
                             Select a champion first
                           </p>
                         )}
-                        {firstPlaceTeam && getAvailableTeams([firstPlaceTeam]).length === 0 && (
+                        {firstPlaceTeam && getAvailableTeams([firstPlaceTeam], false).length === 0 && (
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             No more teams available
                           </p>
@@ -1553,7 +1565,7 @@ export default function RoundsManagement() {
                           disabled={!firstPlaceTeam}
                         >
                           <option value="">Select 3rd place...</option>
-                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam]).map((team: any) => (
+                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam], false).map((team: any) => (
                             <option key={team.id} value={team.team_name}>
                               {team.team_name}
                             </option>
@@ -1564,7 +1576,7 @@ export default function RoundsManagement() {
                             Select a champion first
                           </p>
                         )}
-                        {firstPlaceTeam && getAvailableTeams([firstPlaceTeam, secondPlaceTeam]).length === 0 && (
+                        {firstPlaceTeam && getAvailableTeams([firstPlaceTeam, secondPlaceTeam], false).length === 0 && (
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             No more teams available
                           </p>
@@ -1595,7 +1607,7 @@ export default function RoundsManagement() {
                           disabled={!firstPlaceTeam}
                         >
                           <option value="">Select 4th place...</option>
-                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam]).map((team: any) => (
+                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam], false).map((team: any) => (
                             <option key={team.id} value={team.team_name}>
                               {team.team_name}
                             </option>
@@ -1606,7 +1618,7 @@ export default function RoundsManagement() {
                             Select a champion first
                           </p>
                         )}
-                        {firstPlaceTeam && getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam]).length === 0 && (
+                        {firstPlaceTeam && getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam], false).length === 0 && (
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             No more teams available
                           </p>
@@ -1637,7 +1649,7 @@ export default function RoundsManagement() {
                           disabled={!firstPlaceTeam}
                         >
                           <option value="">Select 5th place...</option>
-                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam, fourthPlaceTeam]).map((team: any) => (
+                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam, fourthPlaceTeam], false).map((team: any) => (
                             <option key={team.id} value={team.team_name}>
                               {team.team_name}
                             </option>
@@ -1648,7 +1660,7 @@ export default function RoundsManagement() {
                             Select a champion first
                           </p>
                         )}
-                        {firstPlaceTeam && getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam, fourthPlaceTeam]).length === 0 && (
+                        {firstPlaceTeam && getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam, fourthPlaceTeam], false).length === 0 && (
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             No more teams available
                           </p>

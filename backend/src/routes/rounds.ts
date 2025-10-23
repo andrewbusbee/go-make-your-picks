@@ -1454,4 +1454,62 @@ router.post('/:id/send-locked-notification', authenticateAdmin, async (req: Auth
   }
 });
 
+// Get teams for complete round modal (admin only)
+router.get('/:id/complete-teams', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+  const roundId = parseInt(req.params.id);
+
+  try {
+    // Get round details
+    const [rounds] = await db.query<RowDataPacket[]>(
+      'SELECT * FROM rounds WHERE id = ? AND deleted_at IS NULL',
+      [roundId]
+    );
+
+    if (rounds.length === 0) {
+      return res.status(404).json({ error: 'Round not found' });
+    }
+
+    const round = rounds[0];
+
+    // Get the complete round selection method setting
+    const settings = await SettingsService.getTextSettings();
+    const selectionMethod = settings.completeRoundSelectionMethod || 'player_picks';
+
+    // Get all available teams for this round
+    const [allTeams] = await db.query<RowDataPacket[]>(
+      'SELECT * FROM round_teams WHERE round_id = ? ORDER BY team_name',
+      [roundId]
+    );
+
+    // If using current approach, return all teams
+    if (selectionMethod === 'current') {
+      return res.json({
+        championTeams: allTeams,
+        otherTeams: allTeams
+      });
+    }
+
+    // If using player picks approach, get teams that were actually picked
+    const [picks] = await db.query<RowDataPacket[]>(
+      `SELECT DISTINCT pi.pick_value 
+       FROM picks p 
+       JOIN pick_items pi ON p.id = pi.pick_id 
+       WHERE p.round_id = ? AND pi.pick_value IS NOT NULL`,
+      [roundId]
+    );
+
+    const pickedTeams = picks.map(pick => pick.pick_value);
+    const playerPickTeams = allTeams.filter(team => pickedTeams.includes(team.team_name));
+
+    return res.json({
+      championTeams: allTeams, // Champion always gets full list
+      otherTeams: playerPickTeams.length > 0 ? playerPickTeams : allTeams // 2nd-5th get player picks, fallback to all if none
+    });
+
+  } catch (error) {
+    logger.error('Get complete round teams error', { error, roundId });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 export default router;

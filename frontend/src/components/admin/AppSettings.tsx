@@ -58,6 +58,7 @@ export default function AppSettings() {
   const [appTagline, setAppTagline] = useState('');
   const [footerMessage, setFooterMessage] = useState('');
   const [themeMode, setThemeMode] = useState<'dark_only' | 'light_only' | 'user_choice'>('user_choice');
+  const [completeRoundSelectionMethod, setCompleteRoundSelectionMethod] = useState<'current' | 'player_picks'>('player_picks');
   const [pointsFirstPlace, setPointsFirstPlace] = useState(6);
   const [pointsSecondPlace, setPointsSecondPlace] = useState(5);
   const [pointsThirdPlace, setPointsThirdPlace] = useState(4);
@@ -69,6 +70,7 @@ export default function AppSettings() {
   const [originalTagline, setOriginalTagline] = useState('');
   const [originalFooterMessage, setOriginalFooterMessage] = useState('');
   const [originalThemeMode, setOriginalThemeMode] = useState<'dark_only' | 'light_only' | 'user_choice'>('user_choice');
+  const [originalCompleteRoundSelectionMethod, setOriginalCompleteRoundSelectionMethod] = useState<'current' | 'player_picks'>('player_picks');
   const [originalPointsFirstPlace, setOriginalPointsFirstPlace] = useState(6);
   const [originalPointsSecondPlace, setOriginalPointsSecondPlace] = useState(5);
   const [originalPointsThirdPlace, setOriginalPointsThirdPlace] = useState(4);
@@ -97,6 +99,7 @@ export default function AppSettings() {
       setOriginalTagline(res.data.app_tagline || 'Predict. Compete. Win.');
       setOriginalFooterMessage(res.data.footer_message || 'Built for Sports Fans');
       setThemeMode(res.data.theme_mode || 'user_choice');
+      setCompleteRoundSelectionMethod(res.data.complete_round_selection_method || 'player_picks');
       setPointsFirstPlace(parseInt(res.data.points_first_place) || 6);
       setPointsSecondPlace(parseInt(res.data.points_second_place) || 5);
       setPointsThirdPlace(parseInt(res.data.points_third_place) || 4);
@@ -109,6 +112,7 @@ export default function AppSettings() {
       setOriginalTagline(res.data.app_tagline || 'Predict. Compete. Win.');
       setOriginalFooterMessage(res.data.footer_message || 'Built for Sports Fans');
       setOriginalThemeMode(res.data.theme_mode || 'user_choice');
+      setOriginalCompleteRoundSelectionMethod(res.data.complete_round_selection_method || 'player_picks');
       setOriginalPointsFirstPlace(parseInt(res.data.points_first_place) || 6);
       setOriginalPointsSecondPlace(parseInt(res.data.points_second_place) || 5);
       setOriginalPointsThirdPlace(parseInt(res.data.points_third_place) || 4);
@@ -155,6 +159,7 @@ export default function AppSettings() {
         appTagline,
         footerMessage,
         themeMode,
+        completeRoundSelectionMethod,
         pointsFirstPlace,
         pointsSecondPlace,
         pointsThirdPlace,
@@ -169,6 +174,7 @@ export default function AppSettings() {
       setOriginalTagline(appTagline);
       setOriginalFooterMessage(footerMessage);
       setOriginalThemeMode(themeMode);
+      setOriginalCompleteRoundSelectionMethod(completeRoundSelectionMethod);
       setOriginalPointsFirstPlace(pointsFirstPlace);
       setOriginalPointsSecondPlace(pointsSecondPlace);
       setOriginalPointsThirdPlace(pointsThirdPlace);
@@ -209,6 +215,7 @@ export default function AppSettings() {
     appTagline !== originalTagline ||
     footerMessage !== originalFooterMessage ||
     themeMode !== originalThemeMode ||
+    completeRoundSelectionMethod !== originalCompleteRoundSelectionMethod ||
     pointsFirstPlace !== originalPointsFirstPlace ||
     pointsSecondPlace !== originalPointsSecondPlace ||
     pointsThirdPlace !== originalPointsThirdPlace ||
@@ -410,6 +417,56 @@ export default function AppSettings() {
               </label>
             </div>
           </div>
+
+            <hr className={dividerClasses} />
+
+            {/* Complete Round Team Selection Method */}
+            <div className={pt6Classes}>
+              <h3 className={`${subheadingClasses} ${mb4Classes}`}>Complete Round Team Selection Method</h3>
+              <p className={`${bodyTextClasses} ${mb4Classes}`}>
+                Choose how teams are selected when completing rounds.
+              </p>
+              
+              <div className={mb4Classes}>
+                <div className={mb2Classes}>
+                  <label className="flex items-start">
+                    <input
+                      type="radio"
+                      name="completeRoundSelectionMethod"
+                      value="current"
+                      checked={completeRoundSelectionMethod === 'current'}
+                      onChange={(e) => setCompleteRoundSelectionMethod(e.target.value as 'current' | 'player_picks')}
+                      className="mt-1 mr-3"
+                    />
+                    <div>
+                      <div className={bodyTextClasses}>Current approach</div>
+                      <div className={`${textSmallClasses} ${textMediumClasses}`}>
+                        All places (1st-5th) can select from full team list
+                      </div>
+                    </div>
+                  </label>
+                </div>
+                
+                <div>
+                  <label className="flex items-start">
+                    <input
+                      type="radio"
+                      name="completeRoundSelectionMethod"
+                      value="player_picks"
+                      checked={completeRoundSelectionMethod === 'player_picks'}
+                      onChange={(e) => setCompleteRoundSelectionMethod(e.target.value as 'current' | 'player_picks')}
+                      className="mt-1 mr-3"
+                    />
+                    <div>
+                      <div className={bodyTextClasses}>Player pick approach</div>
+                      <div className={`${textSmallClasses} ${textMediumClasses}`}>
+                        Champion picks from full list, 2nd-5th from picks only
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            </div>
 
             <hr className={dividerClasses} />
 

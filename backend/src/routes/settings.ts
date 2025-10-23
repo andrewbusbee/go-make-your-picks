@@ -74,6 +74,7 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     appTagline, 
     footerMessage,
     themeMode,
+    completeRoundSelectionMethod,
     pointsFirstPlace,
     pointsSecondPlace,
     pointsThirdPlace,
@@ -167,6 +168,13 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
     }
   }
 
+  // Validate complete round selection method if provided
+  if (completeRoundSelectionMethod !== undefined) {
+    if (!['current', 'player_picks'].includes(completeRoundSelectionMethod)) {
+      return res.status(400).json({ error: 'Complete round selection method must be "current" or "player_picks"' });
+    }
+  }
+
   try {
     await withTransaction(async (connection) => {
       // Update or insert text settings
@@ -195,6 +203,15 @@ router.put('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
           `INSERT INTO text_settings (setting_key, setting_value) VALUES ('theme_mode', ?)
            ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
           [themeMode]
+        );
+      }
+
+      // Update complete round selection method if provided
+      if (completeRoundSelectionMethod !== undefined) {
+        await connection.query(
+          `INSERT INTO text_settings (setting_key, setting_value) VALUES ('complete_round_selection_method', ?)
+           ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
+          [completeRoundSelectionMethod]
         );
       }
 

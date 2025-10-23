@@ -10,6 +10,7 @@ import { AddChampionshipPageTitleMigration } from './20250115000000_add_champion
 import { RemoveSeasonCommissionerMigration } from './20250116000000_remove_season_commissioner';
 import { AddHistoricalChampions } from './20250117000000_add_historical_champions';
 import AddEmailMagicLinks from './20250118000000_add_email_magic_links';
+import AddCompleteRoundSelectionMethod from './20250122000000_add_complete_round_selection_method';
 
 /**
  * All migrations in order of execution
@@ -20,6 +21,7 @@ export const allMigrations: Migration[] = [
   new RemoveSeasonCommissionerMigration(),
   new AddHistoricalChampions(),
   new AddEmailMagicLinks(),
+  new AddCompleteRoundSelectionMethod(),
   // Add new migrations here as needed
 ];
 

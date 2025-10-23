@@ -26,6 +26,7 @@ export interface TextSettings {
   dailyReminderTime: string;
   reminderTimezone: string;
   themeMode: string;
+  completeRoundSelectionMethod: string;
 }
 
 export interface ReminderSettings {
@@ -144,6 +145,7 @@ export class SettingsService {
         dailyReminderTime: settingsMap.get('daily_reminder_time') || '10:00:00',
         reminderTimezone: settingsMap.get('reminder_timezone') || 'America/New_York',
         themeMode: settingsMap.get('theme_mode') || 'user_choice',
+        completeRoundSelectionMethod: settingsMap.get('complete_round_selection_method') || 'player_picks',
       };
 
       // Update cache
@@ -162,6 +164,7 @@ export class SettingsService {
         dailyReminderTime: '10:00:00',
         reminderTimezone: 'America/New_York',
         themeMode: 'user_choice',
+        completeRoundSelectionMethod: 'player_picks',
       };
     }
   }
