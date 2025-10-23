@@ -1,3 +1,6 @@
+// Copyright (c) 2025 Andrew Busbee
+// Licensed under the MIT License. See LICENSE file for details.
+
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState, useRef } from 'react';
 import api from '../utils/api';

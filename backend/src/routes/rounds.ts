@@ -1,3 +1,6 @@
+// Copyright (c) 2025 Andrew Busbee
+// Licensed under the MIT License. See LICENSE file for details.
+
 import express, { Response } from 'express';
 import crypto from 'crypto';
 import moment from 'moment-timezone';

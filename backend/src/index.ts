@@ -1,3 +1,6 @@
+// Copyright (c) 2025 Andrew Busbee
+// Licensed under the MIT License. See LICENSE file for details.
+
 import express from 'express';
 import cors from 'cors';
 import compression from 'compression';

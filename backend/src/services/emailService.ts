@@ -1,3 +1,6 @@
+// Copyright (c) 2025 Andrew Busbee
+// Licensed under the MIT License. See LICENSE file for details.
+
 import nodemailer from 'nodemailer';
 import retry from 'async-retry';
 import db from '../config/database';

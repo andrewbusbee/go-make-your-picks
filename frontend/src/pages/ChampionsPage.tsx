@@ -1,3 +1,6 @@
+// Copyright (c) 2025 Andrew Busbee
+// Licensed under the MIT License. See LICENSE file for details.
+
 import { useEffect, useState } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';

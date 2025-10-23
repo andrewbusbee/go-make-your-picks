@@ -1,3 +1,6 @@
+// Copyright (c) 2025 Andrew Busbee
+// Licensed under the MIT License. See LICENSE file for details.
+
 import mysql from 'mysql2/promise';
 
 const pool = mysql.createPool({

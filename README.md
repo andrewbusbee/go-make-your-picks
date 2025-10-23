@@ -249,7 +249,9 @@ Complete API documentation is available at `http://localhost:3003/api/docs` - th
 
 ## 📄 License
 
-MIT License - feel free to use this for your league's fun and competition!
+This project is licensed under the [MIT License](./LICENSE).  
+You are free to use, modify, and distribute this software for any purpose.  
+Future versions of this project may be relicensed under a different model if use cases emerge.
 
 ---
 

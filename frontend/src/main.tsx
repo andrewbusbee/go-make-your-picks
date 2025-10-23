@@ -1,3 +1,6 @@
+// Copyright (c) 2025 Andrew Busbee
+// Licensed under the MIT License. See LICENSE file for details.
+
 // Fonts are self-hosted via /public/fonts and wired with @font-face in index.css
 import React from 'react'
 import ReactDOM from 'react-dom/client'

@@ -1,3 +1,6 @@
+// Copyright (c) 2025 Andrew Busbee
+// Licensed under the MIT License. See LICENSE file for details.
+
 import express, { Response } from 'express';
 import { authenticateAdmin, requireMainAdmin, AuthRequest } from '../middleware/auth';
 import db from '../config/database';

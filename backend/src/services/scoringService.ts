@@ -4,6 +4,9 @@
  * Eliminates duplicate calculation logic and prevents scoring bugs
  */
 
+// Copyright (c) 2025 Andrew Busbee
+// Licensed under the MIT License. See LICENSE file for details.
+
 import db from '../config/database';
 import { RowDataPacket } from 'mysql2';
 import logger from '../utils/logger';

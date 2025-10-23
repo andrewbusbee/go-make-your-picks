@@ -16,6 +16,12 @@ RUN npm run build
 
 # Production stage
 FROM node:24-alpine
+LABEL org.opencontainers.image.title="Go Make Your Picks"
+LABEL org.opencontainers.image.description="Self-hosted sports picks app"
+LABEL org.opencontainers.image.url="https://github.com/andrewbusbee/go-make-your-picks"
+LABEL org.opencontainers.image.source="https://github.com/andrewbusbee/go-make-your-picks"
+LABEL org.opencontainers.image.authors="Andrew Busbee <andrew@andrewbusbee.com>"
+LABEL org.opencontainers.image.licenses="MIT"
 WORKDIR /app
 
 # Install build dependencies for native modules (like bcrypt)
@@ -28,6 +34,9 @@ COPY backend/database ./backend/database
 
 # Copy frontend build (only dist)
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
+
+# Copy LICENSE file
+COPY LICENSE /app/LICENSE
 
 # Install only production dependencies for backend
 WORKDIR /app/backend
