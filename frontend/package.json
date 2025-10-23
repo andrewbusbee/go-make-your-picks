@@ -1,6 +1,6 @@
 {
   "name": "go-make-your-picks-frontend",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Frontend for Go Make Your Picks",
   "scripts": {
     "dev": "vite",
