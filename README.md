@@ -22,39 +22,44 @@ A modern, player-friendly sports prediction platform that brings people together
 
 ### Public Pages
 
-<table width="100%" style="border: none; border-collapse: collapse;">
-<tr>
-<td width="50%" style="border: none; padding: 10px; text-align: center;">
-<img src="docs/images/leaderboard.png" alt="Leaderboard" width="300">
-</td>
-<td width="50%" style="border: none; padding: 10px; text-align: center;">
-<img src="docs/images/completedSeasonStandings.png" alt="Completed Season Standings" width="300">
-</td>
-</tr>
-</table>
+| Player Leaderboard | Completed Season Standings |
+|:---:|:---:|
+| <img src="docs/images/leaderboard.png" alt="Leaderboard" width="400"> | <img src="docs/images/completedSeasonStandings.png" alt="Completed Season Standings" width="400"> |
 
-<table width="100%" style="border: none; border-collapse: collapse;">
-<tr>
-<td width="50%" style="border: none; padding: 10px; text-align: center;">
-<img src="docs/images/championsTrophy.png" alt="Champions" width="300">
-</td>
-<td width="50%" style="border: none; padding: 10px; text-align: center;">
-</td>
-</tr>
-</table>
+| Season Champions | Player Pick Page |
+|:---:|:---:|
+| <img src="docs/images/championsTrophy.png" alt="Champions" width="400"> | <img src="docs/images/playerPickPage.png" alt="Player Pick Page" width="400"> |
+
+### Player Email Messages
+
+| Player Pick Email | Player Reminder Email |
+|:---:|:---:|
+| <img src="docs/images/playerPickEmail.png" alt="Player Pick Email" width="400"> | <img src="docs/images/playerReminderEmail.png" alt="Player Reminder Email" width="400"> |
+
+| Sport Lock Email | Sport Result Email |
+|:---:|:---:|
+| <img src="docs/images/sportLockEmail.png" alt="Champions" width="400"> | <img src="docs/images/sportResultEmail.png" alt="Sport Result Email" width="400"> |
+
 
 ### Admin Pages
 
-<table width="100%" style="border: none; border-collapse: collapse;">
-<tr>
-<td width="50%" style="border: none; padding: 10px; text-align: center;">
-<img src="docs/images/gettingStarted.png" alt="Getting Started" width="300">
-</td>
-<td width="50%" style="border: none; padding: 10px; text-align: center;">
-<img src="docs/images/appCustomization.png" alt="App Customization" width="300">
-</td>
-</tr>
-</table>
+| Getting Started Page | App Customization |
+|:---:|:---:|
+| <img src="docs/images/gettingStarted.png" alt="Getting Started" width="400"> | <img src="docs/images/appCustomization.png" alt="App Customization" width="400"> |
+
+| Season Management | Sport Management |
+|:---:|:---:|
+| <img src="docs/images/seasonManager.png" alt="Season Manager" width="400"> | <img src="docs/images/sportManager.png" alt="Sport Manager" width="400"> |
+
+| Player Settings | Pick Management |
+|:---:|:---:|
+| <img src="docs/images/playerPage.png" alt="Player Settings" width="400"> | <img src="docs/images/pickManagement.png" alt="Pick Management" width="400"> |
+
+### Admin Emails
+
+| Admin Summary Email |
+|:---:|
+| <img src="docs/images/adminSummaryEmail.png" alt="Admin Summary Email" width="400"> |
 
 
 ## 🚀 Quick Start
