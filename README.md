@@ -1,5 +1,15 @@
 # 🏆 Go Make Your Picks
 
+[![GitHub Release](https://img.shields.io/github/v/release/andrewbusbee/go-make-your-picks?color=4CAF50&label=Release)](https://github.com/andrewbusbee/go-make-your-picks/releases)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Docker](https://img.shields.io/badge/docker-supported-blue.svg)
+![GHCR Pulls](https://ghcr-badge.herokuapp.com/andrewbusbee/go-make-your-picks/pulls)
+![Node.js](https://img.shields.io/badge/node.js-18+-green.svg)
+![Database](https://img.shields.io/badge/database-MariaDB-orange.svg)
+![Frontend](https://img.shields.io/badge/frontend-React%2018-blue.svg)
+![Backend](https://img.shields.io/badge/backend-Node.js%20Express-green.svg)
+[![Last commit](https://img.shields.io/github/last-commit/andrewbusbee/go-make-your-picks?logo=github&label=Last%20commit)](https://github.com/andrewbusbee/go-make-your-picks/commits/main)
+
 A modern, player-friendly sports prediction platform that brings people together through friendly competition. Create seasons, predict champions, and track player picks across multiple sports.
 
 ## ✨ Features
