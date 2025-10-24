@@ -18,12 +18,30 @@ A modern, player-friendly sports prediction platform that brings people together
 - **User Management** - Add and manage players easily
 - **Admin Controls** - Create additional admin accounts with proper permissions
 
+## 📸 Screenshots
+
+### Public Pages
+
+| Player Leaderboard | Completed Season Standings |
+|---------|------------|
+| <img src="docs/images/leaderboard.png" alt="Leaderboard" width="300"> | <img src="docs/images/completedSeasonStandings.png" alt="Completed Season Standings" width="300"> |
+
+| Season Champions | 
+|---------|------------|
+| <img src="docs/images/championsTrophy.png" alt="Champions" width="300"> |
+
+### Admin Pages
+
+| Getting Started Page | App Customization |
+|---------|------------|
+| <img src="docs/images/gettingStarted.png" alt="Getting Started" width="300"> | <img src="docs/images/appCustomization.png" alt="App Customization" width="300"> |
+
+
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Docker and Docker Compose
 - Email service credentials (Gmail, SendGrid, etc.)
-
 
 
 ### First-Time Setup
@@ -213,8 +231,6 @@ Use the built-in email test feature in the admin panel:
 3. **Make your predictions** before the lock time
 4. **Update your picks** anytime before the deadline
 5. **View the leaderboard** to see how everyone is doing
-
-
 
 ## 🛠️ Technical Details
 
