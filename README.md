@@ -1,9 +1,8 @@
 # 🏆 Go Make Your Picks
 
 [![GitHub Release](https://img.shields.io/github/v/release/andrewbusbee/go-make-your-picks?color=4CAF50&label=Release)](https://github.com/andrewbusbee/go-make-your-picks/releases)
-![Docker](https://img.shields.io/badge/docker-ghcr.io-blue.svg?logo=docker)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-
+![Docker](https://img.shields.io/badge/docker-ghcr.io-blue.svg?logo=docker)
 
 ![Node.js](https://img.shields.io/badge/node.js-18+-green.svg)
 ![Database](https://img.shields.io/badge/database-MariaDB-orange.svg)
@@ -92,14 +91,6 @@ A modern, player-friendly sports prediction platform that brings people together
 ## 🐳 Installation via Docker Compose (Recommended)
 
 The application is designed to run with Docker Compose, providing a complete stack with MariaDB database and the application server. This approach ensures consistent deployment across different environments and simplifies setup.
-
-**Key Benefits:**
-- **One-command deployment** with `docker-compose up`
-- **Automatic database initialization** with schema and default data
-- **Health checks** ensure services start in the correct order
-- **Environment isolation** with containerized services
-- **Easy scaling** and maintenance
-
 
 ```yaml
 services:
@@ -196,7 +187,7 @@ volumes:
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `ENABLE_DEV_TOOLS` | Show development tools in admin | `false` |
+| `ENABLE_DEV_TOOLS` | Enable creation of seed data for testing | `false` |
 
 
 ### Email Provider Examples
@@ -242,9 +233,8 @@ SMTP_PASSWORD=your-brevo-smtp-key
 ### Testing Email Configuration
 
 Use the built-in email test feature in the admin panel:
-1. Go to **Settings** → **Test Email**
-2. Enter your email address
-3. Click "Send Test Email"
+1. Go to **Settings** → **Email**
+2. Click "Send Test Email"
 
 ## 🎯 Getting Started Guide
 
@@ -260,6 +250,11 @@ Use the built-in email test feature in the admin panel:
    - Include a custom message for players
 6. **Activate rounds** to send magic links to everyone
 7. **Complete rounds** after championships to calculate scores
+
+**Default Admin Credentials:**
+- Username: `admin@example.com`
+- Password: `password`
+- ⚠️ **You'll be prompted to change the password on first login**
 
 ### For Players
 
@@ -280,10 +275,9 @@ Use the built-in email test feature in the admin panel:
 
 ### Security Features
 - JWT-based admin authentication
-- Magic link tokens for family member access
+- Magic link tokens for player and alternate admin access
 - Bcrypt password hashing
 - SQL injection protection
-- CORS configuration
 - Input validation and sanitization
 
 ## API Documentation
