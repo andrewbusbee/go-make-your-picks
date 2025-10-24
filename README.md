@@ -251,11 +251,6 @@ Use the built-in email test feature in the admin panel:
 6. **Activate rounds** to send magic links to everyone
 7. **Complete rounds** after championships to calculate scores
 
-**Default Admin Credentials:**
-- Username: `admin@example.com`
-- Password: `password`
-- ⚠️ **You'll be prompted to change the password on first login**
-
 ### For Players
 
 1. **Check your email** for magic link invitations
