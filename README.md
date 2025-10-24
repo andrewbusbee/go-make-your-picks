@@ -22,19 +22,39 @@ A modern, player-friendly sports prediction platform that brings people together
 
 ### Public Pages
 
-| Player Leaderboard | Completed Season Standings |
-|---------|------------|
-| <img src="docs/images/leaderboard.png" alt="Leaderboard" width="300"> | <img src="docs/images/completedSeasonStandings.png" alt="Completed Season Standings" width="300"> |
+<table width="100%" style="border: none; border-collapse: collapse;">
+<tr>
+<td width="50%" style="border: none; padding: 10px; text-align: center;">
+<img src="docs/images/leaderboard.png" alt="Leaderboard" width="300">
+</td>
+<td width="50%" style="border: none; padding: 10px; text-align: center;">
+<img src="docs/images/completedSeasonStandings.png" alt="Completed Season Standings" width="300">
+</td>
+</tr>
+</table>
 
-| Season Champions | 
-|---------|------------|
-| <img src="docs/images/championsTrophy.png" alt="Champions" width="300"> |
+<table width="100%" style="border: none; border-collapse: collapse;">
+<tr>
+<td width="50%" style="border: none; padding: 10px; text-align: center;">
+<img src="docs/images/championsTrophy.png" alt="Champions" width="300">
+</td>
+<td width="50%" style="border: none; padding: 10px; text-align: center;">
+</td>
+</tr>
+</table>
 
 ### Admin Pages
 
-| Getting Started Page | App Customization |
-|---------|------------|
-| <img src="docs/images/gettingStarted.png" alt="Getting Started" width="300"> | <img src="docs/images/appCustomization.png" alt="App Customization" width="300"> |
+<table width="100%" style="border: none; border-collapse: collapse;">
+<tr>
+<td width="50%" style="border: none; padding: 10px; text-align: center;">
+<img src="docs/images/gettingStarted.png" alt="Getting Started" width="300">
+</td>
+<td width="50%" style="border: none; padding: 10px; text-align: center;">
+<img src="docs/images/appCustomization.png" alt="App Customization" width="300">
+</td>
+</tr>
+</table>
 
 
 ## 🚀 Quick Start
