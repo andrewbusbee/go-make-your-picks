@@ -281,11 +281,12 @@ export class ScoringService {
       const points = await SettingsService.getPointsSettingsForSeason(seasonId);
 
       // Get completed rounds in order (excluding soft-deleted)
+      // Sort by completion date (updated_at) to match leaderboard sorting
       const [rounds] = await db.query<RowDataPacket[]>(
-        `SELECT id, sport_name, lock_time
+        `SELECT id, sport_name, lock_time, updated_at
          FROM rounds 
          WHERE season_id = ? AND status = 'completed' AND deleted_at IS NULL
-         ORDER BY lock_time ASC`,
+         ORDER BY updated_at ASC`,
         [seasonId]
       );
 
