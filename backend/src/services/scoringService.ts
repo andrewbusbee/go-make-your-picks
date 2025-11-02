@@ -54,11 +54,18 @@ export class ScoringService {
       logger.debug('Retrieved point settings for season', { seasonId, points });
 
       // Get all rounds for the season (excluding soft-deleted)
+      // Sort: completed rounds by completion date (updated_at) first, then uncompleted by lock_time
+      // If no rounds are completed, all sorted by lock_time
       const [rounds] = await db.query<RowDataPacket[]>(
-        `SELECT id, sport_name, status, first_place_team, second_place_team, third_place_team, fourth_place_team, fifth_place_team, lock_time
+        `SELECT id, sport_name, status, first_place_team, second_place_team, third_place_team, fourth_place_team, fifth_place_team, lock_time, updated_at
          FROM rounds 
          WHERE season_id = ? AND deleted_at IS NULL
-         ORDER BY lock_time ASC`,
+         ORDER BY 
+           CASE WHEN status = 'completed' THEN 0 ELSE 1 END,
+           COALESCE(
+             CASE WHEN status = 'completed' THEN updated_at END,
+             lock_time
+           ) ASC`,
         [seasonId]
       );
 

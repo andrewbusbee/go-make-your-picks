@@ -457,6 +457,7 @@ export const sendSportCompletionEmail = async (
   const settings = await getSettings();
   const currentCommissioner = await getCurrentCommissioner();
   const pointsSettings = await SettingsService.getPointsSettings();
+  const textSettings = await SettingsService.getTextSettings();
   const fromName = settings.app_title;
   const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
   
@@ -503,11 +504,17 @@ export const sendSportCompletionEmail = async (
     return formattedResults.join('<br>');
   };
 
-  // Format leaderboard with user highlight
+  // Format leaderboard with user highlight and proper tie handling
   const formatLeaderboard = (leaderboard: Array<{name: string, points: number, isCurrentUser: boolean}>, isSharedEmail: boolean = false) => {
+    let currentRank = 1;
     return leaderboard.map((entry, index) => {
+      // If this is not the first entry and points are different from previous entry
+      // then the rank should be the current position (index + 1)
+      if (index > 0 && leaderboard[index - 1].points !== entry.points) {
+        currentRank = index + 1;
+      }
       const highlight = (entry.isCurrentUser && !isSharedEmail) ? ' (You)' : '';
-      return `${index + 1}. ${entry.name}${highlight} - ${entry.points} points`;
+      return `${currentRank}. ${entry.name}${highlight} - ${entry.points} points`;
     }).join('<br>');
   };
 
@@ -537,6 +544,12 @@ export const sendSportCompletionEmail = async (
     : `Results!`;
   
   const commissionerHeader = getCommissionerSignature(currentCommissioner || undefined, settings.app_title);
+  
+  // Add note about team selection method if using player picks only
+  const selectionMethodNote = textSettings.completeRoundSelectionMethod === 'player_picks'
+    ? `<p style="margin-top: 12px; font-size: 14px; color: #666;"><em>💡 Note: ${sportName} scoring is based on teams that participants actually picked, which is why some teams may be missing from the results.</em></p>`
+    : '';
+  
   const bodyHtml = `
     ${commissionerHeader}
     <h2>Hi ${namesFormatted}!</h2>
@@ -545,6 +558,7 @@ export const sendSportCompletionEmail = async (
     <div class="results-box">
       <div class="section-title">📊 ${sportName} Results:</div>
       <p>${formatResults(finalResults)}</p>
+      ${selectionMethodNote}
     </div>
     <div class="leaderboard-box">
       <div class="section-title">📈 Current Leaderboard (Top 5):</div>

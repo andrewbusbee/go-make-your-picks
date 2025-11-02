@@ -23,7 +23,7 @@ export default function Footer() {
   };
 
   return (
-    <footer className={`fixed bottom-0 left-0 right-0 w-full bg-white dark:bg-gray-800 shadow-md ${dividerClasses} py-3 md:py-2 z-10`}>
+    <footer className={`fixed bottom-0 left-0 right-0 w-full bg-white dark:bg-gray-800 shadow-md ${dividerClasses} py-3 md:py-2 z-40`}>
       <div className="container mx-auto px-4">
         <div className={`flex flex-col md:flex-row justify-between items-center text-sm ${bodyTextClasses}`}>
           {/* Left: Software attribution (desktop only) */}
