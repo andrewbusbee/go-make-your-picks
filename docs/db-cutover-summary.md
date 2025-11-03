@@ -5,7 +5,8 @@
 This document provides a comprehensive summary of all changes made during the cutover from legacy denormalized tables to the new normalized `_v2` schema. The cutover was completed systematically, maintaining backward compatibility and API contract while migrating all game logic to use the new relational schema.
 
 **Cutover Date**: January 2025  
-**Status**: ✅ **COMPLETE** - All game logic now uses `_v2` tables
+**Status**: ✅ **COMPLETE** - All game logic now uses `_v2` tables  
+**Legacy Tables**: ✅ **RENAMED** - Legacy game tables renamed to `*_legacy` suffix (January 2025)
 
 ---
 
@@ -394,4 +395,24 @@ The cutover to the `_v2` schema is **COMPLETE**. All game logic now uses the nor
 - ✅ Comprehensive indexing for performance
 - ✅ Centralized team management utilities
 - ✅ Historical scoring rules preserved per season
+- ✅ Legacy tables renamed to `*_legacy` suffix (historical snapshots)
+
+---
+
+## Legacy Table Renaming (January 2025)
+
+After the successful cutover to `*_v2` tables, the legacy game tables have been renamed to clearly mark them as historical snapshots:
+
+**Renamed Tables**:
+- `picks` → `picks_legacy`
+- `pick_items` → `pick_items_legacy`
+- `scores` → `scores_legacy`
+- `round_teams` → `round_teams_legacy`
+- `season_participants` → `season_participants_legacy`
+- `season_winners` → `season_winners_legacy`
+
+**Tables NOT Renamed (Yet)**:
+- `seasons` and `rounds` remain unchanged because they are still referenced by foreign keys from non-game tables (`magic_links`, `email_magic_links`, `reminder_log`). These will be renamed in a future migration once the dependent tables are migrated to reference `seasons_v2`/`rounds_v2`.
+
+See `docs/db-legacy-tables.md` for complete details on legacy table handling.
 

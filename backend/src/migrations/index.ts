@@ -14,6 +14,7 @@ import AddCompleteRoundSelectionMethod from './20250122000000_add_complete_round
 import { CreateRelationalSchemaV2Core } from './20250123000000_create_relational_schema_v2_core';
 import { CreateRelationalSchemaV2PicksScoring } from './20250123000001_create_relational_schema_v2_picks_scoring';
 import { CreateSeasonWinnersV2 } from './20250123000002_create_season_winners_v2';
+import { RenameLegacyGameTables } from './20250123000003_rename_legacy_game_tables';
 
 /**
  * All migrations in order of execution
@@ -28,6 +29,7 @@ export const allMigrations: Migration[] = [
   new CreateRelationalSchemaV2Core(),
   new CreateRelationalSchemaV2PicksScoring(),
   new CreateSeasonWinnersV2(),
+  new RenameLegacyGameTables(),
   // Add new migrations here as needed
 ];
 
