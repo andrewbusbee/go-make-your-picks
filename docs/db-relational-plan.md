@@ -93,11 +93,17 @@ This document describes the new normalized relational database schema (`_v2` tab
        │
        │ 1:N
        │
-┌──────▼──────────────┐
-│  scoring_rules_v2    │
-│  (season_id, place,  │
-│   points)            │
-└──────────────────────┘
+┌──────▼──────────────┐     ┌─────────────┐
+│  scoring_rules_v2    │     │  season_    │
+│  (season_id, place,  │     │  winners_v2 │
+│   points)            │     │  (standings)│
+└──────────────────────┘     └──────┬──────┘
+                                     │
+                                     │ N:1
+                                     │
+                              ┌──────▼──────┐
+                              │   users     │
+                              └─────────────┘
 ```
 
 ## Core Tables
@@ -362,6 +368,67 @@ season_id=1, place=0, points=0  (no pick penalty, if applicable)
 
 ---
 
+### 11. `season_winners_v2`
+**Purpose**: Normalized season standings (final rankings per season).
+
+**Key Normalization**: Replaces denormalized `season_winners` table which stored per-user season standings with multiple point columns (`points_first_place`, `points_second_place`, etc.). This normalized version:
+- Uses a single `place` column instead of multiple point columns
+- Stores `total_points` as a derived/computed value (calculated from `score_details_v2` + `scoring_rules_v2`)
+- Enforces referential integrity with `seasons_v2` and `users`
+- Ensures each user appears only once per season
+- Ensures each place is unique within a season
+
+**Columns**:
+- `id` (PK, INT AUTO_INCREMENT)
+- `season_id` (FK → `seasons_v2.id`)
+- `user_id` (FK → `users.id`)
+- `place` (INT, 1-100) - final ranking position
+- `total_points` (INT, >= 0) - computed total points for the season
+- `created_at`, `updated_at` (timestamps)
+
+**Constraints**:
+- UNIQUE on (`season_id`, `user_id`) - each user appears only once per season
+- UNIQUE on (`season_id`, `place`) - each place is unique within a season
+- CHECK: `place >= 1 AND place <= 100`
+- CHECK: `total_points >= 0`
+
+**Foreign Keys**:
+- `season_id` → `seasons_v2.id` (ON DELETE CASCADE, ON UPDATE RESTRICT)
+- `user_id` → `users.id` (ON DELETE CASCADE, ON UPDATE RESTRICT)
+
+**Indexes**:
+- Composite index on (`season_id`, `user_id`) for user lookup
+- Composite index on (`season_id`, `place`) for ranking/leaderboard queries
+- Individual indexes on `season_id`, `user_id`, and `place` for supporting queries
+
+**Relationships**:
+- **Derived from**: `total_points` is computed from `score_details_v2` (user's scores per round) joined with `scoring_rules_v2` (points per place for the season)
+- **Related to**: `seasons_v2` (season context), `users` (participant), `score_details_v2` (source of scoring data), `scoring_rules_v2` (scoring configuration)
+
+**Example Data**:
+```
+season_id=1, user_id=5, place=1, total_points=42  → User 5 finished 1st with 42 points
+season_id=1, user_id=3, place=2, total_points=38  → User 3 finished 2nd with 38 points
+season_id=1, user_id=7, place=3, total_points=35  → User 7 finished 3rd with 35 points
+```
+
+**Note**: The `total_points` value is derived from joining `score_details_v2` with `scoring_rules_v2`. In application code, this should be calculated as:
+```sql
+SELECT 
+  u.id as user_id,
+  s.id as season_id,
+  SUM(sd.count * sr.points) as total_points
+FROM users u
+JOIN score_details_v2 sd ON u.id = sd.user_id
+JOIN rounds_v2 r ON sd.round_id = r.id
+JOIN scoring_rules_v2 sr ON r.season_id = sr.season_id AND sd.place = sr.place
+WHERE r.season_id = ?
+GROUP BY u.id, s.id
+ORDER BY total_points DESC
+```
+
+---
+
 ## Schema Mapping: Old → New
 
 ### Round Results
@@ -415,6 +482,20 @@ season_id=1, place=0, points=0  (no pick penalty, if applicable)
 | `seasons` | `seasons_v2` (same structure) |
 | `season_participants` | `season_participants_v2` (same structure) |
 
+### Season Winners
+| Old Schema | New Schema |
+|------------|------------|
+| `season_winners.season_id` | `season_winners_v2.season_id` → `seasons_v2.id` |
+| `season_winners.user_id` | `season_winners_v2.user_id` → `users.id` |
+| `season_winners.place` | `season_winners_v2.place` |
+| `season_winners.total_points` | `season_winners_v2.total_points` (derived from `score_details_v2` + `scoring_rules_v2`) |
+| `season_winners.points_first_place` (denormalized) | Removed - stored in `scoring_rules_v2` |
+| `season_winners.points_second_place` (denormalized) | Removed - stored in `scoring_rules_v2` |
+| `season_winners.points_third_place` (denormalized) | Removed - stored in `scoring_rules_v2` |
+| `season_winners.points_fourth_place` (denormalized) | Removed - stored in `scoring_rules_v2` |
+| `season_winners.points_fifth_place` (denormalized) | Removed - stored in `scoring_rules_v2` |
+| `season_winners.points_sixth_plus_place` (denormalized) | Removed - stored in `scoring_rules_v2` |
+
 ---
 
 ## Migration Strategy
@@ -455,6 +536,12 @@ season_id=1, place=0, points=0  (no pick penalty, if applicable)
 7. **Scoring Rules Migration**:
    - Extract from `numeric_settings` and `season_winners`
    - Insert into `scoring_rules_v2`
+
+8. **Season Winners Migration**:
+   - Copy from `season_winners` → `season_winners_v2`
+   - Direct copy of `season_id`, `user_id`, `place`, `total_points`, `created_at`
+   - **Note**: For full normalization, `total_points` should be recalculated from `score_details_v2` + `scoring_rules_v2`, but direct copy provides migration path
+   - Filter by `season_id IN (SELECT id FROM seasons_v2)` to only migrate seasons that exist in v2
 
 ### Phase 3: Code Migration (Future)
 - Update application code to use `_v2` tables

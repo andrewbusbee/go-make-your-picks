@@ -13,6 +13,7 @@ import AddEmailMagicLinks from './20250118000000_add_email_magic_links';
 import AddCompleteRoundSelectionMethod from './20250122000000_add_complete_round_selection_method';
 import { CreateRelationalSchemaV2Core } from './20250123000000_create_relational_schema_v2_core';
 import { CreateRelationalSchemaV2PicksScoring } from './20250123000001_create_relational_schema_v2_picks_scoring';
+import { CreateSeasonWinnersV2 } from './20250123000002_create_season_winners_v2';
 
 /**
  * All migrations in order of execution
@@ -26,6 +27,7 @@ export const allMigrations: Migration[] = [
   new AddCompleteRoundSelectionMethod(),
   new CreateRelationalSchemaV2Core(),
   new CreateRelationalSchemaV2PicksScoring(),
+  new CreateSeasonWinnersV2(),
   // Add new migrations here as needed
 ];
 
