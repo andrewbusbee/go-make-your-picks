@@ -1230,7 +1230,7 @@ router.post('/:id/soft-delete', authenticateAdmin, async (req: AuthRequest, res:
   try {
     // Check if round exists
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM rounds WHERE id = ? AND deleted_at IS NULL',
+      'SELECT * FROM rounds_v2 WHERE id = ? AND deleted_at IS NULL',
       [roundId]
     );
 
@@ -1258,7 +1258,7 @@ router.post('/:id/restore', authenticateAdmin, async (req: AuthRequest, res: Res
   try {
     // Check if round exists and is deleted
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM rounds WHERE id = ? AND deleted_at IS NOT NULL',
+      'SELECT * FROM rounds_v2 WHERE id = ? AND deleted_at IS NOT NULL',
       [roundId]
     );
 

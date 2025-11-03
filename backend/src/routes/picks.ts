@@ -242,7 +242,7 @@ router.post('/:token', pickSubmissionLimiter, validateRequest(submitPickValidato
       const [emailLinks] = await connection.query<RowDataPacket[]>(
         `SELECT eml.*, r.lock_time, r.timezone, r.status, r.pick_type, r.num_write_in_picks, r.season_id
          FROM email_magic_links eml
-         JOIN rounds r ON eml.round_id = r.id
+         JOIN rounds_v2 r ON eml.round_id = r.id
          WHERE eml.token = ?`,
         [token]
       );
@@ -282,7 +282,7 @@ router.post('/:token', pickSubmissionLimiter, validateRequest(submitPickValidato
 
           const [users] = await connection.query<RowDataPacket[]>(
             `SELECT u.id FROM users u
-             JOIN season_participants sp ON u.id = sp.user_id
+             JOIN season_participants_v2 sp ON u.id = sp.user_id
              WHERE u.email = ? AND u.id = ? AND sp.season_id = ? AND u.is_active = TRUE`,
             [link.email, userId, link.season_id]
           );
@@ -301,7 +301,7 @@ router.post('/:token', pickSubmissionLimiter, validateRequest(submitPickValidato
             const [allUsersForEmail] = await connection.query<RowDataPacket[]>(
               `SELECT u.id, u.name, u.email, u.is_active, sp.season_id 
                FROM users u
-               LEFT JOIN season_participants sp ON u.id = sp.user_id
+               LEFT JOIN season_participants_v2 sp ON u.id = sp.user_id
                WHERE u.email = ?`,
               [link.email]
             );
@@ -336,7 +336,7 @@ router.post('/:token', pickSubmissionLimiter, validateRequest(submitPickValidato
       const [links] = await connection.query<RowDataPacket[]>(
         `SELECT ml.*, r.lock_time, r.timezone, r.status, r.pick_type, r.num_write_in_picks
          FROM magic_links ml
-         JOIN rounds r ON ml.round_id = r.id
+         JOIN rounds_v2 r ON ml.round_id = r.id
          WHERE ml.token = ?`,
         [token]
       );

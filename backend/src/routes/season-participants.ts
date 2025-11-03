@@ -82,7 +82,7 @@ router.post('/:seasonId/participants/bulk', authenticateAdmin, async (req: AuthR
     // Add all users to the season (INSERT IGNORE will skip any already added)
     const values = users.map(user => [seasonId, user.id]);
     await db.query(
-      'INSERT IGNORE INTO season_participants (season_id, user_id) VALUES ?',
+      'INSERT IGNORE INTO season_participants_v2 (season_id, user_id) VALUES ?',
       [values]
     );
 

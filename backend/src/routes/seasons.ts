@@ -495,7 +495,7 @@ router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) =>
             ]);
 
             await connection.query(
-              `INSERT INTO rounds (season_id, sport_name, lock_time, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?, ?)').join(', ')}`,
+              `INSERT INTO rounds_v2 (season_id, sport_name, lock_time, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?, ?)').join(', ')}`,
               insertValues.flat()
             );
 
@@ -647,7 +647,7 @@ router.put('/:id/toggle-active', authenticateAdmin, async (req: AuthRequest, res
 router.get('/deleted', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const [seasons] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM seasons WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC'
+      'SELECT * FROM seasons_v2 WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC'
     );
     res.json(seasons);
   } catch (error) {
@@ -1003,15 +1003,15 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
       const roundIdList = roundIds.map(r => r.id);
       
       [pickCounts] = await db.query<RowDataPacket[]>(
-        `SELECT COUNT(*) as count FROM picks WHERE round_id IN (?)`,
+        `SELECT COUNT(*) as count FROM picks_v2 WHERE round_id IN (?)`,
         [roundIdList]
       );
       [scoreCounts] = await db.query<RowDataPacket[]>(
-        `SELECT COUNT(*) as count FROM scores WHERE round_id IN (?)`,
+        `SELECT COUNT(*) as count FROM score_details_v2 WHERE round_id IN (?)`,
         [roundIdList]
       );
       [teamCounts] = await db.query<RowDataPacket[]>(
-        `SELECT COUNT(*) as count FROM round_teams WHERE round_id IN (?)`,
+        `SELECT COUNT(*) as count FROM round_teams_v2 WHERE round_id IN (?)`,
         [roundIdList]
       );
       [linkCounts] = await db.query<RowDataPacket[]>(
@@ -1026,8 +1026,8 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
       // Count pick_items (cascades from picks)
       if (pickCounts[0].count > 0) {
         [pickItemCounts] = await db.query<RowDataPacket[]>(
-          `SELECT COUNT(*) as count FROM pick_items pi 
-           JOIN picks p ON pi.pick_id = p.id 
+          `SELECT COUNT(*) as count FROM pick_items_v2 pi 
+           JOIN picks_v2 p ON pi.pick_id = p.id 
            WHERE p.round_id IN (?)`,
           [roundIdList]
         );
@@ -1089,15 +1089,15 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
       const roundIdList = roundIds.map(r => r.id);
       
       [pickCountsAfter] = await db.query<RowDataPacket[]>(
-        `SELECT COUNT(*) as count FROM picks WHERE round_id IN (?)`,
+        `SELECT COUNT(*) as count FROM picks_v2 WHERE round_id IN (?)`,
         [roundIdList]
       );
       [scoreCountsAfter] = await db.query<RowDataPacket[]>(
-        `SELECT COUNT(*) as count FROM scores WHERE round_id IN (?)`,
+        `SELECT COUNT(*) as count FROM score_details_v2 WHERE round_id IN (?)`,
         [roundIdList]
       );
       [teamCountsAfter] = await db.query<RowDataPacket[]>(
-        `SELECT COUNT(*) as count FROM round_teams WHERE round_id IN (?)`,
+        `SELECT COUNT(*) as count FROM round_teams_v2 WHERE round_id IN (?)`,
         [roundIdList]
       );
       [linkCountsAfter] = await db.query<RowDataPacket[]>(
@@ -1111,8 +1111,8 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
       
       if (pickCounts[0].count > 0) {
         [pickItemCountsAfter] = await db.query<RowDataPacket[]>(
-          `SELECT COUNT(*) as count FROM pick_items pi 
-           JOIN picks p ON pi.pick_id = p.id 
+          `SELECT COUNT(*) as count FROM pick_items_v2 pi 
+           JOIN picks_v2 p ON pi.pick_id = p.id 
            WHERE p.round_id IN (?)`,
           [roundIdList]
         );
@@ -1224,7 +1224,7 @@ router.post('/:targetId/copy-sports', authenticateAdmin, async (req: AuthRequest
     const result = await withTransaction(async (connection) => {
       // Verify both seasons exist and are not deleted
       const [seasons] = await connection.query<RowDataPacket[]>(
-        'SELECT id, name FROM seasons WHERE id IN (?, ?) AND deleted_at IS NULL',
+        'SELECT id, name FROM seasons_v2 WHERE id IN (?, ?) AND deleted_at IS NULL',
         [targetSeasonId, sourceSeasonId]
       );
 
@@ -1241,7 +1241,7 @@ router.post('/:targetId/copy-sports', authenticateAdmin, async (req: AuthRequest
 
       // Get sports from source season
       const [sourceSports] = await connection.query<RowDataPacket[]>(
-        'SELECT sport_name FROM rounds WHERE season_id = ? AND deleted_at IS NULL',
+        'SELECT sport_name FROM rounds_v2 WHERE season_id = ? AND deleted_at IS NULL',
         [sourceSeasonId]
       );
 
@@ -1251,7 +1251,7 @@ router.post('/:targetId/copy-sports', authenticateAdmin, async (req: AuthRequest
 
       // Get existing sports in target season to prevent duplicates
       const [existingSports] = await connection.query<RowDataPacket[]>(
-        'SELECT sport_name FROM rounds WHERE season_id = ? AND deleted_at IS NULL',
+        'SELECT sport_name FROM rounds_v2 WHERE season_id = ? AND deleted_at IS NULL',
         [targetSeasonId]
       );
 
@@ -1281,7 +1281,7 @@ router.post('/:targetId/copy-sports', authenticateAdmin, async (req: AuthRequest
       ]);
 
       await connection.query(
-        `INSERT INTO rounds (season_id, sport_name, lock_time, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?, ?)').join(', ')}`,
+        `INSERT INTO rounds_v2 (season_id, sport_name, lock_time, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?, ?)').join(', ')}`,
         insertValues.flat()
       );
 
@@ -1328,7 +1328,7 @@ router.post('/:id/message-all-players', authenticateAdmin, async (req: AuthReque
     // Verify season exists and is active (not ended, not deleted, not disabled)
     const [seasonRows] = await db.query<RowDataPacket[]>(
       `SELECT id, name, year_start, year_end, is_active, ended_at, deleted_at 
-       FROM seasons 
+       FROM seasons_v2 
        WHERE id = ? AND deleted_at IS NULL AND is_active = 1 AND ended_at IS NULL`,
       [seasonId]
     );
