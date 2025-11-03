@@ -11,6 +11,8 @@ import { RemoveSeasonCommissionerMigration } from './20250116000000_remove_seaso
 import { AddHistoricalChampions } from './20250117000000_add_historical_champions';
 import AddEmailMagicLinks from './20250118000000_add_email_magic_links';
 import AddCompleteRoundSelectionMethod from './20250122000000_add_complete_round_selection_method';
+import { CreateRelationalSchemaV2Core } from './20250123000000_create_relational_schema_v2_core';
+import { CreateRelationalSchemaV2PicksScoring } from './20250123000001_create_relational_schema_v2_picks_scoring';
 
 /**
  * All migrations in order of execution
@@ -22,6 +24,8 @@ export const allMigrations: Migration[] = [
   new AddHistoricalChampions(),
   new AddEmailMagicLinks(),
   new AddCompleteRoundSelectionMethod(),
+  new CreateRelationalSchemaV2Core(),
+  new CreateRelationalSchemaV2PicksScoring(),
   // Add new migrations here as needed
 ];
 

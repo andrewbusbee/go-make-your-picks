@@ -4,6 +4,7 @@ import AppSettings from './AppSettings';
 import TestEmail from './TestEmail';
 import AdminsManagement from './AdminsManagement';
 import HistoricalChampionsManagement from './HistoricalChampionsManagement';
+import DatabaseHealth from './DatabaseHealth';
 import {
   tabContainerClasses,
   tabButtonActiveClasses,
@@ -17,7 +18,7 @@ interface SettingsProps {
 export default function Settings({ isMainAdmin }: SettingsProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'customize' | 'email' | 'admins' | 'champions'>('customize');
+  const [activeTab, setActiveTab] = useState<'customize' | 'email' | 'admins' | 'champions' | 'dbhealth'>('customize');
 
   // Determine active tab based on URL
   useEffect(() => {
@@ -27,21 +28,25 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
       setActiveTab('admins');
     } else if (location.pathname.includes('/admin/settings/champions')) {
       setActiveTab('champions');
+    } else if (location.pathname.includes('/admin/settings/db-health')) {
+      setActiveTab('dbhealth');
     } else {
       setActiveTab('customize');
     }
   }, [location.pathname]);
 
-  const handleTabChange = (tab: 'customize' | 'email' | 'admins' | 'champions') => {
+  const handleTabChange = (tab: 'customize' | 'email' | 'admins' | 'champions' | 'dbhealth') => {
     setActiveTab(tab);
     if (tab === 'customize') {
       navigate('/admin/settings');
+    } else if (tab === 'dbhealth') {
+      navigate('/admin/settings/db-health');
     } else {
       navigate(`/admin/settings/${tab}`);
     }
   };
 
-  const getSubTabClass = (tab: 'customize' | 'email' | 'admins' | 'champions') => {
+  const getSubTabClass = (tab: 'customize' | 'email' | 'admins' | 'champions' | 'dbhealth') => {
     return activeTab === tab ? tabButtonActiveClasses : tabButtonInactiveClasses;
   };
 
@@ -73,6 +78,12 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
         >
           Add Previous Champions
         </button>
+        <button
+          onClick={() => handleTabChange('dbhealth')}
+          className={getSubTabClass('dbhealth')}
+        >
+          Database Health
+        </button>
       </div>
 
       {/* Content */}
@@ -81,6 +92,7 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
         {activeTab === 'email' && <TestEmail isMainAdmin={isMainAdmin} />}
         {activeTab === 'admins' && <AdminsManagement isMainAdmin={isMainAdmin} />}
         {activeTab === 'champions' && <HistoricalChampionsManagement />}
+        {activeTab === 'dbhealth' && <DatabaseHealth />}
       </div>
     </div>
   );
