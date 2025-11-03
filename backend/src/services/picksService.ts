@@ -1,11 +1,13 @@
 /**
  * Picks Service
  * Centralized pick submission logic to eliminate duplication
+ * Updated to use v2 normalized schema (picks_v2, pick_items_v2, teams_v2)
  */
 
 import { PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import logger from '../utils/logger';
 import { sanitizePlainTextArray } from '../utils/textSanitizer';
+import { getOrCreateTeam } from '../utils/teamHelpers';
 
 export interface SubmitPickOptions {
   userId: number;
@@ -55,6 +57,7 @@ export class PicksService {
 
   /**
    * Validates picks against available teams for a round
+   * Uses v2 schema: round_teams_v2 + teams_v2
    */
   static async validatePicksAgainstTeams(
     connection: PoolConnection,
@@ -62,12 +65,16 @@ export class PicksService {
     picks: string[]
   ): Promise<{ valid: boolean; error?: string }> {
     try {
+      // Get available teams from round_teams_v2 + teams_v2
       const [teams] = await connection.query<RowDataPacket[]>(
-        'SELECT team_name FROM round_teams WHERE round_id = ?',
+        `SELECT t.name 
+         FROM round_teams_v2 rt
+         JOIN teams_v2 t ON rt.team_id = t.id
+         WHERE rt.round_id = ?`,
         [roundId]
       );
 
-      const teamNames = teams.map(t => t.team_name.toLowerCase());
+      const teamNames = teams.map(t => t.name.toLowerCase());
       
       if (teamNames.length > 0) {
         for (const pick of picks) {
@@ -90,6 +97,7 @@ export class PicksService {
   /**
    * Creates or updates a pick with pick items
    * Handles the complete pick submission workflow
+   * Uses v2 schema: picks_v2, pick_items_v2 (with team_id references)
    */
   static async submitPick(
     connection: PoolConnection,
@@ -116,9 +124,18 @@ export class PicksService {
         }
       }
 
-      // Insert or update main pick record
+      // Get or create teams for each pick (normalized to teams_v2)
+      const teamIds: number[] = [];
+      for (const pick of cleanedPicks) {
+        if (pick && pick.trim().length > 0) {
+          const teamId = await getOrCreateTeam(connection, pick);
+          teamIds.push(teamId);
+        }
+      }
+
+      // Insert or update main pick record in picks_v2
       const [result] = await connection.query<ResultSetHeader>(
-        `INSERT INTO picks (user_id, round_id)
+        `INSERT INTO picks_v2 (user_id, round_id)
          VALUES (?, ?)
          ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)`,
         [userId, roundId]
@@ -129,7 +146,7 @@ export class PicksService {
       
       if (!pickId) {
         const [existingPick] = await connection.query<RowDataPacket[]>(
-          'SELECT id FROM picks WHERE user_id = ? AND round_id = ?',
+          'SELECT id FROM picks_v2 WHERE user_id = ? AND round_id = ?',
           [userId, roundId]
         );
         
@@ -142,18 +159,16 @@ export class PicksService {
 
       // Delete existing pick items
       await connection.query(
-        'DELETE FROM pick_items WHERE pick_id = ?',
+        'DELETE FROM pick_items_v2 WHERE pick_id = ?',
         [pickId]
       );
 
-      // Insert new pick items
-      const pickItemValues = cleanedPicks
-        .filter(p => p && p.trim().length > 0)
-        .map((pick, index) => [pickId, index + 1, pick]);
+      // Insert new pick items with team_id references
+      const pickItemValues = teamIds.map((teamId, index) => [pickId, index + 1, teamId]);
 
       if (pickItemValues.length > 0) {
         await connection.query(
-          'INSERT INTO pick_items (pick_id, pick_number, pick_value) VALUES ?',
+          'INSERT INTO pick_items_v2 (pick_id, pick_number, team_id) VALUES ?',
           [pickItemValues]
         );
       }
@@ -164,6 +179,7 @@ export class PicksService {
 
   /**
    * Gets pick with items for a user and round
+   * Uses v2 schema: picks_v2, pick_items_v2 + teams_v2 (joins to get team names)
    */
   static async getPick(
     connection: PoolConnection,
@@ -172,7 +188,7 @@ export class PicksService {
   ): Promise<{ id: number; pickItems: Array<{ pickNumber: number; pickValue: string }> } | null> {
     try {
       const [picks] = await connection.query<RowDataPacket[]>(
-        'SELECT * FROM picks WHERE user_id = ? AND round_id = ?',
+        'SELECT * FROM picks_v2 WHERE user_id = ? AND round_id = ?',
         [userId, roundId]
       );
 
@@ -180,8 +196,13 @@ export class PicksService {
         return null;
       }
 
+      // Get pick items with team names joined from teams_v2
       const [pickItems] = await connection.query<RowDataPacket[]>(
-        'SELECT pick_number, pick_value FROM pick_items WHERE pick_id = ? ORDER BY pick_number',
+        `SELECT pi.pick_number, t.name as pick_value
+         FROM pick_items_v2 pi
+         JOIN teams_v2 t ON pi.team_id = t.id
+         WHERE pi.pick_id = ?
+         ORDER BY pi.pick_number`,
         [picks[0].id]
       );
 

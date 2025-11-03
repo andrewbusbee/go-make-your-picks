@@ -17,87 +17,126 @@ import { SettingsService } from '../services/settingsService';
 import logger, { redactEmail } from '../utils/logger';
 import { withTransaction } from '../utils/transactionWrapper';
 import { sanitizePlainText, sanitizePlainTextArray } from '../utils/textSanitizer';
+import { getOrCreateTeam } from '../utils/teamHelpers';
 
 const router = express.Router();
 
 // Helper function to prepare shared data for all completion emails (calculated once)
+// Updated to use v2 schema
 const prepareCompletionEmailData = async (roundId: number, seasonId: number) => {
   try {
-    // Get round data with final results
+    // Get round data from rounds_v2
     const [roundData] = await db.query<RowDataPacket[]>(
-      `SELECT sport_name, first_place_team, second_place_team, third_place_team, fourth_place_team, fifth_place_team 
-       FROM rounds WHERE id = ?`,
+      `SELECT sport_name FROM rounds_v2 WHERE id = ?`,
       [roundId]
     );
 
     const round = roundData[0];
-    const finalResults = [
-      { place: 1, team: round.first_place_team },
-      { place: 2, team: round.second_place_team },
-      { place: 3, team: round.third_place_team },
-      { place: 4, team: round.fourth_place_team },
-      { place: 5, team: round.fifth_place_team }
-    ].filter(result => result.team);
+    
+    // Get final results from round_results_v2 + teams_v2
+    const [roundResults] = await db.query<RowDataPacket[]>(
+      `SELECT rr.place, t.name as team
+       FROM round_results_v2 rr
+       JOIN teams_v2 t ON rr.team_id = t.id
+       WHERE rr.round_id = ?
+       ORDER BY rr.place`,
+      [roundId]
+    );
+
+    const finalResults = roundResults.map(rr => ({
+      place: rr.place,
+      team: rr.team
+    }));
 
     // Get points settings once for all calculations
     const pointsSettings = await SettingsService.getPointsSettings();
 
-    // Get all picks for this round (single query for all users)
+    // Get all picks for this round from picks_v2 + pick_items_v2 + teams_v2
     const [allPicks] = await db.query<RowDataPacket[]>(
-      `SELECT p.user_id, pi.pick_value 
-       FROM picks p 
-       LEFT JOIN pick_items pi ON p.id = pi.pick_id 
-       WHERE p.round_id = ?`,
+      `SELECT p.user_id, t.name as pick_value 
+       FROM picks_v2 p 
+       LEFT JOIN pick_items_v2 pi ON p.id = pi.pick_id
+       LEFT JOIN teams_v2 t ON pi.team_id = t.id
+       WHERE p.round_id = ?
+       ORDER BY pi.pick_number`,
       [roundId]
     );
 
-    // Build user picks map for O(1) lookup
+    // Build user picks map for O(1) lookup (take first pick per user)
     const userPicksMap = new Map<number, string>();
     allPicks.forEach(pick => {
-      if (pick.pick_value) {
+      if (pick.pick_value && !userPicksMap.has(pick.user_id)) {
         userPicksMap.set(pick.user_id, pick.pick_value);
       }
     });
 
-    // Get all completed rounds for this season
+    // Get all completed rounds for this season from rounds_v2
     const [completedRounds] = await db.query<RowDataPacket[]>(
-      'SELECT id FROM rounds WHERE season_id = ? AND status = ?',
+      'SELECT id FROM rounds_v2 WHERE season_id = ? AND status = ? AND deleted_at IS NULL',
       [seasonId, 'completed']
     );
 
     const completedRoundIds = completedRounds.map(r => r.id);
 
-    // Get leaderboard data for all participants (single query)
-    const [leaderboardData] = await db.query<RowDataPacket[]>(
-      `SELECT u.name, u.id, s.round_id, s.first_place, s.second_place, s.third_place, s.fourth_place, s.fifth_place, s.sixth_plus_place, s.no_pick
+    // Get leaderboard data for all participants using score_details_v2 + scoring_rules_v2
+    // For simplicity, we'll use ScoringService or calculate directly
+    // Get scoring rules for this season
+    const [scoringRules] = await db.query<RowDataPacket[]>(
+      'SELECT place, points FROM scoring_rules_v2 WHERE season_id = ?',
+      [seasonId]
+    );
+
+    // Build scoring rules map
+    const scoringRulesMap = new Map<number, number>();
+    scoringRules.forEach(rule => {
+      scoringRulesMap.set(rule.place, rule.points);
+    });
+
+    // If no scoring rules, use SettingsService
+    if (scoringRulesMap.size === 0) {
+      scoringRulesMap.set(1, pointsSettings.pointsFirst);
+      scoringRulesMap.set(2, pointsSettings.pointsSecond);
+      scoringRulesMap.set(3, pointsSettings.pointsThird);
+      scoringRulesMap.set(4, pointsSettings.pointsFourth);
+      scoringRulesMap.set(5, pointsSettings.pointsFifth);
+      scoringRulesMap.set(6, pointsSettings.pointsSixthPlus);
+      scoringRulesMap.set(0, pointsSettings.pointsNoPick);
+    }
+
+    // Get score details for completed rounds
+    let scoreDetails: RowDataPacket[] = [];
+    if (completedRoundIds.length > 0) {
+      [scoreDetails] = await db.query<RowDataPacket[]>(
+        `SELECT sd.user_id, sd.round_id, sd.place, sd.count
+         FROM score_details_v2 sd
+         WHERE sd.round_id IN (${completedRoundIds.map(() => '?').join(',')})`,
+        completedRoundIds
+      );
+    }
+
+    // Get participants
+    const [participants] = await db.query<RowDataPacket[]>(
+      `SELECT u.id, u.name
        FROM users u
-       LEFT JOIN scores s ON u.id = s.user_id AND s.round_id IN (${completedRoundIds.map(() => '?').join(',')})
-       JOIN season_participants sp ON u.id = sp.user_id AND sp.season_id = ?
+       JOIN season_participants_v2 sp ON u.id = sp.user_id AND sp.season_id = ?
        WHERE u.is_active = TRUE`,
-      [...completedRoundIds, seasonId]
+      [seasonId]
     );
 
     // Calculate total points for each user
     const userTotals = new Map<number, { name: string; points: number }>();
     
-    leaderboardData.forEach(entry => {
-      if (!userTotals.has(entry.id)) {
-        userTotals.set(entry.id, { name: entry.name, points: 0 });
-      }
-      
-      if (entry.round_id) {
-        // Calculate points for this round
-        const roundPoints = 
-          (entry.first_place || 0) * pointsSettings.pointsFirst +
-          (entry.second_place || 0) * pointsSettings.pointsSecond +
-          (entry.third_place || 0) * pointsSettings.pointsThird +
-          (entry.fourth_place || 0) * pointsSettings.pointsFourth +
-          (entry.fifth_place || 0) * pointsSettings.pointsFifth +
-          (entry.sixth_plus_place || 0) * pointsSettings.pointsSixthPlus +
-          (entry.no_pick || 0) * pointsSettings.pointsNoPick;
-        
-        userTotals.get(entry.id)!.points += roundPoints;
-      }
+    participants.forEach(participant => {
+      userTotals.set(participant.id, { name: participant.name, points: 0 });
+    });
+
+    scoreDetails.forEach(sd => {
+      const points = scoringRulesMap.get(sd.place) || 0;
+      const total = (userTotals.get(sd.user_id)?.points || 0) + (sd.count * points);
+      userTotals.set(sd.user_id, {
+        name: userTotals.get(sd.user_id)?.name || '',
+        points: total
+      });
     });
 
     // Sort by total points for leaderboard
@@ -120,6 +159,7 @@ const prepareCompletionEmailData = async (roundId: number, seasonId: number) => 
 };
 
 // Helper function to calculate user-specific performance data from shared data
+// Updated to use v2 schema: finalResults from round_results_v2 + teams_v2
 const calculateUserPerformanceData = (
   userId: number,
   sharedData: {
@@ -142,16 +182,23 @@ const calculateUserPerformanceData = (
     userPick = userPickValue;
     const lowerPickValue = userPickValue.toLowerCase();
     
-    // Calculate points based on placement
-    if (round.first_place_team && lowerPickValue === round.first_place_team.toLowerCase()) {
+    // Calculate points based on placement using finalResults from round_results_v2
+    // finalResults is an array of { place, team }
+    const firstPlace = finalResults.find(r => r.place === 1);
+    const secondPlace = finalResults.find(r => r.place === 2);
+    const thirdPlace = finalResults.find(r => r.place === 3);
+    const fourthPlace = finalResults.find(r => r.place === 4);
+    const fifthPlace = finalResults.find(r => r.place === 5);
+    
+    if (firstPlace && lowerPickValue === firstPlace.team.toLowerCase()) {
       userPoints = pointsSettings.pointsFirst;
-    } else if (round.second_place_team && lowerPickValue === round.second_place_team.toLowerCase()) {
+    } else if (secondPlace && lowerPickValue === secondPlace.team.toLowerCase()) {
       userPoints = pointsSettings.pointsSecond;
-    } else if (round.third_place_team && lowerPickValue === round.third_place_team.toLowerCase()) {
+    } else if (thirdPlace && lowerPickValue === thirdPlace.team.toLowerCase()) {
       userPoints = pointsSettings.pointsThird;
-    } else if (round.fourth_place_team && lowerPickValue === round.fourth_place_team.toLowerCase()) {
+    } else if (fourthPlace && lowerPickValue === fourthPlace.team.toLowerCase()) {
       userPoints = pointsSettings.pointsFourth;
-    } else if (round.fifth_place_team && lowerPickValue === round.fifth_place_team.toLowerCase()) {
+    } else if (fifthPlace && lowerPickValue === fifthPlace.team.toLowerCase()) {
       userPoints = pointsSettings.pointsFifth;
     } else {
       userPoints = pointsSettings.pointsSixthPlus;
@@ -180,7 +227,7 @@ const calculateUserPerformanceData = (
 router.get('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM rounds WHERE deleted_at IS NULL ORDER BY created_at DESC'
+      'SELECT * FROM rounds_v2 WHERE deleted_at IS NULL ORDER BY created_at DESC'
     );
     res.json(rounds);
   } catch (error) {
@@ -195,27 +242,27 @@ router.get('/season/:seasonId', async (req, res) => {
 
   try {
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM rounds WHERE season_id = ? AND deleted_at IS NULL ORDER BY created_at DESC',
+      'SELECT * FROM rounds_v2 WHERE season_id = ? AND deleted_at IS NULL ORDER BY created_at DESC',
       [seasonId]
     );
     
-    // Optimize: Get participants once for the entire season (not per round)
+    // Optimize: Get participants once for the entire season (not per round) from season_participants_v2
     const [participants] = await db.query<RowDataPacket[]>(
       `SELECT u.id, u.name, u.email
        FROM users u
-       JOIN season_participants sp ON u.id = sp.user_id
+       JOIN season_participants_v2 sp ON u.id = sp.user_id
        WHERE sp.season_id = ? AND u.is_active = TRUE
        ORDER BY u.name ASC`,
       [seasonId]
     );
     
-    // Optimize: Get all picks for all active rounds in this season (single query)
+    // Optimize: Get all picks for all active rounds in this season (single query) from picks_v2
     const activeRoundIds = rounds.filter(r => r.status === 'active').map(r => r.id);
     let picksMap = new Map<number, Set<number>>(); // roundId -> Set of userIds who picked
     
     if (activeRoundIds.length > 0) {
       const [allPicks] = await db.query<RowDataPacket[]>(
-        'SELECT round_id, user_id FROM picks WHERE round_id IN (?)',
+        'SELECT round_id, user_id FROM picks_v2 WHERE round_id IN (?)',
         [activeRoundIds]
       );
       
@@ -228,12 +275,15 @@ router.get('/season/:seasonId', async (req, res) => {
       });
     }
     
-    // Get all teams for all rounds in this season (single query)
+    // Get all teams for all rounds in this season (single query) from round_teams_v2 + teams_v2
     const teamsMap = new Map<number, any[]>();
     
     if (rounds.length > 0) {
       const [allTeams] = await db.query<RowDataPacket[]>(
-        'SELECT round_id, team_name FROM round_teams WHERE round_id IN (?)',
+        `SELECT rt.round_id, t.name as team_name
+         FROM round_teams_v2 rt
+         JOIN teams_v2 t ON rt.team_id = t.id
+         WHERE rt.round_id IN (?)`,
         [rounds.map(r => r.id)]
       );
       
@@ -301,7 +351,7 @@ router.get('/:id', async (req, res) => {
 
   try {
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM rounds WHERE id = ? AND deleted_at IS NULL',
+      'SELECT * FROM rounds_v2 WHERE id = ? AND deleted_at IS NULL',
       [roundId]
     );
 
@@ -309,8 +359,13 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Round not found' });
     }
 
+    // Get teams from round_teams_v2 + teams_v2
     const [teams] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM round_teams WHERE round_id = ? ORDER BY team_name',
+      `SELECT t.id, t.name as team_name
+       FROM round_teams_v2 rt
+       JOIN teams_v2 t ON rt.team_id = t.id
+       WHERE rt.round_id = ?
+       ORDER BY t.name`,
       [roundId]
     );
 
@@ -388,13 +443,14 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
   try {
     const roundId = await withTransaction(async (connection) => {
       const [result] = await connection.query<ResultSetHeader>(
-        'INSERT INTO rounds (season_id, sport_name, pick_type, num_write_in_picks, email_message, lock_time, timezone, reminder_type, daily_reminder_time, first_reminder_hours, final_reminder_hours, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'INSERT INTO rounds_v2 (season_id, sport_name, pick_type, num_write_in_picks, email_message, lock_time, timezone, reminder_type, daily_reminder_time, first_reminder_hours, final_reminder_hours, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         [seasonId, sportName, validPickType, validPickType === 'multiple' ? numWriteInPicks : null, emailMessage || null, mysqlLockTime, validTimezone, validReminderType, validDailyReminderTime, validFirstReminderHours, validFinalReminderHours, 'draft']
       );
 
       const roundId = result.insertId;
 
       // Add teams if provided (only for single pick type)
+      // Use teams_v2 + round_teams_v2 instead of round_teams
       if (validPickType === 'single' && teams && Array.isArray(teams) && teams.length > 0) {
         // Validate team name lengths
         for (const team of teams) {
@@ -404,9 +460,17 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
         }
         // Sanitize inputs without HTML-encoding characters like '/'
         const cleanedTeams = sanitizePlainTextArray(teams);
-        const teamValues = cleanedTeams.map((team: string) => [roundId, team]);
+        
+        // Get or create teams in teams_v2, then insert into round_teams_v2
+        const teamIds: number[] = [];
+        for (const team of cleanedTeams) {
+          const teamId = await getOrCreateTeam(connection, team);
+          teamIds.push(teamId);
+        }
+        
+        const teamValues = teamIds.map(teamId => [roundId, teamId]);
         await connection.query(
-          'INSERT INTO round_teams (round_id, team_name) VALUES ?',
+          'INSERT INTO round_teams_v2 (round_id, team_id) VALUES ?',
           [teamValues]
         );
       }
@@ -471,7 +535,7 @@ router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), as
   // Validate season if provided
   if (seasonId) {
     const [seasons] = await db.query<RowDataPacket[]>(
-      'SELECT id, is_active, ended_at FROM seasons WHERE id = ? AND deleted_at IS NULL',
+      'SELECT id, is_active, ended_at FROM seasons_v2 WHERE id = ? AND deleted_at IS NULL',
       [seasonId]
     );
 
@@ -497,7 +561,7 @@ router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), as
   } else if (lockTime) {
     // If only lockTime provided (no timezone change), get the current timezone from DB
     const [currentRound] = await db.query<RowDataPacket[]>(
-      'SELECT timezone FROM rounds WHERE id = ?',
+      'SELECT timezone FROM rounds_v2 WHERE id = ?',
       [roundId]
     );
     if (currentRound.length > 0) {
@@ -509,7 +573,7 @@ router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), as
 
   try {
     await db.query(
-      `UPDATE rounds SET 
+      `UPDATE rounds_v2 SET 
         season_id = COALESCE(?, season_id),
         sport_name = COALESCE(?, sport_name),
         pick_type = COALESCE(?, pick_type),
@@ -539,7 +603,7 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
   try {
     // Get round details
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT r.* FROM rounds r WHERE r.id = ?',
+      'SELECT r.* FROM rounds_v2 r WHERE r.id = ?',
       [roundId]
     );
 
@@ -550,13 +614,13 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
     const round = rounds[0];
 
     // Update round status
-    await db.query('UPDATE rounds SET status = ? WHERE id = ?', ['active', roundId]);
+    await db.query('UPDATE rounds_v2 SET status = ? WHERE id = ?', ['active', roundId]);
 
     // Get season participants only (not all users), excluding deactivated players
     const [users] = await db.query<RowDataPacket[]>(
       `SELECT u.* FROM users u
-       JOIN season_participants sp ON u.id = sp.user_id
-       WHERE sp.season_id = (SELECT season_id FROM rounds WHERE id = ?)
+       JOIN season_participants_v2 sp ON u.id = sp.user_id
+       WHERE sp.season_id = (SELECT season_id FROM rounds_v2 WHERE id = ?)
        AND u.is_active = TRUE`,
       [roundId]
     );
@@ -689,9 +753,9 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
 
   try {
     await withTransaction(async (connection) => {
-      // Get round details
+      // Get round details from rounds_v2
       const [rounds] = await connection.query<RowDataPacket[]>(
-        'SELECT * FROM rounds WHERE id = ?',
+        'SELECT * FROM rounds_v2 WHERE id = ?',
         [roundId]
       );
 
@@ -702,86 +766,134 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
       const round = rounds[0];
       const pickType = round.pick_type || 'single';
 
-      // Update round with results
+      // Update round status to completed
       await connection.query(
-        'UPDATE rounds SET status = ?, first_place_team = ?, second_place_team = ?, third_place_team = ?, fourth_place_team = ?, fifth_place_team = ? WHERE id = ?',
-        ['completed', firstPlaceTeam, secondPlaceTeam || null, thirdPlaceTeam || null, fourthPlaceTeam || null, fifthPlaceTeam || null, roundId]
+        'UPDATE rounds_v2 SET status = ? WHERE id = ?',
+        ['completed', roundId]
       );
 
-      // Get all picks for this round
-      const [picks] = await connection.query<RowDataPacket[]>(
-        'SELECT * FROM picks WHERE round_id = ?',
+      // Get or create teams for results and store in round_results_v2
+      const resultTeams: { place: number; teamId: number | null }[] = [];
+      
+      if (firstPlaceTeam) {
+        const teamId = await getOrCreateTeam(connection, firstPlaceTeam);
+        resultTeams.push({ place: 1, teamId });
+      }
+      if (secondPlaceTeam) {
+        const teamId = await getOrCreateTeam(connection, secondPlaceTeam);
+        resultTeams.push({ place: 2, teamId });
+      }
+      if (thirdPlaceTeam) {
+        const teamId = await getOrCreateTeam(connection, thirdPlaceTeam);
+        resultTeams.push({ place: 3, teamId });
+      }
+      if (fourthPlaceTeam) {
+        const teamId = await getOrCreateTeam(connection, fourthPlaceTeam);
+        resultTeams.push({ place: 4, teamId });
+      }
+      if (fifthPlaceTeam) {
+        const teamId = await getOrCreateTeam(connection, fifthPlaceTeam);
+        resultTeams.push({ place: 5, teamId });
+      }
+
+      // Delete existing round results and insert new ones
+      await connection.query(
+        'DELETE FROM round_results_v2 WHERE round_id = ?',
         [roundId]
       );
 
-      // Get all pick items
+      if (resultTeams.length > 0) {
+        const resultValues = resultTeams.map(rt => [roundId, rt.place, rt.teamId]);
+        await connection.query(
+          'INSERT INTO round_results_v2 (round_id, place, team_id) VALUES ?',
+          [resultValues]
+        );
+      }
+
+      // Get all picks for this round from picks_v2
+      const [picks] = await connection.query<RowDataPacket[]>(
+        'SELECT * FROM picks_v2 WHERE round_id = ?',
+        [roundId]
+      );
+
+      // Get all pick items from pick_items_v2 (with team_id, not pick_value)
       const pickIds = picks.map(p => p.id);
       let pickItems: RowDataPacket[] = [];
       if (pickIds.length > 0) {
         [pickItems] = await connection.query<RowDataPacket[]>(
-          'SELECT * FROM pick_items WHERE pick_id IN (?)',
+          'SELECT pick_id, pick_number, team_id FROM pick_items_v2 WHERE pick_id IN (?)',
           [pickIds]
         );
       }
 
+      // Get round results (team_id per place) for comparison
+      const [roundResults] = await connection.query<RowDataPacket[]>(
+        'SELECT place, team_id FROM round_results_v2 WHERE round_id = ? ORDER BY place',
+        [roundId]
+      );
+      
+      // Build map of place -> team_id for quick lookup
+      const resultsByPlace = new Map<number, number>();
+      roundResults.forEach(rr => {
+        resultsByPlace.set(rr.place, rr.team_id);
+      });
+
+      // Delete existing score details for this round
+      await connection.query(
+        'DELETE FROM score_details_v2 WHERE round_id = ?',
+        [roundId]
+      );
+
       // Calculate scores based on pick type
       if (pickType === 'single') {
         // Automatic scoring for single pick type
-        const placements = [firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam, fourthPlaceTeam, fifthPlaceTeam].filter(Boolean);
+        // Compare pick_items_v2.team_id with round_results_v2.team_id
         
         for (const pick of picks) {
-          let first = 0, second = 0, third = 0, fourth = 0, fifth = 0, sixthPlus = 0;
-
-          // Get pick items for this pick
+          // Get pick items for this pick (with team_id)
           const userPickItems = pickItems.filter(pi => pi.pick_id === pick.id);
           
-          // Check each pick against placements (case insensitive)
-          let matched = false;
+          if (userPickItems.length === 0) {
+            // No pick - insert place=0, count=1
+            await connection.query(
+              `INSERT INTO score_details_v2 (user_id, round_id, place, count)
+               VALUES (?, ?, 0, 1)
+               ON DUPLICATE KEY UPDATE count = 1`,
+              [pick.user_id, roundId]
+            );
+            continue;
+          }
+
+          // Check each pick against round results (compare team_id)
+          let matchedPlace: number | null = null;
           for (const item of userPickItems) {
-            const pickValue = item.pick_value.toLowerCase();
-            
-            if (firstPlaceTeam && pickValue === firstPlaceTeam.toLowerCase()) {
-              first = 1;
-              matched = true;
-              break;
-            } else if (secondPlaceTeam && pickValue === secondPlaceTeam.toLowerCase()) {
-              second = 1;
-              matched = true;
-              break;
-            } else if (thirdPlaceTeam && pickValue === thirdPlaceTeam.toLowerCase()) {
-              third = 1;
-              matched = true;
-              break;
-            } else if (fourthPlaceTeam && pickValue === fourthPlaceTeam.toLowerCase()) {
-              fourth = 1;
-              matched = true;
-              break;
-            } else if (fifthPlaceTeam && pickValue === fifthPlaceTeam.toLowerCase()) {
-              fifth = 1;
-              matched = true;
-              break;
+            // Find which place this team_id matches in round_results_v2
+            for (const [place, resultTeamId] of resultsByPlace.entries()) {
+              if (item.team_id === resultTeamId) {
+                matchedPlace = place;
+                break;
+              }
             }
+            if (matchedPlace !== null) break;
           }
 
-          // If no match in top 5, they get 6th+ place point
-          if (!matched) {
-            sixthPlus = 1;
+          if (matchedPlace !== null) {
+            // Match found - insert score_details_v2 with place and count=1
+            await connection.query(
+              `INSERT INTO score_details_v2 (user_id, round_id, place, count)
+               VALUES (?, ?, ?, 1)
+               ON DUPLICATE KEY UPDATE count = 1`,
+              [pick.user_id, roundId, matchedPlace]
+            );
+          } else {
+            // No match in top 5 - insert place=6 (sixth_plus_place), count=1
+            await connection.query(
+              `INSERT INTO score_details_v2 (user_id, round_id, place, count)
+               VALUES (?, ?, 6, 1)
+               ON DUPLICATE KEY UPDATE count = 1`,
+              [pick.user_id, roundId]
+            );
           }
-
-          // Insert or update score (flags only, points calculated dynamically)
-          await connection.query(
-            `INSERT INTO scores (user_id, round_id, first_place, second_place, third_place, fourth_place, fifth_place, sixth_plus_place, no_pick)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
-             ON DUPLICATE KEY UPDATE 
-             first_place = VALUES(first_place),
-             second_place = VALUES(second_place),
-             third_place = VALUES(third_place),
-             fourth_place = VALUES(fourth_place),
-             fifth_place = VALUES(fifth_place),
-             sixth_plus_place = VALUES(sixth_plus_place),
-             no_pick = 0`,
-            [pick.user_id, roundId, first, second, third, fourth, fifth, sixthPlus]
-          );
         }
       } else {
         // Manual scoring for multiple pick type
@@ -791,41 +903,35 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
 
         for (const scoreData of manualScores) {
           const { userId, placement } = scoreData;
-          let first = 0, second = 0, third = 0, fourth = 0, fifth = 0, sixthPlus = 0;
+          let place: number;
           
-          // Set the appropriate placement flag based on selection
+          // Map placement string to place number
           switch(placement) {
-            case 'first': first = 1; break;
-            case 'second': second = 1; break;
-            case 'third': third = 1; break;
-            case 'fourth': fourth = 1; break;
-            case 'fifth': fifth = 1; break;
-            case 'sixth_plus': sixthPlus = 1; break;
-            default: sixthPlus = 1; break; // Fallback for legacy or undefined
+            case 'first': place = 1; break;
+            case 'second': place = 2; break;
+            case 'third': place = 3; break;
+            case 'fourth': place = 4; break;
+            case 'fifth': place = 5; break;
+            case 'sixth_plus': place = 6; break;
+            default: place = 6; break; // Fallback
           }
 
+          // Insert into score_details_v2
           await connection.query(
-            `INSERT INTO scores (user_id, round_id, first_place, second_place, third_place, fourth_place, fifth_place, sixth_plus_place, no_pick)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)
-             ON DUPLICATE KEY UPDATE 
-             first_place = VALUES(first_place),
-             second_place = VALUES(second_place),
-             third_place = VALUES(third_place),
-             fourth_place = VALUES(fourth_place),
-             fifth_place = VALUES(fifth_place),
-             sixth_plus_place = VALUES(sixth_plus_place),
-             no_pick = 0`,
-            [userId, roundId, first, second, third, fourth, fifth, sixthPlus]
+            `INSERT INTO score_details_v2 (user_id, round_id, place, count)
+             VALUES (?, ?, ?, 1)
+             ON DUPLICATE KEY UPDATE count = 1`,
+            [userId, roundId, place]
           );
         }
       }
 
       // Handle participants who didn't make picks (for both single and multiple pick types)
-      // Get all season participants
+      // Get all season participants from season_participants_v2
       const [allParticipants] = await connection.query<RowDataPacket[]>(
         `SELECT u.id
          FROM users u
-         JOIN season_participants sp ON u.id = sp.user_id
+         JOIN season_participants_v2 sp ON u.id = sp.user_id
          WHERE sp.season_id = ? AND u.is_active = TRUE`,
         [round.season_id]
       );
@@ -836,19 +942,12 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
       // Find participants who didn't make picks
       const nonPickers = allParticipants.filter(p => !userIdsWithPicks.includes(p.id));
 
-      // Create score records for non-pickers with no_pick = 1
+      // Create score records for non-pickers with place=0 (no_pick), count=1
       for (const nonPicker of nonPickers) {
         await connection.query(
-          `INSERT INTO scores (user_id, round_id, first_place, second_place, third_place, fourth_place, fifth_place, sixth_plus_place, no_pick)
-           VALUES (?, ?, 0, 0, 0, 0, 0, 0, 1)
-           ON DUPLICATE KEY UPDATE 
-           first_place = 0,
-           second_place = 0,
-           third_place = 0,
-           fourth_place = 0,
-           fifth_place = 0,
-           sixth_plus_place = 0,
-           no_pick = 1`,
+          `INSERT INTO score_details_v2 (user_id, round_id, place, count)
+           VALUES (?, ?, 0, 1)
+           ON DUPLICATE KEY UPDATE count = 1`,
           [nonPicker.id, roundId]
         );
       }
@@ -860,7 +959,7 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
       
       // Get all season participants for this round
       const [seasonId] = await db.query<RowDataPacket[]>(
-        'SELECT season_id FROM rounds WHERE id = ?',
+        'SELECT season_id FROM rounds_v2 WHERE id = ?',
         [roundId]
       );
 
@@ -869,7 +968,7 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
       const [participants] = await db.query<RowDataPacket[]>(
         `SELECT u.id, u.name, u.email 
          FROM users u
-         JOIN season_participants sp ON u.id = sp.user_id 
+         JOIN season_participants_v2 sp ON u.id = sp.user_id 
          WHERE sp.season_id = ? AND u.is_active = TRUE`,
         [seasonId[0].season_id]
       );
@@ -1016,7 +1115,7 @@ router.post('/:id/lock', authenticateAdmin, async (req: AuthRequest, res: Respon
   try {
     // Check if round exists and is active
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM rounds WHERE id = ?',
+      'SELECT * FROM rounds_v2 WHERE id = ?',
       [roundId]
     );
 
@@ -1031,7 +1130,7 @@ router.post('/:id/lock', authenticateAdmin, async (req: AuthRequest, res: Respon
     }
 
     // Lock the round
-    await db.query('UPDATE rounds SET status = ? WHERE id = ?', ['locked', roundId]);
+    await db.query('UPDATE rounds_v2 SET status = ? WHERE id = ?', ['locked', roundId]);
 
     // Send locked notifications to all participants
     await manualSendLockedNotification(roundId);
@@ -1050,7 +1149,7 @@ router.post('/:id/unlock', authenticateAdmin, async (req: AuthRequest, res: Resp
   try {
     // Check if round exists and is completed
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM rounds WHERE id = ?',
+      'SELECT * FROM rounds_v2 WHERE id = ?',
       [roundId]
     );
 
@@ -1066,7 +1165,7 @@ router.post('/:id/unlock', authenticateAdmin, async (req: AuthRequest, res: Resp
 
     // Update round status to 'locked' (can be edited but picks are still locked)
     await db.query(
-      'UPDATE rounds SET status = ? WHERE id = ?',
+      'UPDATE rounds_v2 SET status = ? WHERE id = ?',
       ['locked', roundId]
     );
 
@@ -1082,7 +1181,7 @@ router.delete('/:id/teams', authenticateAdmin, async (req: AuthRequest, res: Res
   const roundId = parseInt(req.params.id);
 
   try {
-    await db.query('DELETE FROM round_teams WHERE round_id = ?', [roundId]);
+    await db.query('DELETE FROM round_teams_v2 WHERE round_id = ?', [roundId]);
     res.json({ message: 'Teams deleted successfully' });
   } catch (error) {
     logger.error('Delete teams error', { error, roundId });
@@ -1100,12 +1199,22 @@ router.post('/:id/teams', authenticateAdmin, async (req: AuthRequest, res: Respo
   }
 
   try {
-    const cleaned = sanitizePlainTextArray(teams);
-    const teamValues = cleaned.map((team: string) => [roundId, team]);
-    await db.query(
-      'INSERT INTO round_teams (round_id, team_name) VALUES ?',
-      [teamValues]
-    );
+    await withTransaction(async (connection) => {
+      const cleaned = sanitizePlainTextArray(teams);
+      
+      // Get or create teams in teams_v2, then insert into round_teams_v2
+      const teamIds: number[] = [];
+      for (const team of cleaned) {
+        const teamId = await getOrCreateTeam(connection, team);
+        teamIds.push(teamId);
+      }
+      
+      const teamValues = teamIds.map(teamId => [roundId, teamId]);
+      await connection.query(
+        'INSERT INTO round_teams_v2 (round_id, team_id) VALUES ?',
+        [teamValues]
+      );
+    });
 
     res.json({ message: 'Teams added successfully' });
   } catch (error) {
@@ -1131,7 +1240,7 @@ router.post('/:id/soft-delete', authenticateAdmin, async (req: AuthRequest, res:
 
     // Soft delete by setting deleted_at timestamp
     await db.query(
-      'UPDATE rounds SET deleted_at = NOW() WHERE id = ?',
+      'UPDATE rounds_v2 SET deleted_at = NOW() WHERE id = ?',
       [roundId]
     );
 
@@ -1159,7 +1268,7 @@ router.post('/:id/restore', authenticateAdmin, async (req: AuthRequest, res: Res
 
     // Restore by clearing deleted_at timestamp
     await db.query(
-      'UPDATE rounds SET deleted_at = NULL WHERE id = ?',
+      'UPDATE rounds_v2 SET deleted_at = NULL WHERE id = ?',
       [roundId]
     );
 
@@ -1176,7 +1285,7 @@ router.get('/season/:seasonId/deleted', authenticateAdmin, async (req: AuthReque
 
   try {
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM rounds WHERE season_id = ? AND deleted_at IS NOT NULL ORDER BY deleted_at DESC',
+      'SELECT * FROM rounds_v2 WHERE season_id = ? AND deleted_at IS NOT NULL ORDER BY deleted_at DESC',
       [seasonId]
     );
     res.json(rounds);
@@ -1199,7 +1308,7 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
 
     // Check if round exists and is already soft-deleted
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM rounds WHERE id = ? AND deleted_at IS NOT NULL',
+      'SELECT * FROM rounds_v2 WHERE id = ? AND deleted_at IS NOT NULL',
       [roundId]
     );
 
@@ -1214,15 +1323,15 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
 
     // Log pre-delete counts for verification
     const [pickCounts] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM picks WHERE round_id = ?',
+      'SELECT COUNT(*) as count FROM picks_v2 WHERE round_id = ?',
       [roundId]
     );
     const [scoreCounts] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM scores WHERE round_id = ?',
+      'SELECT COUNT(*) as count FROM score_details_v2 WHERE round_id = ?',
       [roundId]
     );
     const [teamCounts] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM round_teams WHERE round_id = ?',
+      'SELECT COUNT(*) as count FROM round_teams_v2 WHERE round_id = ?',
       [roundId]
     );
     const [linkCounts] = await db.query<RowDataPacket[]>(
@@ -1246,7 +1355,7 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
 
     // Permanently delete (CASCADE will handle all related data)
     const [result] = await db.query<ResultSetHeader>(
-      'DELETE FROM rounds WHERE id = ?',
+      'DELETE FROM rounds_v2 WHERE id = ?',
       [roundId]
     );
 
@@ -1257,15 +1366,15 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
 
     // Verify CASCADE deleted related data
     const [pickCountsAfter] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM picks WHERE round_id = ?',
+      'SELECT COUNT(*) as count FROM picks_v2 WHERE round_id = ?',
       [roundId]
     );
     const [scoreCountsAfter] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM scores WHERE round_id = ?',
+      'SELECT COUNT(*) as count FROM score_details_v2 WHERE round_id = ?',
       [roundId]
     );
     const [teamCountsAfter] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM round_teams WHERE round_id = ?',
+      'SELECT COUNT(*) as count FROM round_teams_v2 WHERE round_id = ?',
       [roundId]
     );
     const [linkCountsAfter] = await db.query<RowDataPacket[]>(
@@ -1336,11 +1445,11 @@ router.post('/force-send-daily-reminders', authenticateAdmin, requireMainAdmin, 
     const { checkAndSendReminders } = await import('../services/reminderScheduler');
     const { SettingsService } = await import('../services/settingsService');
     
-    // Get all active rounds
+    // Get all active rounds from rounds_v2 + seasons_v2
     const [rounds] = await db.query<RowDataPacket[]>(
       `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status
-       FROM rounds r
-       JOIN seasons s ON r.season_id = s.id 
+       FROM rounds_v2 r
+       JOIN seasons_v2 s ON r.season_id = s.id 
        WHERE r.status = 'active' 
        AND r.lock_time > NOW()
        AND r.deleted_at IS NULL
@@ -1462,9 +1571,9 @@ router.get('/:id/complete-teams', authenticateAdmin, async (req: AuthRequest, re
   const roundId = parseInt(req.params.id);
 
   try {
-    // Get round details
+    // Get round details from rounds_v2
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM rounds WHERE id = ? AND deleted_at IS NULL',
+      'SELECT * FROM rounds_v2 WHERE id = ? AND deleted_at IS NULL',
       [roundId]
     );
 
@@ -1478,9 +1587,13 @@ router.get('/:id/complete-teams', authenticateAdmin, async (req: AuthRequest, re
     const settings = await SettingsService.getTextSettings();
     const selectionMethod = settings.completeRoundSelectionMethod || 'player_picks';
 
-    // Get all available teams for this round
+    // Get all available teams for this round from round_teams_v2 + teams_v2
     const [allTeams] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM round_teams WHERE round_id = ? ORDER BY team_name',
+      `SELECT t.id, t.name as team_name
+       FROM round_teams_v2 rt
+       JOIN teams_v2 t ON rt.team_id = t.id
+       WHERE rt.round_id = ?
+       ORDER BY t.name`,
       [roundId]
     );
 
@@ -1492,12 +1605,13 @@ router.get('/:id/complete-teams', authenticateAdmin, async (req: AuthRequest, re
       });
     }
 
-    // If using player picks approach, get teams that were actually picked
+    // If using player picks approach, get teams that were actually picked from picks_v2 + pick_items_v2 + teams_v2
     const [picks] = await db.query<RowDataPacket[]>(
-      `SELECT DISTINCT pi.pick_value 
-       FROM picks p 
-       JOIN pick_items pi ON p.id = pi.pick_id 
-       WHERE p.round_id = ? AND pi.pick_value IS NOT NULL`,
+      `SELECT DISTINCT t.name as pick_value 
+       FROM picks_v2 p 
+       JOIN pick_items_v2 pi ON p.id = pi.pick_id
+       JOIN teams_v2 t ON pi.team_id = t.id
+       WHERE p.round_id = ? AND t.name IS NOT NULL`,
       [roundId]
     );
 

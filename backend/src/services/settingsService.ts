@@ -260,21 +260,27 @@ export class SettingsService {
 
   /**
    * Get point settings for a specific season
-   * For ended seasons: returns historical point settings from season_winners table
+   * For ended seasons: returns historical point settings from scoring_rules_v2 table
    * For active seasons: returns current point settings
    * This ensures historical data remains accurate even if point settings are changed
+   * Updated to use scoring_rules_v2 instead of season_winners (which no longer stores point values)
    */
   static async getPointsSettingsForSeason(seasonId: number): Promise<PointsSettings> {
     try {
-      // Check if season is ended and has winner data with point settings
+      // Check if season is ended and has scoring rules
       const [seasonData] = await db.query<RowDataPacket[]>(
-        `SELECT s.ended_at, sw.points_first_place, sw.points_second_place, 
-                sw.points_third_place, sw.points_fourth_place, sw.points_fifth_place, 
-                sw.points_sixth_plus_place
-         FROM seasons s
-         LEFT JOIN season_winners sw ON s.id = sw.season_id
+        `SELECT s.ended_at
+         FROM seasons_v2 s
          WHERE s.id = ?
          LIMIT 1`,
+        [seasonId]
+      );
+      
+      // Check if scoring rules exist for this season (from scoring_rules_v2)
+      const [scoringRules] = await db.query<RowDataPacket[]>(
+        `SELECT place, points
+         FROM scoring_rules_v2
+         WHERE season_id = ?`,
         [seasonId]
       );
 
@@ -285,17 +291,24 @@ export class SettingsService {
 
       const season = seasonData[0];
 
-      // If season is ended and has historical point settings, use those
-      if (season.ended_at && season.points_first_place !== null) {
-        logger.debug('Using historical point settings for ended season', { seasonId });
+      // If season is ended and has scoring rules, use historical settings from scoring_rules_v2
+      if (season.ended_at && scoringRules.length > 0) {
+        logger.debug('Using historical point settings from scoring_rules_v2 for ended season', { seasonId });
+        
+        // Build settings map from scoring_rules_v2
+        const rulesMap = new Map<number, number>();
+        scoringRules.forEach(rule => {
+          rulesMap.set(rule.place, rule.points);
+        });
+        
         return {
-          pointsFirst: season.points_first_place,
-          pointsSecond: season.points_second_place,
-          pointsThird: season.points_third_place,
-          pointsFourth: season.points_fourth_place,
-          pointsFifth: season.points_fifth_place,
-          pointsSixthPlus: season.points_sixth_plus_place,
-          pointsNoPick: 0, // Historical seasons default to 0 for no-pick (feature didn't exist)
+          pointsFirst: rulesMap.get(1) || 6,
+          pointsSecond: rulesMap.get(2) || 5,
+          pointsThird: rulesMap.get(3) || 4,
+          pointsFourth: rulesMap.get(4) || 3,
+          pointsFifth: rulesMap.get(5) || 2,
+          pointsSixthPlus: rulesMap.get(6) || 1,
+          pointsNoPick: rulesMap.get(0) || 0,
         };
       }
 

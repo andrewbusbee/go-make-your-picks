@@ -6,6 +6,7 @@ import { SettingsService } from '../services/settingsService';
 import { withTransaction } from '../utils/transactionWrapper';
 import { QueryCacheService } from '../services/queryCacheService';
 import { logError, logInfo, logWarn, logDebug } from '../utils/logger';
+import { getOrCreateTeam } from '../utils/teamHelpers';
 
 const router = express.Router();
 
@@ -17,9 +18,9 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
   
   try {
     const details = await withTransaction(async (connection) => {
-      // Get or create default season
+      // Get or create default season from seasons_v2
     let [seasons] = await connection.query<RowDataPacket[]>(
-      'SELECT id FROM seasons WHERE is_default = TRUE LIMIT 1'
+      'SELECT id FROM seasons_v2 WHERE is_default = TRUE LIMIT 1'
     );
 
     let seasonId: number;
@@ -27,7 +28,7 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
     if (seasons.length === 0) {
       // Create a default season for the seed data
       const [seasonResult] = await connection.query<ResultSetHeader>(
-        'INSERT INTO seasons (name, year_start, year_end, is_active, is_default) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO seasons_v2 (name, year_start, year_end, is_active, is_default) VALUES (?, ?, ?, ?, ?)',
         ['Test Season 2025-2026', 2025, 2026, true, true]
       );
       seasonId = seasonResult.insertId;
@@ -64,17 +65,17 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
       userIds.push(result.insertId);
     }
 
-    // 2. Add all users to default season
+    // 2. Add all users to default season using season_participants_v2
     const participantValues = userIds.map(userId => [seasonId, userId]);
     await connection.query(
-      'INSERT INTO season_participants (season_id, user_id) VALUES ?',
+      'INSERT INTO season_participants_v2 (season_id, user_id) VALUES ?',
       [participantValues]
     );
 
-    // 3. Create Multi-Pick Sport (ACTIVE)
+    // 3. Create Multi-Pick Sport (ACTIVE) using rounds_v2
     const multiPickLockTime = new Date('2027-01-15T17:00:00').toISOString().slice(0, 19).replace('T', ' ');
     const [multiPickResult] = await connection.query<ResultSetHeader>(
-      `INSERT INTO rounds (season_id, sport_name, pick_type, num_write_in_picks, email_message, lock_time, timezone, status)
+      `INSERT INTO rounds_v2 (season_id, sport_name, pick_type, num_write_in_picks, email_message, lock_time, timezone, status)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         seasonId,
@@ -89,10 +90,10 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
     );
     const multiPickRoundId = multiPickResult.insertId;
 
-    // 4. Create Single-Pick Sport (ACTIVE)
+    // 4. Create Single-Pick Sport (ACTIVE) using rounds_v2
     const singlePickLockTime = new Date('2027-01-20T15:00:00').toISOString().slice(0, 19).replace('T', ' ');
     const [singlePickResult] = await connection.query<ResultSetHeader>(
-      `INSERT INTO rounds (season_id, sport_name, pick_type, email_message, lock_time, timezone, status)
+      `INSERT INTO rounds_v2 (season_id, sport_name, pick_type, email_message, lock_time, timezone, status)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         seasonId,
@@ -167,9 +168,10 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
     const completedRoundIds: number[] = [];
 
     for (const sport of completedSports) {
+      // Insert round into rounds_v2 (no first_place_team - that goes in round_results_v2)
       const [result] = await connection.query<ResultSetHeader>(
-        `INSERT INTO rounds (season_id, sport_name, pick_type, email_message, lock_time, timezone, status, first_place_team)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO rounds_v2 (season_id, sport_name, pick_type, email_message, lock_time, timezone, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           seasonId,
           sport.name,
@@ -177,18 +179,30 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
           `Pick the winner of ${sport.name}!`,
           sport.lockTime,
           'America/New_York',
-          'completed',
-          sport.winner
+          'completed'
         ]
       );
-      completedRoundIds.push(result.insertId);
+      const roundId = result.insertId;
+      completedRoundIds.push(roundId);
+
+      // Store winner in round_results_v2 (using teams_v2)
+      const winnerTeamId = await getOrCreateTeam(connection, sport.winner);
+      await connection.query(
+        'INSERT INTO round_results_v2 (round_id, place, team_id) VALUES (?, 1, ?)',
+        [roundId, winnerTeamId]
+      );
     }
 
-    // 6. Add teams to single-pick sport
+    // 6. Add teams to single-pick sport using round_teams_v2 + teams_v2
     const teams = ['Chiefs', '49ers', 'Ravens', 'Bills', 'Cowboys', 'Eagles', 'Packers'];
-    const teamValues = teams.map(team => [singlePickRoundId, team]);
+    const teamIds: number[] = [];
+    for (const team of teams) {
+      const teamId = await getOrCreateTeam(connection, team);
+      teamIds.push(teamId);
+    }
+    const teamValues = teamIds.map(teamId => [singlePickRoundId, teamId]);
     await connection.query(
-      'INSERT INTO round_teams (round_id, team_name) VALUES ?',
+      'INSERT INTO round_teams_v2 (round_id, team_id) VALUES ?',
       [teamValues]
     );
 
@@ -210,47 +224,37 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
       const sport = completedSports[sportIndex];
       const choices = completedSportChoices[sportIndex];
 
-      // Create picks for all users
+      // Create picks for all users using picks_v2 + pick_items_v2 + teams_v2
       for (let userIndex = 0; userIndex < userIds.length; userIndex++) {
         const userId = userIds[userIndex];
         
-        // Create pick record
+        // Create pick record in picks_v2
         const [pickResult] = await connection.query<ResultSetHeader>(
-          'INSERT INTO picks (user_id, round_id) VALUES (?, ?)',
+          'INSERT INTO picks_v2 (user_id, round_id) VALUES (?, ?)',
           [userId, roundId]
         );
         const pickId = pickResult.insertId;
 
-        // Create pick item
+        // Create pick item using teams_v2
         const pickValue = choices[userIndex];
         if (!pickValue) {
           throw new Error(`No pick value available for user ${userIndex} in sport ${sport.name}. Check completedSportChoices array.`);
         }
         
+        const teamId = await getOrCreateTeam(connection, pickValue);
         await connection.query(
-          'INSERT INTO pick_items (pick_id, pick_number, pick_value) VALUES (?, ?, ?)',
-          [pickId, 1, pickValue]
+          'INSERT INTO pick_items_v2 (pick_id, pick_number, team_id) VALUES (?, ?, ?)',
+          [pickId, 1, teamId]
         );
 
-        // Create realistic scores using the current scoring system
-        // (points already retrieved outside transaction to avoid connection conflicts)
-        
-        // Realistic single-round score options (max 6 points per round)
-        const realisticPlaceOptions = [
-          { first: 1, second: 0, third: 0, fourth: 0, fifth: 0, sixth: 0 },      // 6 pts (1st place)
-          { first: 0, second: 1, third: 0, fourth: 0, fifth: 0, sixth: 0 },      // 5 pts (2nd place)
-          { first: 0, second: 0, third: 1, fourth: 0, fifth: 0, sixth: 0 },      // 4 pts (3rd place)
-          { first: 0, second: 0, third: 0, fourth: 1, fifth: 0, sixth: 0 },      // 3 pts (4th place)
-          { first: 0, second: 0, third: 0, fourth: 0, fifth: 1, sixth: 0 },      // 2 pts (5th place)
-          { first: 0, second: 0, third: 0, fourth: 0, fifth: 0, sixth: 1 },      // 1 pt (6th+ place)
-          { first: 0, second: 0, third: 0, fourth: 0, fifth: 0, sixth: 0 }       // 0 pts (no pick/wrong pick)
-        ];
-        
-        const randomPlace = realisticPlaceOptions[Math.floor(Math.random() * realisticPlaceOptions.length)];
+        // Create realistic scores using score_details_v2
+        // Realistic single-round score options (place 1-6 or 0 for no pick)
+        const realisticPlaces = [1, 2, 3, 4, 5, 6, 0]; // 1st, 2nd, 3rd, 4th, 5th, 6th+, no pick
+        const randomPlace = realisticPlaces[Math.floor(Math.random() * realisticPlaces.length)];
         
         await connection.query(
-          'INSERT INTO scores (user_id, round_id, first_place, second_place, third_place, fourth_place, fifth_place, sixth_plus_place) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-          [userId, roundId, randomPlace.first, randomPlace.second, randomPlace.third, randomPlace.fourth, randomPlace.fifth, randomPlace.sixth]
+          'INSERT INTO score_details_v2 (user_id, round_id, place, count) VALUES (?, ?, ?, 1) ON DUPLICATE KEY UPDATE count = 1',
+          [userId, roundId, randomPlace]
         );
       }
     }
@@ -280,18 +284,18 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
       'Steelers', 'Browns', 'Bengals', 'Colts', 'Titans'
     ];
 
-    // Multi-pick picks
+    // Multi-pick picks using picks_v2 + pick_items_v2 + teams_v2
     for (let i = 0; i < userIds.length; i++) {
       const userId = userIds[i];
       
-      // Create pick record
+      // Create pick record in picks_v2
       const [pickResult] = await connection.query<ResultSetHeader>(
-        'INSERT INTO picks (user_id, round_id) VALUES (?, ?)',
+        'INSERT INTO picks_v2 (user_id, round_id) VALUES (?, ?)',
         [userId, multiPickRoundId]
       );
       const pickId = pickResult.insertId;
 
-      // Create pick items
+      // Create pick items using teams_v2
       const picks = multiPickChoices[i];
       if (!picks || picks.length === 0) {
         throw new Error(`No pick values available for user ${i} in multi-pick sport. Check multiPickChoices array.`);
@@ -303,33 +307,35 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
           throw new Error(`No pick value available for user ${i}, pick ${j} in multi-pick sport. Check multiPickChoices array.`);
         }
         
+        const teamId = await getOrCreateTeam(connection, pickValue);
         await connection.query(
-          'INSERT INTO pick_items (pick_id, pick_number, pick_value) VALUES (?, ?, ?)',
-          [pickId, j + 1, pickValue]
+          'INSERT INTO pick_items_v2 (pick_id, pick_number, team_id) VALUES (?, ?, ?)',
+          [pickId, j + 1, teamId]
         );
       }
     }
 
-    // Single-pick picks
+    // Single-pick picks using picks_v2 + pick_items_v2 + teams_v2
     for (let i = 0; i < userIds.length; i++) {
       const userId = userIds[i];
       
-      // Create pick record
+      // Create pick record in picks_v2
       const [pickResult] = await connection.query<ResultSetHeader>(
-        'INSERT INTO picks (user_id, round_id) VALUES (?, ?)',
+        'INSERT INTO picks_v2 (user_id, round_id) VALUES (?, ?)',
         [userId, singlePickRoundId]
       );
       const pickId = pickResult.insertId;
 
-      // Create pick item
+      // Create pick item using teams_v2
       const pickValue = singlePickChoices[i];
       if (!pickValue) {
         throw new Error(`No pick value available for user ${i} in single-pick sport. Check singlePickChoices array.`);
       }
       
+      const teamId = await getOrCreateTeam(connection, pickValue);
       await connection.query(
-        'INSERT INTO pick_items (pick_id, pick_number, pick_value) VALUES (?, ?, ?)',
-        [pickId, 1, pickValue]
+        'INSERT INTO pick_items_v2 (pick_id, pick_number, team_id) VALUES (?, ?, ?)',
+        [pickId, 1, teamId]
       );
     }
 
@@ -406,7 +412,7 @@ router.post('/clear-test-data', authenticateAdmin, requireMainAdmin, async (req:
         ]
       );
 
-      // Delete sample sports
+      // Delete sample sports from rounds_v2
       const testSports = [
         'March Madness 2027', 
         'Super Bowl LXI',
@@ -422,13 +428,13 @@ router.post('/clear-test-data', authenticateAdmin, requireMainAdmin, async (req:
       ];
       
       await connection.query(
-        `DELETE FROM rounds WHERE sport_name IN (${testSports.map(() => '?').join(', ')})`,
+        `DELETE FROM rounds_v2 WHERE sport_name IN (${testSports.map(() => '?').join(', ')})`,
         testSports
       );
 
-      // Delete sample season (CASCADE will handle related data like season_participants)
+      // Delete sample season from seasons_v2 (CASCADE will handle related data like season_participants_v2)
       await connection.query(
-        `DELETE FROM seasons WHERE name = ?`,
+        `DELETE FROM seasons_v2 WHERE name = ?`,
         ['Test Season 2025-2026']
       );
     });

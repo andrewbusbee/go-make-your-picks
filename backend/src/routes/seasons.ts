@@ -42,8 +42,8 @@ router.get('/', async (req, res) => {
       async () => {
         const [seasons] = await db.query<RowDataPacket[]>(
           `SELECT s.*, 
-           (SELECT COUNT(*) FROM rounds r WHERE r.season_id = s.id AND r.status = 'completed' AND r.deleted_at IS NULL) as completed_rounds_count
-           FROM seasons s 
+           (SELECT COUNT(*) FROM rounds_v2 r WHERE r.season_id = s.id AND r.status = 'completed' AND r.deleted_at IS NULL) as completed_rounds_count
+           FROM seasons_v2 s 
            WHERE s.deleted_at IS NULL 
            ORDER BY s.year_start DESC`
         );
@@ -105,18 +105,18 @@ router.get('/', async (req, res) => {
 // Get default season (public) - excludes deleted
 router.get('/default', async (req, res) => {
   try {
-    // Try to get default season (not deleted)
+    // Try to get default season (not deleted) from seasons_v2
     const [defaultSeasons] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM seasons WHERE is_default = TRUE AND deleted_at IS NULL LIMIT 1'
+      'SELECT * FROM seasons_v2 WHERE is_default = TRUE AND deleted_at IS NULL LIMIT 1'
     );
     
     if (defaultSeasons.length > 0) {
       return res.json(defaultSeasons[0]);
     }
     
-    // If no default, get latest created season (not deleted)
+    // If no default, get latest created season (not deleted) from seasons_v2
     const [latestSeasons] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM seasons WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 1'
+      'SELECT * FROM seasons_v2 WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 1'
     );
     
     res.json(latestSeasons[0] || null);
@@ -130,7 +130,7 @@ router.get('/default', async (req, res) => {
 router.get('/active', async (req, res) => {
   try {
     const [seasons] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM seasons WHERE is_active = TRUE AND deleted_at IS NULL ORDER BY year_start DESC'
+      'SELECT * FROM seasons_v2 WHERE is_active = TRUE AND deleted_at IS NULL ORDER BY year_start DESC'
     );
     res.json(seasons);
   } catch (error) {
@@ -146,7 +146,7 @@ router.get('/:id/winners', async (req, res) => {
   try {
     const [winners] = await db.query<RowDataPacket[]>(
       `SELECT sw.*, u.name as user_name
-       FROM season_winners sw
+       FROM season_winners_v2 sw
        JOIN users u ON sw.user_id = u.id
        WHERE sw.season_id = ?
        ORDER BY sw.place ASC`,
@@ -174,8 +174,8 @@ router.get('/champions', async (req, res) => {
         sw.total_points,
         u.name as user_name,
         'season' as champion_type
-       FROM seasons s
-       JOIN season_winners sw ON s.id = sw.season_id
+       FROM seasons_v2 s
+       JOIN season_winners_v2 sw ON s.id = sw.season_id
        JOIN users u ON sw.user_id = u.id
        WHERE s.ended_at IS NOT NULL 
        AND s.deleted_at IS NULL
@@ -226,11 +226,11 @@ router.get('/champions', async (req, res) => {
     const [yearRange] = await db.query<RowDataPacket[]>(
       `SELECT 
         LEAST(
-          COALESCE((SELECT MIN(year_end) FROM seasons WHERE ended_at IS NOT NULL AND deleted_at IS NULL), 9999),
+          COALESCE((SELECT MIN(year_end) FROM seasons_v2 WHERE ended_at IS NOT NULL AND deleted_at IS NULL), 9999),
           COALESCE((SELECT MIN(end_year) FROM historical_champions), 9999)
         ) as first_year,
         GREATEST(
-          COALESCE((SELECT MAX(year_end) FROM seasons WHERE ended_at IS NOT NULL AND deleted_at IS NULL), 0),
+          COALESCE((SELECT MAX(year_end) FROM seasons_v2 WHERE ended_at IS NOT NULL AND deleted_at IS NULL), 0),
           COALESCE((SELECT MAX(end_year) FROM historical_champions), 0)
         ) as last_year`
     );
@@ -291,21 +291,21 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
       // New season is always active
       // If setting as default, unset all other defaults first
       if (isDefault) {
-        await connection.query('UPDATE seasons SET is_default = FALSE');
+        await connection.query('UPDATE seasons_v2 SET is_default = FALSE');
       }
 
       const [seasonResult] = await connection.query<ResultSetHeader>(
-        'INSERT INTO seasons (name, year_start, year_end, is_active, is_default) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO seasons_v2 (name, year_start, year_end, is_active, is_default) VALUES (?, ?, ?, ?, ?)',
         [name, yearStart, yearEnd, true, isDefault || false]
       );
 
       const seasonId = seasonResult.insertId;
 
-      // Add participants if provided
+      // Add participants if provided to season_participants_v2
       if (participantIds && Array.isArray(participantIds) && participantIds.length > 0) {
         const participantValues = participantIds.map((userId: number) => [seasonId, userId]);
         await connection.query(
-          'INSERT INTO season_participants (season_id, user_id) VALUES ?',
+          'INSERT INTO season_participants_v2 (season_id, user_id) VALUES ?',
           [participantValues]
         );
       }
@@ -313,9 +313,9 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
       // Copy sports if requested
       let copyResult = null;
       if (copySports && sourceSeasonId) {
-        // Verify source season exists and is not deleted
+        // Verify source season exists and is not deleted from seasons_v2
         const [sourceSeasons] = await connection.query<RowDataPacket[]>(
-          'SELECT id, name FROM seasons WHERE id = ? AND deleted_at IS NULL',
+          'SELECT id, name FROM seasons_v2 WHERE id = ? AND deleted_at IS NULL',
           [sourceSeasonId]
         );
 
@@ -325,9 +325,9 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
 
         const sourceSeason = sourceSeasons[0];
 
-        // Get sports from source season
+        // Get sports from source season from rounds_v2
         const [sourceSports] = await connection.query<RowDataPacket[]>(
-          'SELECT sport_name FROM rounds WHERE season_id = ? AND deleted_at IS NULL',
+          'SELECT sport_name FROM rounds_v2 WHERE season_id = ? AND deleted_at IS NULL',
           [sourceSeasonId]
         );
 
@@ -345,7 +345,7 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
           ]);
 
           await connection.query(
-            `INSERT INTO rounds (season_id, sport_name, lock_time, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?, ?)').join(', ')}`,
+            `INSERT INTO rounds_v2 (season_id, sport_name, lock_time, status, created_at) VALUES ${insertValues.map(() => '(?, ?, ?, ?, ?)').join(', ')}`,
             insertValues.flat()
           );
 
@@ -424,7 +424,7 @@ router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) =>
     const result = await withTransaction(async (connection) => {
       // Check if season exists
       const [existingSeasons] = await connection.query<RowDataPacket[]>(
-        'SELECT id, is_active FROM seasons WHERE id = ? AND deleted_at IS NULL',
+        'SELECT id, is_active FROM seasons_v2 WHERE id = ? AND deleted_at IS NULL',
         [seasonId]
       );
 
@@ -439,12 +439,12 @@ router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) =>
 
       // If setting as default, unset all other defaults first
       if (isDefault) {
-        await connection.query('UPDATE seasons SET is_default = FALSE');
+        await connection.query('UPDATE seasons_v2 SET is_default = FALSE');
       }
 
       // Update season
       await connection.query(
-        'UPDATE seasons SET name = ?, year_start = ?, year_end = ?, is_default = ? WHERE id = ?',
+        'UPDATE seasons_v2 SET name = ?, year_start = ?, year_end = ?, is_default = ? WHERE id = ?',
         [name, yearStart, yearEnd, isDefault || false, seasonId]
       );
 
@@ -453,7 +453,7 @@ router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) =>
       if (copySports && sourceSeasonId) {
         // Verify source season exists and is not deleted
         const [sourceSeasons] = await connection.query<RowDataPacket[]>(
-          'SELECT id, name FROM seasons WHERE id = ? AND deleted_at IS NULL',
+          'SELECT id, name FROM seasons_v2 WHERE id = ? AND deleted_at IS NULL',
           [sourceSeasonId]
         );
 
@@ -465,14 +465,14 @@ router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) =>
 
         // Get sports from source season
         const [sourceSports] = await connection.query<RowDataPacket[]>(
-          'SELECT sport_name FROM rounds WHERE season_id = ? AND deleted_at IS NULL',
+          'SELECT sport_name FROM rounds_v2 WHERE season_id = ? AND deleted_at IS NULL',
           [sourceSeasonId]
         );
 
         if (sourceSports.length > 0) {
           // Get existing sports in target season to prevent duplicates
           const [existingSports] = await connection.query<RowDataPacket[]>(
-            'SELECT sport_name FROM rounds WHERE season_id = ? AND deleted_at IS NULL',
+            'SELECT sport_name FROM rounds_v2 WHERE season_id = ? AND deleted_at IS NULL',
             [seasonId]
           );
 
@@ -560,7 +560,7 @@ router.put('/:id/set-default', authenticateAdmin, async (req: AuthRequest, res: 
     await withTransaction(async (connection) => {
       // Check if season is active
       const [seasons] = await connection.query<RowDataPacket[]>(
-        'SELECT is_active FROM seasons WHERE id = ?',
+        'SELECT is_active FROM seasons_v2 WHERE id = ?',
         [seasonId]
       );
 
@@ -573,10 +573,10 @@ router.put('/:id/set-default', authenticateAdmin, async (req: AuthRequest, res: 
       }
 
       // Unset all other defaults
-      await connection.query('UPDATE seasons SET is_default = FALSE');
+      await connection.query('UPDATE seasons_v2 SET is_default = FALSE');
       
       // Set this season as default
-      await connection.query('UPDATE seasons SET is_default = TRUE WHERE id = ?', [seasonId]);
+      await connection.query('UPDATE seasons_v2 SET is_default = TRUE WHERE id = ?', [seasonId]);
     });
 
     // Invalidate seasons cache after default change
@@ -603,7 +603,7 @@ router.put('/:id/toggle-active', authenticateAdmin, async (req: AuthRequest, res
   try {
     const result = await withTransaction(async (connection) => {
       const [seasons] = await connection.query<RowDataPacket[]>(
-        'SELECT is_active, is_default FROM seasons WHERE id = ?',
+        'SELECT is_active, is_default FROM seasons_v2 WHERE id = ?',
         [seasonId]
       );
 
@@ -616,11 +616,11 @@ router.put('/:id/toggle-active', authenticateAdmin, async (req: AuthRequest, res
 
       // If deactivating and it's the default, unset default
       if (currentlyActive && isDefault) {
-        await connection.query('UPDATE seasons SET is_default = FALSE WHERE id = ?', [seasonId]);
+        await connection.query('UPDATE seasons_v2 SET is_default = FALSE WHERE id = ?', [seasonId]);
       }
 
       // Toggle active status
-      await connection.query('UPDATE seasons SET is_active = ? WHERE id = ?', [!currentlyActive, seasonId]);
+      await connection.query('UPDATE seasons_v2 SET is_active = ? WHERE id = ?', [!currentlyActive, seasonId]);
 
       return { currentlyActive };
     });
@@ -662,9 +662,9 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
 
   try {
     const storedWinners = await withTransaction(async (connection) => {
-      // Check if season exists and is not deleted
+      // Check if season exists and is not deleted from seasons_v2
       const [seasons] = await connection.query<RowDataPacket[]>(
-        'SELECT * FROM seasons WHERE id = ? AND deleted_at IS NULL',
+        'SELECT * FROM seasons_v2 WHERE id = ? AND deleted_at IS NULL',
         [seasonId]
       );
 
@@ -678,10 +678,10 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
         throw new Error('Season has already ended');
       }
 
-      // Check if all sports/rounds for this season are completed
+      // Check if all sports/rounds for this season are completed from rounds_v2
       const [incompleteRounds] = await connection.query<RowDataPacket[]>(
         `SELECT id, sport_name, status 
-         FROM rounds 
+         FROM rounds_v2 
          WHERE season_id = ? 
          AND deleted_at IS NULL 
          AND status != 'completed'`,
@@ -713,8 +713,30 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
 
       logger.debug('Leaderboard results (raw)', { count: leaderboard.length, results: leaderboard });
 
+      // Store scoring rules for this season in scoring_rules_v2 (for historical accuracy)
+      // This ensures we can reconstruct point values later if needed
+      await connection.query(
+        'DELETE FROM scoring_rules_v2 WHERE season_id = ?',
+        [seasonId]
+      );
+      
+      const scoringRulesValues = [
+        [seasonId, 1, points.pointsFirst],
+        [seasonId, 2, points.pointsSecond],
+        [seasonId, 3, points.pointsThird],
+        [seasonId, 4, points.pointsFourth],
+        [seasonId, 5, points.pointsFifth],
+        [seasonId, 6, points.pointsSixthPlus],
+        [seasonId, 0, points.pointsNoPick]
+      ];
+      
+      await connection.query(
+        'INSERT INTO scoring_rules_v2 (season_id, place, points) VALUES ?',
+        [scoringRulesValues]
+      );
+
       // Clear any existing winners for this season (in case of previous failed attempts)
-      await connection.query('DELETE FROM season_winners WHERE season_id = ?', [seasonId]);
+      await connection.query('DELETE FROM season_winners_v2 WHERE season_id = ?', [seasonId]);
 
       // Handle ties properly - assign ranks with tie handling
       let currentRank = 1;
@@ -745,33 +767,32 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
           tiedCount++;
         }
         
-        logger.debug('Inserting winner with point settings', { 
+        logger.debug('Inserting winner', { 
           seasonId, 
           place: currentRank, 
           userId: player.user_id, 
-          totalPoints: playerScore,
-          pointSettings: points
+          totalPoints: playerScore
         });
         
-        // Store winner with current point settings for historical accuracy
+        // Store winner in season_winners_v2 (no point columns - those are in scoring_rules_v2)
         await connection.query<ResultSetHeader>(
-          `INSERT INTO season_winners 
-           (season_id, place, user_id, total_points, points_first_place, points_second_place, points_third_place, points_fourth_place, points_fifth_place, points_sixth_plus_place) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [seasonId, currentRank, player.user_id, playerScore, points.pointsFirst, points.pointsSecond, points.pointsThird, points.pointsFourth, points.pointsFifth, points.pointsSixthPlus]
+          `INSERT INTO season_winners_v2 
+           (season_id, place, user_id, total_points) 
+           VALUES (?, ?, ?, ?)`,
+          [seasonId, currentRank, player.user_id, playerScore]
         );
       }
 
       // Set ended_at timestamp
       await connection.query(
-        'UPDATE seasons SET ended_at = NOW() WHERE id = ?',
+        'UPDATE seasons_v2 SET ended_at = NOW() WHERE id = ?',
         [seasonId]
       );
 
-      // Get the stored winners with proper rankings
+      // Get the stored winners with proper rankings from season_winners_v2
       const [storedWinners] = await connection.query<RowDataPacket[]>(
         `SELECT sw.*, u.name as user_name
-         FROM season_winners sw
+         FROM season_winners_v2 sw
          JOIN users u ON sw.user_id = u.id
          WHERE sw.season_id = ?
          ORDER BY sw.place ASC, sw.total_points DESC`,
@@ -814,9 +835,9 @@ router.post('/:id/reopen', authenticateAdmin, async (req: AuthRequest, res: Resp
 
   try {
     await withTransaction(async (connection) => {
-      // Check if season exists and is ended
+      // Check if season exists and is ended from seasons_v2
       const [seasons] = await connection.query<RowDataPacket[]>(
-        'SELECT * FROM seasons WHERE id = ? AND deleted_at IS NULL',
+        'SELECT * FROM seasons_v2 WHERE id = ? AND deleted_at IS NULL',
         [seasonId]
       );
 
@@ -832,15 +853,18 @@ router.post('/:id/reopen', authenticateAdmin, async (req: AuthRequest, res: Resp
 
       // Clear ended_at timestamp
       await connection.query(
-        'UPDATE seasons SET ended_at = NULL WHERE id = ?',
+        'UPDATE seasons_v2 SET ended_at = NULL WHERE id = ?',
         [seasonId]
       );
 
-      // Remove winner records
+      // Remove winner records from season_winners_v2
       await connection.query(
-        'DELETE FROM season_winners WHERE season_id = ?',
+        'DELETE FROM season_winners_v2 WHERE season_id = ?',
         [seasonId]
       );
+      
+      // Optionally remove scoring rules (or keep them for historical reference)
+      // For now, we'll keep them even if season is reopened
     });
 
     // Invalidate seasons cache after reopen
@@ -867,7 +891,7 @@ router.post('/:id/soft-delete', authenticateAdmin, async (req: AuthRequest, res:
   try {
     // Check if season exists
     const [seasons] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM seasons WHERE id = ? AND deleted_at IS NULL',
+        'SELECT * FROM seasons_v2 WHERE id = ? AND deleted_at IS NULL',
       [seasonId]
     );
 
@@ -877,7 +901,7 @@ router.post('/:id/soft-delete', authenticateAdmin, async (req: AuthRequest, res:
 
     // Soft delete by setting deleted_at timestamp
     await db.query(
-      'UPDATE seasons SET deleted_at = NOW(), is_active = FALSE, is_default = FALSE WHERE id = ?',
+        'UPDATE seasons_v2 SET deleted_at = NOW(), is_active = FALSE, is_default = FALSE WHERE id = ?',
       [seasonId]
     );
 
@@ -898,7 +922,7 @@ router.post('/:id/restore', authenticateAdmin, async (req: AuthRequest, res: Res
   try {
     // Check if season exists and is deleted
     const [seasons] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM seasons WHERE id = ? AND deleted_at IS NOT NULL',
+        'SELECT * FROM seasons_v2 WHERE id = ? AND deleted_at IS NOT NULL',
       [seasonId]
     );
 
@@ -908,7 +932,7 @@ router.post('/:id/restore', authenticateAdmin, async (req: AuthRequest, res: Res
 
     // Restore by clearing deleted_at timestamp
     await db.query(
-      'UPDATE seasons SET deleted_at = NULL WHERE id = ?',
+        'UPDATE seasons_v2 SET deleted_at = NULL WHERE id = ?',
       [seasonId]
     );
 
@@ -935,7 +959,7 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
 
     // Check if season exists and is already soft-deleted
     const [seasons] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM seasons WHERE id = ? AND deleted_at IS NOT NULL',
+        'SELECT * FROM seasons_v2 WHERE id = ? AND deleted_at IS NOT NULL',
       [seasonId]
     );
 
@@ -950,21 +974,21 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
 
     // Log pre-delete counts for verification (direct and CASCADE chain)
     const [participantCounts] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM season_participants WHERE season_id = ?',
+      'SELECT COUNT(*) as count FROM season_participants_v2 WHERE season_id = ?',
       [seasonId]
     );
     const [roundCounts] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM rounds WHERE season_id = ?',
+      'SELECT COUNT(*) as count FROM rounds_v2 WHERE season_id = ?',
       [seasonId]
     );
     const [winnerCounts] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM season_winners WHERE season_id = ?',
+      'SELECT COUNT(*) as count FROM season_winners_v2 WHERE season_id = ?',
       [seasonId]
     );
     
     // Count data that should cascade from rounds deletion
     const [roundIds] = await db.query<RowDataPacket[]>(
-      'SELECT id FROM rounds WHERE season_id = ?',
+      'SELECT id FROM rounds_v2 WHERE season_id = ?',
       [seasonId]
     );
     
@@ -1030,7 +1054,7 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
 
     // Permanently delete (CASCADE will handle all related data)
     const [result] = await db.query<ResultSetHeader>(
-      'DELETE FROM seasons WHERE id = ?',
+      'DELETE FROM seasons_v2 WHERE id = ?',
       [seasonId]
     );
 
@@ -1041,15 +1065,15 @@ router.delete('/:id/permanent', authenticateAdmin, async (req: AuthRequest, res:
 
     // Verify CASCADE deleted all related data
     const [participantCountsAfter] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM season_participants WHERE season_id = ?',
+      'SELECT COUNT(*) as count FROM season_participants_v2 WHERE season_id = ?',
       [seasonId]
     );
     const [roundCountsAfter] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM rounds WHERE season_id = ?',
+      'SELECT COUNT(*) as count FROM rounds_v2 WHERE season_id = ?',
       [seasonId]
     );
     const [winnerCountsAfter] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM season_winners WHERE season_id = ?',
+      'SELECT COUNT(*) as count FROM season_winners_v2 WHERE season_id = ?',
       [seasonId]
     );
     
@@ -1157,8 +1181,8 @@ router.get('/copy-sources', authenticateAdmin, async (req: AuthRequest, res: Res
   try {
     const [seasons] = await db.query<RowDataPacket[]>(
       `SELECT s.id, s.name, s.year_start, s.year_end, s.ended_at, COUNT(r.id) as sport_count
-       FROM seasons s
-       LEFT JOIN rounds r ON s.id = r.season_id AND r.deleted_at IS NULL
+       FROM seasons_v2 s
+       LEFT JOIN rounds_v2 r ON s.id = r.season_id AND r.deleted_at IS NULL
        WHERE ((s.ended_at IS NULL AND s.is_active = TRUE)
               OR (s.ended_at IS NOT NULL AND s.ended_at >= DATE_SUB(NOW(), INTERVAL 24 MONTH)))
        AND s.deleted_at IS NULL
@@ -1319,7 +1343,7 @@ router.post('/:id/message-all-players', authenticateAdmin, async (req: AuthReque
     const [players] = await db.query<RowDataPacket[]>(
       `SELECT u.id, u.name, u.email 
        FROM users u
-       JOIN season_participants sp ON u.id = sp.user_id
+       JOIN season_participants_v2 sp ON u.id = sp.user_id
        WHERE sp.season_id = ? AND u.is_active = 1
        ORDER BY u.name`,
       [seasonId]

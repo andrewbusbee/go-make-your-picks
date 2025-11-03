@@ -16,7 +16,7 @@ router.get('/:seasonId', authenticateAdmin, async (req: AuthRequest, res: Respon
   try {
     const [participants] = await db.query<RowDataPacket[]>(
       `SELECT u.id, u.name, u.email, u.is_active, sp.created_at as added_at
-       FROM season_participants sp
+       FROM season_participants_v2 sp
        JOIN users u ON sp.user_id = u.id
        WHERE sp.season_id = ?
        ORDER BY u.name ASC`,
@@ -51,7 +51,7 @@ router.post('/:seasonId/participants', authenticateAdmin, async (req: AuthReques
 
   try {
     await db.query(
-      'INSERT IGNORE INTO season_participants (season_id, user_id) VALUES (?, ?)',
+      'INSERT IGNORE INTO season_participants_v2 (season_id, user_id) VALUES (?, ?)',
       [seasonId, userId]
     );
 
@@ -109,7 +109,7 @@ router.delete('/:seasonId/participants/:userId', authenticateAdmin, async (req: 
 
   try {
     await db.query(
-      'DELETE FROM season_participants WHERE season_id = ? AND user_id = ?',
+      'DELETE FROM season_participants_v2 WHERE season_id = ? AND user_id = ?',
       [seasonId, userId]
     );
 

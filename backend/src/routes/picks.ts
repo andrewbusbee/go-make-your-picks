@@ -23,8 +23,8 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
     const [emailLinks] = await db.query<RowDataPacket[]>(
       `SELECT eml.*, r.*, s.name as season_name
        FROM email_magic_links eml
-       JOIN rounds r ON eml.round_id = r.id
-       JOIN seasons s ON r.season_id = s.id
+       JOIN rounds_v2 r ON eml.round_id = r.id
+       JOIN seasons_v2 s ON r.season_id = s.id
        WHERE eml.token = ?`,
       [token]
     );
@@ -51,7 +51,7 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
       const [users] = await db.query<RowDataPacket[]>(
         `SELECT u.id, u.name, u.email
          FROM users u
-         JOIN season_participants sp ON u.id = sp.user_id
+         JOIN season_participants_v2 sp ON u.id = sp.user_id
          WHERE u.email = ? AND sp.season_id = ? AND u.is_active = TRUE
          ORDER BY u.name ASC`,
         [link.email, link.season_id]
@@ -61,25 +61,33 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
         return res.status(404).json({ error: 'No active users found for this email' });
       }
 
-      // Get available teams
+      // Get available teams from round_teams_v2 + teams_v2
       const [teams] = await db.query<RowDataPacket[]>(
-        'SELECT team_name FROM round_teams WHERE round_id = ? ORDER BY team_name',
+        `SELECT t.name as team_name
+         FROM round_teams_v2 rt
+         JOIN teams_v2 t ON rt.team_id = t.id
+         WHERE rt.round_id = ?
+         ORDER BY t.name`,
         [link.round_id]
       );
 
-      // Get current picks for all users
+      // Get current picks for all users from picks_v2
       const userIds = users.map(u => u.id);
       const [picks] = await db.query<RowDataPacket[]>(
-        'SELECT * FROM picks WHERE user_id IN (?) AND round_id = ?',
+        'SELECT * FROM picks_v2 WHERE user_id IN (?) AND round_id = ?',
         [userIds, link.round_id]
       );
 
-      // Get pick items for all picks
+      // Get pick items for all picks from pick_items_v2 + teams_v2
       const pickIds = picks.map(p => p.id);
       let pickItems: RowDataPacket[] = [];
       if (pickIds.length > 0) {
         [pickItems] = await db.query<RowDataPacket[]>(
-          'SELECT pick_id, pick_number, pick_value FROM pick_items WHERE pick_id IN (?) ORDER BY pick_id, pick_number',
+          `SELECT pi.pick_id, pi.pick_number, t.name as pick_value
+           FROM pick_items_v2 pi
+           JOIN teams_v2 t ON pi.team_id = t.id
+           WHERE pi.pick_id IN (?)
+           ORDER BY pi.pick_id, pi.pick_number`,
           [pickIds]
         );
       }
@@ -132,8 +140,8 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
       `SELECT ml.*, u.name as user_name, u.email, r.*, s.name as season_name
        FROM magic_links ml
        JOIN users u ON ml.user_id = u.id
-       JOIN rounds r ON ml.round_id = r.id
-       JOIN seasons s ON r.season_id = s.id
+       JOIN rounds_v2 r ON ml.round_id = r.id
+       JOIN seasons_v2 s ON r.season_id = s.id
        WHERE ml.token = ?`,
       [token]
     );
@@ -158,23 +166,31 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
       });
     }
 
-    // Get available teams
+    // Get available teams from round_teams_v2 + teams_v2
     const [teams] = await db.query<RowDataPacket[]>(
-      'SELECT team_name FROM round_teams WHERE round_id = ? ORDER BY team_name',
+      `SELECT t.name as team_name
+       FROM round_teams_v2 rt
+       JOIN teams_v2 t ON rt.team_id = t.id
+       WHERE rt.round_id = ?
+       ORDER BY t.name`,
       [link.round_id]
     );
 
-    // Get user's current pick if exists
+    // Get user's current pick if exists from picks_v2
     const [picks] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM picks WHERE user_id = ? AND round_id = ?',
+      'SELECT * FROM picks_v2 WHERE user_id = ? AND round_id = ?',
       [link.user_id, link.round_id]
     );
 
     let currentPick = null;
     if (picks.length > 0) {
-      // Get pick items for this pick
+      // Get pick items for this pick from pick_items_v2 + teams_v2
       const [pickItems] = await db.query<RowDataPacket[]>(
-        'SELECT pick_number, pick_value FROM pick_items WHERE pick_id = ? ORDER BY pick_number',
+        `SELECT pi.pick_number, t.name as pick_value
+         FROM pick_items_v2 pi
+         JOIN teams_v2 t ON pi.team_id = t.id
+         WHERE pi.pick_id = ?
+         ORDER BY pi.pick_number`,
         [picks[0].id]
       );
       

@@ -24,21 +24,21 @@ router.get('/:id/has-data', authenticateAdmin, async (req: AuthRequest, res: Res
   const userId = parseInt(req.params.id);
 
   try {
-    // Check picks
+    // Check picks from picks_v2
     const [picks] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM picks WHERE user_id = ?',
+      'SELECT COUNT(*) as count FROM picks_v2 WHERE user_id = ?',
       [userId]
     );
 
-    // Check scores
+    // Check scores from score_details_v2 (count distinct rounds)
     const [scores] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM scores WHERE user_id = ?',
+      'SELECT COUNT(DISTINCT round_id) as count FROM score_details_v2 WHERE user_id = ?',
       [userId]
     );
 
-    // Check season winners
+    // Check season winners from season_winners_v2
     const [winners] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM season_winners WHERE user_id = ?',
+      'SELECT COUNT(*) as count FROM season_winners_v2 WHERE user_id = ?',
       [userId]
     );
 
@@ -175,19 +175,19 @@ router.delete('/:id', authenticateAdmin, async (req: AuthRequest, res: Response)
   const userId = parseInt(req.params.id);
 
   try {
-    // Check if user has any data
+    // Check if user has any data from v2 tables
     const [picks] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM picks WHERE user_id = ?',
+      'SELECT COUNT(*) as count FROM picks_v2 WHERE user_id = ?',
       [userId]
     );
 
     const [scores] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM scores WHERE user_id = ?',
+      'SELECT COUNT(DISTINCT round_id) as count FROM score_details_v2 WHERE user_id = ?',
       [userId]
     );
 
     const [winners] = await db.query<RowDataPacket[]>(
-      'SELECT COUNT(*) as count FROM season_winners WHERE user_id = ?',
+      'SELECT COUNT(*) as count FROM season_winners_v2 WHERE user_id = ?',
       [userId]
     );
 

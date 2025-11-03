@@ -38,12 +38,12 @@ export const checkAndSendReminders = async () => {
     const reminderSettings = await SettingsService.getReminderSettings();
     logger.debug(`⚙️ Reminder settings loaded: type=${reminderSettings.reminderType}, firstHours=${reminderSettings.firstReminderHours}, finalHours=${reminderSettings.finalReminderHours}, dailyTime=${reminderSettings.dailyReminderTime}, timezone=${reminderSettings.reminderTimezone}`);
     
-    // Get all active rounds that haven't been completed (with commissioner from season)
+    // Get all active rounds that haven't been completed (with commissioner from season) from rounds_v2 + seasons_v2
     logger.debug('🔍 Querying active rounds...');
     const [rounds] = await db.query<RowDataPacket[]>(
       `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status
-       FROM rounds r
-       JOIN seasons s ON r.season_id = s.id 
+       FROM rounds_v2 r
+       JOIN seasons_v2 s ON r.season_id = s.id 
        WHERE r.status = 'active' 
        AND r.lock_time > NOW()
        AND r.deleted_at IS NULL
@@ -95,12 +95,12 @@ export const checkAndSendReminders = async () => {
       }
     }
 
-    // Check for rounds that just locked (locked in the last hour)
+    // Check for rounds that just locked (locked in the last hour) from rounds_v2 + seasons_v2
     logger.debug('🔐 Checking for recently locked rounds...');
     const [lockedRounds] = await db.query<RowDataPacket[]>(
       `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status
-       FROM rounds r
-       JOIN seasons s ON r.season_id = s.id 
+       FROM rounds_v2 r
+       JOIN seasons_v2 s ON r.season_id = s.id 
        WHERE r.status = 'locked' 
        AND r.lock_time <= NOW() 
        AND r.lock_time >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
@@ -127,11 +127,11 @@ export const checkAndSendReminders = async () => {
 // Auto-lock rounds that have passed their lock time
 export const autoLockExpiredRounds = async () => {
   try {
-    // Find active rounds that have passed their lock time (with commissioner from season)
+    // Find active rounds that have passed their lock time (with commissioner from season) from rounds_v2 + seasons_v2
     const [expiredRounds] = await db.query<RowDataPacket[]>(
       `SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status
-       FROM rounds r
-       JOIN seasons s ON r.season_id = s.id 
+       FROM rounds_v2 r
+       JOIN seasons_v2 s ON r.season_id = s.id 
        WHERE r.status = 'active' 
        AND r.lock_time <= NOW()
        AND r.deleted_at IS NULL
@@ -143,8 +143,8 @@ export const autoLockExpiredRounds = async () => {
 
     for (const round of expiredRounds) {
       try {
-        // Update status to locked
-        await db.query('UPDATE rounds SET status = ? WHERE id = ?', ['locked', round.id]);
+        // Update status to locked in rounds_v2
+        await db.query('UPDATE rounds_v2 SET status = ? WHERE id = ?', ['locked', round.id]);
         
         // Send locked notifications
         await sendLockedNotificationIfNotSent(round);
@@ -220,7 +220,7 @@ export const checkAndSendDailyReminder = async (round: any, now: Date, reminderS
     // Check 4: Was this round created today? (Skip if forcing)
     if (!forceOverride) {
       const [createdToday] = await db.query<RowDataPacket[]>(
-        'SELECT id FROM rounds WHERE id = ? AND DATE(created_at) = CURDATE()',
+        'SELECT id FROM rounds_v2 WHERE id = ? AND DATE(created_at) = CURDATE()',
         [round.id]
       );
       
@@ -278,15 +278,16 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
 
     // Get users who are in this season but haven't made picks yet, excluding deactivated players
     // Use LEFT JOIN on magic_links to include users who don't have magic links yet
+    // Updated to use season_participants_v2, picks_v2, pick_items_v2 + teams_v2
     logger.debug(`🔍 Querying users without picks for round ${round.id}...`);
     const [usersWithoutPicks] = await db.query<RowDataPacket[]>(
       `SELECT DISTINCT u.id, u.email, u.name, ml.token
        FROM users u
-       JOIN season_participants sp ON u.id = sp.user_id
+       JOIN season_participants_v2 sp ON u.id = sp.user_id
        LEFT JOIN magic_links ml ON u.id = ml.user_id AND ml.round_id = ?
-       LEFT JOIN picks p ON u.id = p.user_id AND p.round_id = ?
-       LEFT JOIN pick_items pi ON p.id = pi.pick_id
-       WHERE sp.season_id = ? AND (p.id IS NULL OR pi.pick_value IS NULL OR pi.pick_value = '') AND u.is_active = TRUE`,
+       LEFT JOIN picks_v2 p ON u.id = p.user_id AND p.round_id = ?
+       LEFT JOIN pick_items_v2 pi ON p.id = pi.pick_id
+       WHERE sp.season_id = ? AND (p.id IS NULL OR pi.team_id IS NULL) AND u.is_active = TRUE`,
       [round.id, round.id, round.season_id]
     );
 
@@ -308,7 +309,7 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
 
       // Get round details for expires_at
       const [roundDetails] = await db.query<RowDataPacket[]>(
-        'SELECT lock_time FROM rounds WHERE id = ?',
+        'SELECT lock_time FROM rounds_v2 WHERE id = ?',
         [round.id]
       );
       
@@ -417,13 +418,13 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
     try {
       logger.debug(`📊 Preparing admin summary for round ${round.id}...`);
       
-      // Get all participants in this season
+      // Get all participants in this season from season_participants_v2 + picks_v2
       const [allParticipants] = await db.query<RowDataPacket[]>(
         `SELECT DISTINCT u.id, u.name,
          CASE WHEN p.id IS NOT NULL THEN 1 ELSE 0 END as hasPicked
          FROM users u
-         JOIN season_participants sp ON u.id = sp.user_id
-         LEFT JOIN picks p ON u.id = p.user_id AND p.round_id = ?
+         JOIN season_participants_v2 sp ON u.id = sp.user_id
+         LEFT JOIN picks_v2 p ON u.id = p.user_id AND p.round_id = ?
          WHERE sp.season_id = ? AND u.is_active = TRUE`,
         [round.id, round.season_id]
       );
@@ -445,7 +446,7 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       if (reminderSettings.sendAdminSummary) {
         // Get season name
         const [seasonResult] = await db.query<RowDataPacket[]>(
-          'SELECT name FROM seasons WHERE id = ?',
+          'SELECT name FROM seasons_v2 WHERE id = ?',
           [round.season_id]
         );
         
@@ -501,11 +502,11 @@ export const sendLockedNotificationIfNotSent = async (round: any) => {
       return; // Already sent
     }
 
-    // Get all users in this season
+    // Get all users in this season from season_participants_v2
     const [allUsers] = await db.query<RowDataPacket[]>(
       `SELECT DISTINCT u.id, u.email, u.name
        FROM users u
-       JOIN season_participants sp ON u.id = sp.user_id
+       JOIN season_participants_v2 sp ON u.id = sp.user_id
        WHERE sp.season_id = ?`,
       [round.season_id]
     );
@@ -555,7 +556,7 @@ export const sendLockedNotificationIfNotSent = async (round: any) => {
 // Manual trigger functions for admin use
 export const manualSendReminder = async (roundId: number, reminderType: 'first' | 'final') => {
   const [rounds] = await db.query<RowDataPacket[]>(
-    'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status FROM rounds r JOIN seasons s ON r.season_id = s.id WHERE r.id = ?',
+    'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status FROM rounds_v2 r JOIN seasons_v2 s ON r.season_id = s.id WHERE r.id = ?',
     [roundId]
   );
 
@@ -579,7 +580,7 @@ export const manualSendReminder = async (roundId: number, reminderType: 'first' 
 export const manualSendGenericReminder = async (roundId: number) => {
   try {
     const [rounds] = await db.query<RowDataPacket[]>(
-      'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status FROM rounds r WHERE r.id = ?',
+      'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.timezone, r.email_message, r.status FROM rounds_v2 r WHERE r.id = ?',
       [roundId]
     );
 
@@ -591,14 +592,15 @@ export const manualSendGenericReminder = async (roundId: number) => {
 
     // Get users who are in this season but haven't made picks yet, excluding deactivated players
     // Use LEFT JOIN on magic_links to include users who don't have magic links yet
+    // Updated to use season_participants_v2, picks_v2, pick_items_v2
     const [usersWithoutPicks] = await db.query<RowDataPacket[]>(
       `SELECT DISTINCT u.id, u.email, u.name, ml.token
        FROM users u
-       JOIN season_participants sp ON u.id = sp.user_id
+       JOIN season_participants_v2 sp ON u.id = sp.user_id
        LEFT JOIN magic_links ml ON u.id = ml.user_id AND ml.round_id = ?
-       LEFT JOIN picks p ON u.id = p.user_id AND p.round_id = ?
-       LEFT JOIN pick_items pi ON p.id = pi.pick_id
-       WHERE sp.season_id = ? AND (p.id IS NULL OR pi.pick_value IS NULL OR pi.pick_value = '') AND u.is_active = TRUE`,
+       LEFT JOIN picks_v2 p ON u.id = p.user_id AND p.round_id = ?
+       LEFT JOIN pick_items_v2 pi ON p.id = pi.pick_id
+       WHERE sp.season_id = ? AND (p.id IS NULL OR pi.team_id IS NULL) AND u.is_active = TRUE`,
       [round.id, round.id, round.season_id]
     );
 
@@ -617,7 +619,7 @@ export const manualSendGenericReminder = async (roundId: number) => {
 
       // Get round details for expires_at
       const [roundDetails] = await db.query<RowDataPacket[]>(
-        'SELECT lock_time FROM rounds WHERE id = ?',
+        'SELECT lock_time FROM rounds_v2 WHERE id = ?',
         [round.id]
       );
       
@@ -665,13 +667,13 @@ export const manualSendGenericReminder = async (roundId: number) => {
 
     // Send admin reminder summary for manual reminders too
     try {
-      // Get all participants in this season
+      // Get all participants in this season from season_participants_v2 + picks_v2
       const [allParticipants] = await db.query<RowDataPacket[]>(
         `SELECT DISTINCT u.id, u.name,
          CASE WHEN p.id IS NOT NULL THEN 1 ELSE 0 END as hasPicked
          FROM users u
-         JOIN season_participants sp ON u.id = sp.user_id
-         LEFT JOIN picks p ON u.id = p.user_id AND p.round_id = ?
+         JOIN season_participants_v2 sp ON u.id = sp.user_id
+         LEFT JOIN picks_v2 p ON u.id = p.user_id AND p.round_id = ?
          WHERE sp.season_id = ? AND u.is_active = TRUE`,
         [round.id, round.season_id]
       );
@@ -689,9 +691,9 @@ export const manualSendGenericReminder = async (roundId: number) => {
       const reminderSettings = await SettingsService.getReminderSettings();
       
       if (reminderSettings.sendAdminSummary) {
-        // Get season name
+        // Get season name from seasons_v2
         const [seasonResult] = await db.query<RowDataPacket[]>(
-          'SELECT name FROM seasons WHERE id = ?',
+          'SELECT name FROM seasons_v2 WHERE id = ?',
           [round.season_id]
         );
         
@@ -742,7 +744,7 @@ export const manualSendGenericReminder = async (roundId: number) => {
 
 export const manualSendLockedNotification = async (roundId: number) => {
   const [rounds] = await db.query<RowDataPacket[]>(
-    'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status FROM rounds r JOIN seasons s ON r.season_id = s.id WHERE r.id = ?',
+    'SELECT r.id, r.season_id, r.sport_name, r.lock_time, r.email_message, r.status FROM rounds_v2 r JOIN seasons_v2 s ON r.season_id = s.id WHERE r.id = ?',
     [roundId]
   );
 

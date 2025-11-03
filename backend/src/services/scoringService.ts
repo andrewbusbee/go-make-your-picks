@@ -2,6 +2,7 @@
  * Scoring Service
  * Centralized scoring calculations for consistency across all endpoints
  * Eliminates duplicate calculation logic and prevents scoring bugs
+ * Updated to use v2 normalized schema (score_details_v2, scoring_rules_v2, round_results_v2)
  */
 
 // Copyright (c) 2025 Andrew Busbee
@@ -53,12 +54,12 @@ export class ScoringService {
       const points = await SettingsService.getPointsSettingsForSeason(seasonId);
       logger.debug('Retrieved point settings for season', { seasonId, points });
 
-      // Get all rounds for the season (excluding soft-deleted)
+      // Get all rounds for the season (excluding soft-deleted) from rounds_v2
       // Sort: completed rounds by completion date (updated_at) first, then uncompleted by lock_time
       // If no rounds are completed, all sorted by lock_time
       const [rounds] = await db.query<RowDataPacket[]>(
-        `SELECT id, sport_name, status, first_place_team, second_place_team, third_place_team, fourth_place_team, fifth_place_team, lock_time, updated_at
-         FROM rounds 
+        `SELECT id, sport_name, status, lock_time, updated_at
+         FROM rounds_v2 
          WHERE season_id = ? AND deleted_at IS NULL
          ORDER BY 
            CASE WHEN status = 'completed' THEN 0 ELSE 1 END,
@@ -69,17 +70,17 @@ export class ScoringService {
         [seasonId]
       );
 
-      // Get only users who are participants in this season
+      // Get only users who are participants in this season (from season_participants_v2)
       const [users] = await db.query<RowDataPacket[]>(
         `SELECT DISTINCT u.id, u.name 
          FROM users u
-         JOIN season_participants sp ON u.id = sp.user_id
+         JOIN season_participants_v2 sp ON u.id = sp.user_id
          WHERE sp.season_id = ?
          ORDER BY u.name ASC`,
         [seasonId]
       );
 
-      // Get all picks for the season's rounds
+      // Get all picks for the season's rounds from picks_v2
       const roundIds = rounds.map(r => r.id);
       let picks: RowDataPacket[] = [];
       let pickItems: RowDataPacket[] = [];
@@ -88,29 +89,40 @@ export class ScoringService {
         [picks] = await db.query<RowDataPacket[]>(
           `SELECT p.*, r.status as round_status, r.lock_time, r.timezone,
                   a.name as editor_name
-           FROM picks p
-           JOIN rounds r ON p.round_id = r.id
+           FROM picks_v2 p
+           JOIN rounds_v2 r ON p.round_id = r.id
            LEFT JOIN admins a ON p.edited_by_admin_id = a.id
            WHERE p.round_id IN (?)`,
           [roundIds]
         );
 
-        // Get all pick items for these picks
+        // Get all pick items for these picks from pick_items_v2 + teams_v2
         if (picks.length > 0) {
           const pickIds = picks.map(p => p.id);
           [pickItems] = await db.query<RowDataPacket[]>(
-            'SELECT * FROM pick_items WHERE pick_id IN (?)',
+            `SELECT pi.pick_id, pi.pick_number, t.name as pick_value
+             FROM pick_items_v2 pi
+             JOIN teams_v2 t ON pi.team_id = t.id
+             WHERE pi.pick_id IN (?)`,
             [pickIds]
           );
         }
       }
 
-      // Get all scores for the season's rounds
-      let scores: RowDataPacket[] = [];
+      // Get all score details for the season's rounds from score_details_v2
+      // Also get scoring rules for this season from scoring_rules_v2
+      let scoreDetails: RowDataPacket[] = [];
+      let scoringRules: RowDataPacket[] = [];
       if (roundIds.length > 0) {
-        [scores] = await db.query<RowDataPacket[]>(
-          'SELECT * FROM scores WHERE round_id IN (?)',
+        [scoreDetails] = await db.query<RowDataPacket[]>(
+          'SELECT * FROM score_details_v2 WHERE round_id IN (?)',
           [roundIds]
+        );
+        
+        // Get scoring rules for this season
+        [scoringRules] = await db.query<RowDataPacket[]>(
+          'SELECT place, points FROM scoring_rules_v2 WHERE season_id = ?',
+          [seasonId]
         );
       }
 
@@ -120,9 +132,33 @@ export class ScoringService {
         picksMap.set(`${p.user_id}-${p.round_id}`, p);
       });
 
-      const scoresMap = new Map<string, any>();
-      scores.forEach(s => {
-        scoresMap.set(`${s.user_id}-${s.round_id}`, s);
+      // Build scoring rules map (place -> points)
+      const scoringRulesMap = new Map<number, number>();
+      scoringRules.forEach(rule => {
+        scoringRulesMap.set(rule.place, rule.points);
+      });
+      
+      // If no scoring rules exist in v2, fall back to SettingsService (backward compatibility)
+      if (scoringRulesMap.size === 0) {
+        logger.warn('No scoring rules found in scoring_rules_v2, falling back to SettingsService', { seasonId });
+        const points = await SettingsService.getPointsSettingsForSeason(seasonId);
+        scoringRulesMap.set(1, points.pointsFirst);
+        scoringRulesMap.set(2, points.pointsSecond);
+        scoringRulesMap.set(3, points.pointsThird);
+        scoringRulesMap.set(4, points.pointsFourth);
+        scoringRulesMap.set(5, points.pointsFifth);
+        scoringRulesMap.set(6, points.pointsSixthPlus);
+        scoringRulesMap.set(0, points.pointsNoPick);
+      }
+
+      // Build score details map: key = `${user_id}-${round_id}`, value = Map<place, count>
+      const scoreDetailsMap = new Map<string, Map<number, number>>();
+      scoreDetails.forEach(sd => {
+        const key = `${sd.user_id}-${sd.round_id}`;
+        if (!scoreDetailsMap.has(key)) {
+          scoreDetailsMap.set(key, new Map());
+        }
+        scoreDetailsMap.get(key)!.set(sd.place, sd.count);
       });
 
       const pickItemsMap = new Map<number, any[]>();
@@ -141,7 +177,6 @@ export class ScoringService {
         rounds.forEach(round => {
           const key = `${user.id}-${round.id}`;
           const pick = picksMap.get(key);
-          const score = scoresMap.get(key);
 
           // Add pick items to the pick object
           if (pick) {
@@ -157,21 +192,36 @@ export class ScoringService {
             userPicks[round.id] = null;
           }
           
-          // Calculate dynamic total points based on current settings
-          if (score) {
-            const dynamicTotal = 
-              (score.first_place || 0) * points.pointsFirst +
-              (score.second_place || 0) * points.pointsSecond +
-              (score.third_place || 0) * points.pointsThird +
-              (score.fourth_place || 0) * points.pointsFourth +
-              (score.fifth_place || 0) * points.pointsFifth +
-              (score.sixth_plus_place || 0) * points.pointsSixthPlus;
+          // Calculate dynamic total points from score_details_v2 + scoring_rules_v2
+          const scoreKey = `${user.id}-${round.id}`;
+          const scoreMap = scoreDetailsMap.get(scoreKey);
+          
+          if (scoreMap) {
+            // Calculate total points by summing: count * points for each place
+            let roundTotalPoints = 0;
+            const scoreObject: any = {};
+            
+            // Build score object similar to old format for backward compatibility
+            for (let place = 0; place <= 10; place++) {
+              const count = scoreMap.get(place) || 0;
+              const points = scoringRulesMap.get(place) || 0;
+              roundTotalPoints += count * points;
+              
+              // Map to old format for API compatibility
+              if (place === 1) scoreObject.first_place = count;
+              else if (place === 2) scoreObject.second_place = count;
+              else if (place === 3) scoreObject.third_place = count;
+              else if (place === 4) scoreObject.fourth_place = count;
+              else if (place === 5) scoreObject.fifth_place = count;
+              else if (place === 6) scoreObject.sixth_plus_place = count;
+              else if (place === 0) scoreObject.no_pick = count;
+            }
             
             userScores[round.id] = {
-              ...score,
-              total_points: dynamicTotal  // Override with dynamic calculation
+              ...scoreObject,
+              total_points: roundTotalPoints
             };
-            totalPoints += dynamicTotal;
+            totalPoints += roundTotalPoints;
           } else {
             userScores[round.id] = null;
           }
@@ -221,47 +271,79 @@ export class ScoringService {
   /**
    * Calculate final standings for ending a season
    * Used by: end season endpoint
+   * Updated to use v2 schema: score_details_v2, scoring_rules_v2
    */
   static async calculateFinalStandings(seasonId: number): Promise<FinalStanding[]> {
     try {
-      // Get current point values (season is being ended now, so use current settings)
-      const points = await SettingsService.getPointsSettings();
+      // Get scoring rules for this season from scoring_rules_v2
+      const [scoringRules] = await db.query<RowDataPacket[]>(
+        'SELECT place, points FROM scoring_rules_v2 WHERE season_id = ?',
+        [seasonId]
+      );
 
-      // Calculate final standings with comprehensive scoring (same as leaderboard, excluding soft-deleted rounds)
+      // If no scoring rules exist, fall back to SettingsService
+      if (scoringRules.length === 0) {
+        logger.warn('No scoring rules found in scoring_rules_v2, falling back to SettingsService', { seasonId });
+        const points = await SettingsService.getPointsSettings();
+        
+        // Calculate using score_details_v2 with fallback points
+        const [leaderboard] = await db.query<RowDataPacket[]>(
+          `SELECT 
+            u.id as user_id,
+            u.name,
+            CAST(
+              SUM(COALESCE(CASE WHEN sd.place = 1 THEN sd.count ELSE 0 END, 0) * ?) +
+              SUM(COALESCE(CASE WHEN sd.place = 2 THEN sd.count ELSE 0 END, 0) * ?) +
+              SUM(COALESCE(CASE WHEN sd.place = 3 THEN sd.count ELSE 0 END, 0) * ?) +
+              SUM(COALESCE(CASE WHEN sd.place = 4 THEN sd.count ELSE 0 END, 0) * ?) +
+              SUM(COALESCE(CASE WHEN sd.place = 5 THEN sd.count ELSE 0 END, 0) * ?) +
+              SUM(COALESCE(CASE WHEN sd.place >= 6 THEN sd.count ELSE 0 END, 0) * ?) +
+              SUM(COALESCE(CASE WHEN sd.place = 0 THEN sd.count ELSE 0 END, 0) * ?)
+            AS SIGNED) as total_points
+          FROM users u
+          JOIN season_participants_v2 sp ON u.id = sp.user_id
+          LEFT JOIN rounds_v2 r ON r.season_id = ? AND r.deleted_at IS NULL
+          LEFT JOIN score_details_v2 sd ON u.id = sd.user_id AND sd.round_id = r.id
+          WHERE sp.season_id = ?
+          GROUP BY u.id, u.name
+          ORDER BY total_points DESC`,
+          [points.pointsFirst, points.pointsSecond, points.pointsThird, points.pointsFourth, points.pointsFifth, points.pointsSixthPlus, points.pointsNoPick, seasonId, seasonId]
+        );
+        
+        return leaderboard as FinalStanding[];
+      }
+
+      // Build scoring rules map
+      const scoringRulesMap = new Map<number, number>();
+      scoringRules.forEach(rule => {
+        scoringRulesMap.set(rule.place, rule.points);
+      });
+
+      // Calculate final standings using score_details_v2 + scoring_rules_v2
+      // Use a subquery to calculate points per round, then sum
       const [leaderboard] = await db.query<RowDataPacket[]>(
         `SELECT 
           u.id as user_id,
           u.name,
           CAST(
-            SUM(COALESCE(s.first_place, 0) * ?) +
-            SUM(COALESCE(s.second_place, 0) * ?) +
-            SUM(COALESCE(s.third_place, 0) * ?) +
-            SUM(COALESCE(s.fourth_place, 0) * ?) +
-            SUM(COALESCE(s.fifth_place, 0) * ?) +
-            SUM(COALESCE(s.sixth_plus_place, 0) * ?) +
-            SUM(COALESCE(s.no_pick, 0) * ?)
+            SUM(
+              COALESCE(sd.count, 0) * COALESCE(sr.points, 0)
+            )
           AS SIGNED) as total_points
         FROM users u
-        JOIN season_participants sp ON u.id = sp.user_id
-        LEFT JOIN rounds r ON r.season_id = ? AND r.deleted_at IS NULL
-        LEFT JOIN scores s ON u.id = s.user_id AND s.round_id = r.id
+        JOIN season_participants_v2 sp ON u.id = sp.user_id
+        LEFT JOIN rounds_v2 r ON r.season_id = ? AND r.deleted_at IS NULL
+        LEFT JOIN score_details_v2 sd ON u.id = sd.user_id AND sd.round_id = r.id
+        LEFT JOIN scoring_rules_v2 sr ON sr.season_id = ? AND sr.place = sd.place
         WHERE sp.season_id = ?
         GROUP BY u.id, u.name
         ORDER BY total_points DESC`,
-        [points.pointsFirst, points.pointsSecond, points.pointsThird, points.pointsFourth, points.pointsFifth, points.pointsSixthPlus, points.pointsNoPick, seasonId, seasonId]
+        [seasonId, seasonId, seasonId]
       );
 
       logger.debug('Final standings calculated', { 
-        count: leaderboard.length, 
-        points: {
-          first: points.pointsFirst,
-          second: points.pointsSecond,
-          third: points.pointsThird,
-          fourth: points.pointsFourth,
-          fifth: points.pointsFifth,
-          sixthPlus: points.pointsSixthPlus,
-          noPick: points.pointsNoPick
-        }
+        count: leaderboard.length,
+        seasonId
       });
 
       return leaderboard as FinalStanding[];
@@ -280,59 +362,87 @@ export class ScoringService {
       // Get point values from settings (uses historical settings for ended seasons)
       const points = await SettingsService.getPointsSettingsForSeason(seasonId);
 
-      // Get completed rounds in order (excluding soft-deleted)
+      // Get completed rounds in order (excluding soft-deleted) from rounds_v2
       // Sort by completion date (updated_at) to match leaderboard sorting
       const [rounds] = await db.query<RowDataPacket[]>(
         `SELECT id, sport_name, lock_time, updated_at
-         FROM rounds 
+         FROM rounds_v2 
          WHERE season_id = ? AND status = 'completed' AND deleted_at IS NULL
          ORDER BY updated_at ASC`,
         [seasonId]
       );
 
-      // Get only users who are participants in this season
+      // Get only users who are participants in this season from season_participants_v2
       const [users] = await db.query<RowDataPacket[]>(
         `SELECT DISTINCT u.id, u.name 
          FROM users u
-         JOIN season_participants sp ON u.id = sp.user_id
+         JOIN season_participants_v2 sp ON u.id = sp.user_id
          WHERE sp.season_id = ?
          ORDER BY u.name ASC`,
         [seasonId]
       );
 
       const roundIds = rounds.map(r => r.id);
-      let scores: RowDataPacket[] = [];
+      let scoreDetails: RowDataPacket[] = [];
+      let scoringRules: RowDataPacket[] = [];
       
       if (roundIds.length > 0) {
-        [scores] = await db.query<RowDataPacket[]>(
-          'SELECT * FROM scores WHERE round_id IN (?)',
+        [scoreDetails] = await db.query<RowDataPacket[]>(
+          'SELECT * FROM score_details_v2 WHERE round_id IN (?)',
           [roundIds]
+        );
+        
+        [scoringRules] = await db.query<RowDataPacket[]>(
+          'SELECT place, points FROM scoring_rules_v2 WHERE season_id = ?',
+          [seasonId]
         );
       }
 
-      // Build lookup map for O(1) access
-      const scoresMap = new Map<string, any>();
-      scores.forEach(s => {
-        scoresMap.set(`${s.user_id}-${s.round_id}`, s);
+      // Build scoring rules map
+      const scoringRulesMap = new Map<number, number>();
+      scoringRules.forEach(rule => {
+        scoringRulesMap.set(rule.place, rule.points);
+      });
+      
+      // Fall back to SettingsService if no scoring rules
+      if (scoringRulesMap.size === 0) {
+        const points = await SettingsService.getPointsSettingsForSeason(seasonId);
+        scoringRulesMap.set(1, points.pointsFirst);
+        scoringRulesMap.set(2, points.pointsSecond);
+        scoringRulesMap.set(3, points.pointsThird);
+        scoringRulesMap.set(4, points.pointsFourth);
+        scoringRulesMap.set(5, points.pointsFifth);
+        scoringRulesMap.set(6, points.pointsSixthPlus);
+        scoringRulesMap.set(0, points.pointsNoPick);
+      }
+
+      // Build score details map: key = `${user_id}-${round_id}`, value = Map<place, count>
+      const scoreDetailsMap = new Map<string, Map<number, number>>();
+      scoreDetails.forEach(sd => {
+        const key = `${sd.user_id}-${sd.round_id}`;
+        if (!scoreDetailsMap.has(key)) {
+          scoreDetailsMap.set(key, new Map());
+        }
+        scoreDetailsMap.get(key)!.set(sd.place, sd.count);
       });
 
       // Build cumulative data for each user
       const graphData = users.map(user => {
         let cumulative = 0;
         const userPoints = rounds.map(round => {
-          const score = scoresMap.get(`${user.id}-${round.id}`);
-          if (score) {
-            // Calculate dynamic points
-            const dynamicTotal = 
-              (score.first_place || 0) * points.pointsFirst +
-              (score.second_place || 0) * points.pointsSecond +
-              (score.third_place || 0) * points.pointsThird +
-              (score.fourth_place || 0) * points.pointsFourth +
-              (score.fifth_place || 0) * points.pointsFifth +
-              (score.sixth_plus_place || 0) * points.pointsSixthPlus +
-              (score.no_pick || 0) * points.pointsNoPick;
-            cumulative += dynamicTotal;
+          const scoreKey = `${user.id}-${round.id}`;
+          const scoreMap = scoreDetailsMap.get(scoreKey);
+          
+          if (scoreMap) {
+            // Calculate points by summing: count * points for each place
+            let roundPoints = 0;
+            scoreMap.forEach((count, place) => {
+              const points = scoringRulesMap.get(place) || 0;
+              roundPoints += count * points;
+            });
+            cumulative += roundPoints;
           }
+          
           return {
             roundId: round.id,
             roundName: round.sport_name,
@@ -368,27 +478,51 @@ export class ScoringService {
   /**
    * Calculate total points for a specific user in a season
    * Used by: user profile, individual stats
+   * Updated to use v2 schema: score_details_v2, scoring_rules_v2
    */
   static async calculateUserTotalPoints(userId: number, seasonId: number): Promise<number> {
     try {
-      // Get point values from settings (uses historical settings for ended seasons)
-      const points = await SettingsService.getPointsSettingsForSeason(seasonId);
+      // Get scoring rules for this season from scoring_rules_v2
+      const [scoringRules] = await db.query<RowDataPacket[]>(
+        'SELECT place, points FROM scoring_rules_v2 WHERE season_id = ?',
+        [seasonId]
+      );
 
+      // If no scoring rules exist, fall back to SettingsService
+      if (scoringRules.length === 0) {
+        const points = await SettingsService.getPointsSettingsForSeason(seasonId);
+        
+        const [result] = await db.query<RowDataPacket[]>(
+          `SELECT 
+            CAST(
+              SUM(COALESCE(CASE WHEN sd.place = 1 THEN sd.count ELSE 0 END, 0) * ?) +
+              SUM(COALESCE(CASE WHEN sd.place = 2 THEN sd.count ELSE 0 END, 0) * ?) +
+              SUM(COALESCE(CASE WHEN sd.place = 3 THEN sd.count ELSE 0 END, 0) * ?) +
+              SUM(COALESCE(CASE WHEN sd.place = 4 THEN sd.count ELSE 0 END, 0) * ?) +
+              SUM(COALESCE(CASE WHEN sd.place = 5 THEN sd.count ELSE 0 END, 0) * ?) +
+              SUM(COALESCE(CASE WHEN sd.place >= 6 THEN sd.count ELSE 0 END, 0) * ?) +
+              SUM(COALESCE(CASE WHEN sd.place = 0 THEN sd.count ELSE 0 END, 0) * ?)
+            AS SIGNED) as total_points
+          FROM score_details_v2 sd
+          JOIN rounds_v2 r ON sd.round_id = r.id
+          WHERE sd.user_id = ? AND r.season_id = ? AND r.deleted_at IS NULL`,
+          [points.pointsFirst, points.pointsSecond, points.pointsThird, points.pointsFourth, points.pointsFifth, points.pointsSixthPlus, points.pointsNoPick, userId, seasonId]
+        );
+        
+        return Number(result[0]?.total_points) || 0;
+      }
+
+      // Calculate using score_details_v2 + scoring_rules_v2
       const [result] = await db.query<RowDataPacket[]>(
         `SELECT 
           CAST(
-            SUM(COALESCE(s.first_place, 0) * ?) +
-            SUM(COALESCE(s.second_place, 0) * ?) +
-            SUM(COALESCE(s.third_place, 0) * ?) +
-            SUM(COALESCE(s.fourth_place, 0) * ?) +
-            SUM(COALESCE(s.fifth_place, 0) * ?) +
-            SUM(COALESCE(s.sixth_plus_place, 0) * ?) +
-            SUM(COALESCE(s.no_pick, 0) * ?)
+            SUM(COALESCE(sd.count, 0) * COALESCE(sr.points, 0))
           AS SIGNED) as total_points
-        FROM scores s
-        JOIN rounds r ON s.round_id = r.id
-        WHERE s.user_id = ? AND r.season_id = ? AND r.deleted_at IS NULL`,
-        [points.pointsFirst, points.pointsSecond, points.pointsThird, points.pointsFourth, points.pointsFifth, points.pointsSixthPlus, points.pointsNoPick, userId, seasonId]
+        FROM score_details_v2 sd
+        JOIN rounds_v2 r ON sd.round_id = r.id
+        LEFT JOIN scoring_rules_v2 sr ON sr.season_id = ? AND sr.place = sd.place
+        WHERE sd.user_id = ? AND r.season_id = ? AND r.deleted_at IS NULL`,
+        [seasonId, userId, seasonId]
       );
 
       return Number(result[0]?.total_points) || 0;

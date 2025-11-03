@@ -18,9 +18,9 @@ router.post('/', authenticateAdmin, validateRequest(adminCreatePickValidators), 
 
   try {
     await withTransaction(async (connection) => {
-      // Verify round exists and get details
+      // Verify round exists and get details from rounds_v2
       const [rounds] = await connection.query<RowDataPacket[]>(
-        'SELECT * FROM rounds WHERE id = ?',
+        'SELECT * FROM rounds_v2 WHERE id = ?',
         [roundId]
       );
 
@@ -37,11 +37,12 @@ router.post('/', authenticateAdmin, validateRequest(adminCreatePickValidators), 
         throw new Error('Cannot modify picks for completed rounds');
       }
 
-      // Check if pick already exists and capture original value for edit tracking
+      // Check if pick already exists and capture original value for edit tracking from picks_v2 + pick_items_v2 + teams_v2
       const [existingPicks] = await connection.query<RowDataPacket[]>(
-        `SELECT p.id, pi.pick_value 
-         FROM picks p
-         LEFT JOIN pick_items pi ON p.id = pi.pick_id
+        `SELECT p.id, t.name as pick_value 
+         FROM picks_v2 p
+         LEFT JOIN pick_items_v2 pi ON p.id = pi.pick_id
+         LEFT JOIN teams_v2 t ON pi.team_id = t.id
          WHERE p.round_id = ? AND p.user_id = ?
          ORDER BY pi.pick_number`,
         [roundId, userId]
@@ -64,9 +65,9 @@ router.post('/', authenticateAdmin, validateRequest(adminCreatePickValidators), 
         validateTeams: shouldValidateTeams
       });
 
-      // Update pick with admin edit tracking information
+      // Update pick with admin edit tracking information in picks_v2
       await connection.query(
-        `UPDATE picks 
+        `UPDATE picks_v2 
          SET admin_edited = TRUE,
              original_pick = ?,
              edited_by_admin_id = ?,
@@ -98,7 +99,7 @@ router.get('/:roundId/:userId', authenticateAdmin, async (req: AuthRequest, res:
 
   try {
     const [picks] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM picks WHERE round_id = ? AND user_id = ?',
+      'SELECT * FROM picks_v2 WHERE round_id = ? AND user_id = ?',
       [roundId, userId]
     );
 
@@ -106,9 +107,13 @@ router.get('/:roundId/:userId', authenticateAdmin, async (req: AuthRequest, res:
       return res.json(null);
     }
 
-    // Get pick items
+    // Get pick items from pick_items_v2 + teams_v2
     const [pickItems] = await db.query<RowDataPacket[]>(
-      'SELECT pick_number, pick_value FROM pick_items WHERE pick_id = ? ORDER BY pick_number',
+      `SELECT pi.pick_number, t.name as pick_value 
+       FROM pick_items_v2 pi
+       JOIN teams_v2 t ON pi.team_id = t.id
+       WHERE pi.pick_id = ? 
+       ORDER BY pi.pick_number`,
       [picks[0].id]
     );
 
