@@ -494,7 +494,7 @@ export const sendSportCompletionEmail = async (
           placeText = `${result.place}th (${points} Points)`;
       }
       
-      return `${placeText}: ${result.team} ${medal}`;
+      return `${medal}${placeText}: ${result.team}`;
     });
     
     // Add the line about other picks
@@ -594,6 +594,179 @@ export const sendSportCompletionEmail = async (
       sportName 
     });
     logEmailSent(email, `${settings.app_title} - ${sportName} Complete - ${subjectPoints}`, false);
+    throw new Error(`Failed to send email: ${error.message}`);
+  }
+};
+
+export const sendSeasonEndingEmail = async (
+  email: string,
+  users: Array<{ id: number; name: string; rank: number; points: number }>, // Array to support shared emails
+  seasonName: string,
+  seasonYearStart: number,
+  seasonYearEnd: number,
+  finalStandings: Array<{ place: number; name: string; points: number; isCurrentUser: boolean }>, // Top 5 with user highlighting
+  totalRounds: number,
+  scoringRules: Array<{ place: number; points: number }>, // Historical scoring rules for this season
+  standingsLink: string,
+  commissioner?: string
+): Promise<void> => {
+  // Check if email notifications are globally enabled
+  const notificationsEnabled = await areEmailNotificationsEnabled();
+  if (!notificationsEnabled) {
+    logger.info('Email notifications disabled - skipping season ending email', { 
+      to: redactEmail(email), 
+      seasonName 
+    });
+    return;
+  }
+
+  const settings = await getSettings();
+  const currentCommissioner = await getCurrentCommissioner();
+  const fromName = settings.app_title;
+  const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
+  
+  // Format final standings with medals and user highlighting
+  const formatStandings = (standings: Array<{ place: number; name: string; points: number; isCurrentUser: boolean }>, isSharedEmail: boolean = false) => {
+    let currentRank = 1;
+    return standings.map((entry, index) => {
+      // Handle ties - if points are different from previous, update rank
+      if (index > 0 && standings[index - 1].points !== entry.points) {
+        currentRank = index + 1;
+      }
+      
+      const medal = entry.place === 1 ? '🥇' : entry.place === 2 ? '🥈' : entry.place === 3 ? '🥉' : '';
+      const highlight = (entry.isCurrentUser && !isSharedEmail) ? ' (You)' : '';
+      
+      // Format place label
+      let placeLabel = '';
+      switch (entry.place) {
+        case 1:
+          placeLabel = 'Champion';
+          break;
+        case 2:
+          placeLabel = '2nd';
+          break;
+        case 3:
+          placeLabel = '3rd';
+          break;
+        default:
+          placeLabel = `${entry.place}th`;
+      }
+      
+      // Medal placement: no space after medal for all places (1st, 2nd, 3rd)
+      const medalPrefix = entry.place === 1 || entry.place === 2 || entry.place === 3
+        ? `${medal}${placeLabel}` 
+        : placeLabel;
+      
+      return `${medalPrefix}: ${entry.name}${highlight} - ${entry.points} points`;
+    }).join('<br>');
+  };
+
+  // Format scoring rules for season summary
+  const formatScoringRules = (rules: Array<{ place: number; points: number }>) => {
+    const rulesMap = new Map(rules.map(r => [r.place, r.points]));
+    const parts: string[] = [];
+    
+    if (rulesMap.has(1)) parts.push(`1st=${rulesMap.get(1)}`);
+    if (rulesMap.has(2)) parts.push(`2nd=${rulesMap.get(2)}`);
+    if (rulesMap.has(3)) parts.push(`3rd=${rulesMap.get(3)}`);
+    if (rulesMap.has(4)) parts.push(`4th=${rulesMap.get(4)}`);
+    if (rulesMap.has(5)) parts.push(`5th=${rulesMap.get(5)}`);
+    if (rulesMap.has(6)) parts.push(`6th+=${rulesMap.get(6)}`);
+    if (rulesMap.has(0)) parts.push(`No Pick=${rulesMap.get(0)}`);
+    
+    return parts.join(', ');
+  };
+
+  // Format names for greeting
+  const isShared = users.length > 1;
+  const namesFormatted = isShared
+    ? `<span style="font-weight: bold;">${users.map((u, index) => {
+        if (index === 0) return u.name;
+        if (index === users.length - 1) return `, and ${u.name}`;
+        return `, ${u.name}`;
+      }).join('')}</span>`
+    : users[0].name;
+  
+  // Build individual standing sections for each user
+  const userStandingsSections = users.map(user => {
+    const isPodium = user.rank <= 3;
+    const podiumMessage = isPodium 
+      ? `<p style="margin-top: 8px; color: #1976d2; font-weight: bold;">🎉 Congratulations on making the podium!</p>`
+      : '';
+    
+    return `
+    <div class="user-highlight">
+      <div class="section-title">🎯 ${isShared ? `Final Standing for <span style="font-weight: bold;">${user.name}</span>` : 'Your Final Standing'}:</div>
+      <p>🏆 Final Rank: <strong>#${user.rank}</strong></p>
+      <p>📊 Total Points: <strong>${user.points} points</strong></p>
+      ${podiumMessage}
+    </div>
+  `;
+  }).join('');
+  
+  // Format season year range
+  const yearRange = seasonYearStart === seasonYearEnd 
+    ? seasonYearStart.toString() 
+    : `${seasonYearStart}-${seasonYearEnd}`;
+  
+  const commissionerHeader = getCommissionerSignature(currentCommissioner || undefined, settings.app_title);
+  
+  const bodyHtml = `
+    ${commissionerHeader}
+    <h2>Hi ${namesFormatted}!</h2>
+    <p><strong>🎉 ${seasonName} (${yearRange}) has officially ended!</strong></p>
+    ${userStandingsSections}
+    <div class="leaderboard-box">
+      <div class="section-title">🥇 Final Season Standings (Top 5):</div>
+      <p>${formatStandings(finalStandings, isShared)}</p>
+    </div>
+    <div class="results-box">
+      <div class="section-title">📊 Season Summary:</div>
+      <p>• Total Rounds: <strong>${totalRounds} sport${totalRounds !== 1 ? 's' : ''}</strong></p>
+      <p>• Completed: <strong>All rounds finished</strong></p>
+      <p>• Points System: <strong>${formatScoringRules(scoringRules)}</strong></p>
+    </div>
+    <div style="text-align: center;">
+      <a href="${standingsLink}" class="button">View Full Standings</a>
+    </div>
+    <p style="margin-top: 20px; color: #666; font-style: italic;">Thank you for participating in ${seasonName}!</p>
+  `;
+
+  const html = buildEmailHtml({
+    appTitle: settings.app_title,
+    headerIcon: '🏆',
+    bodyHtml,
+    footerText: `${settings.app_title} - ${settings.app_tagline}`
+  });
+
+  // Generate subject line based on user's rank
+  const topUser = users[0]; // Use first user for subject (shared emails will use first user)
+  const subjectRank = topUser.rank <= 3 
+    ? `You Finished #${topUser.rank}!`
+    : `You Finished #${topUser.rank}`;
+  
+  const subject = users.length === 1
+    ? `${settings.app_title} - ${seasonName} Complete - ${subjectRank}!`
+    : `${settings.app_title} - ${seasonName} Complete - Final Standings!`;
+
+  const mailOptions = {
+    from: `"${fromName}" <${fromEmail}>`,
+    to: email,
+    subject,
+    html,
+  };
+
+  try {
+    await sendEmailWithRetry(mailOptions, 'Season ending email');
+    logEmailSent(email, subject, true);
+  } catch (error: any) {
+    logger.error('Error sending season ending email after retries', { 
+      error: error.message, 
+      toRedacted: redactEmail(email), 
+      seasonName 
+    });
+    logEmailSent(email, subject, false);
     throw new Error(`Failed to send email: ${error.message}`);
   }
 };

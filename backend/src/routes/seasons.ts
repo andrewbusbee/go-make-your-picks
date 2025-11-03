@@ -8,6 +8,7 @@ import { SettingsService } from '../services/settingsService';
 import { withTransaction } from '../utils/transactionWrapper';
 import { MIN_VALID_YEAR, MAX_VALID_YEAR } from '../config/constants';
 import { QueryCacheService } from '../services/queryCacheService';
+import { sendSeasonEndingEmail } from '../services/emailService';
 
 const router = express.Router();
 
@@ -661,7 +662,7 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
   const seasonId = parseInt(req.params.id);
 
   try {
-    const storedWinners = await withTransaction(async (connection) => {
+    const { storedWinners, fullLeaderboard } = await withTransaction(async (connection) => {
       // Check if season exists and is not deleted from seasons_v2
       const [seasons] = await connection.query<RowDataPacket[]>(
         'SELECT * FROM seasons_v2 WHERE id = ? AND deleted_at IS NULL',
@@ -709,6 +710,7 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
       });
 
       // Calculate final standings using centralized ScoringService
+      // This returns ALL participants, not just top 5
       const leaderboard = await ScoringService.calculateFinalStandings(seasonId);
 
       logger.debug('Leaderboard results (raw)', { count: leaderboard.length, results: leaderboard });
@@ -799,11 +801,207 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
         [seasonId]
       );
 
-      return storedWinners;
+      return { storedWinners, fullLeaderboard: leaderboard };
     });
 
     // Invalidate seasons cache after ending
     QueryCacheService.invalidatePattern('seasons:');
+    
+    // Send season ending emails to all participants (batched for performance)
+    try {
+      logger.info('Starting season ending email process', { seasonId });
+      
+      // Get season details
+      const [seasonDetails] = await db.query<RowDataPacket[]>(
+        'SELECT name, year_start, year_end FROM seasons_v2 WHERE id = ?',
+        [seasonId]
+      );
+      
+      if (seasonDetails.length === 0) {
+        logger.warn('Season not found for email sending', { seasonId });
+      } else {
+        const season = seasonDetails[0];
+        
+        // Get all season participants
+        const [participants] = await db.query<RowDataPacket[]>(
+          `SELECT u.id, u.name, u.email 
+           FROM users u
+           JOIN season_participants_v2 sp ON u.id = sp.user_id 
+           WHERE sp.season_id = ? AND u.is_active = TRUE`,
+          [seasonId]
+        );
+
+        logger.info('Found participants for season ending email', { 
+          seasonId, 
+          participantCount: participants.length
+        });
+
+        // Get total rounds count
+        const [roundsCount] = await db.query<RowDataPacket[]>(
+          `SELECT COUNT(*) as count 
+           FROM rounds_v2 
+           WHERE season_id = ? AND deleted_at IS NULL`,
+          [seasonId]
+        );
+        const totalRounds = roundsCount[0]?.count || 0;
+
+        // Get scoring rules for this season
+        const [scoringRules] = await db.query<RowDataPacket[]>(
+          `SELECT place, points 
+           FROM scoring_rules_v2 
+           WHERE season_id = ? 
+           ORDER BY place ASC`,
+          [seasonId]
+        );
+
+        // Get final standings (top 5) with user data
+        const [topStandings] = await db.query<RowDataPacket[]>(
+          `SELECT sw.place, sw.user_id, sw.total_points, u.name
+           FROM season_winners_v2 sw
+           JOIN users u ON sw.user_id = u.id
+           WHERE sw.season_id = ?
+           ORDER BY sw.place ASC
+           LIMIT 5`,
+          [seasonId]
+        );
+
+        // Calculate ranks for ALL participants from the full leaderboard (handling ties)
+        // This ensures all participants get accurate ranks, not just top 5
+        const userRankMap = new Map<number, { rank: number; points: number }>();
+        let currentRank = 1;
+        let previousScore = fullLeaderboard.length > 0 ? Number(fullLeaderboard[0].total_points) : 0;
+        
+        fullLeaderboard.forEach((entry: any, index: number) => {
+          const currentScore = Number(entry.total_points);
+          
+          // If this entry has a different score than the previous, update rank
+          if (index > 0 && currentScore < previousScore) {
+            currentRank = index + 1;
+            previousScore = currentScore;
+          }
+          
+          userRankMap.set(entry.user_id, {
+            rank: currentRank,
+            points: currentScore
+          });
+        });
+
+        // Prepare base final standings (will be customized per email)
+        const baseFinalStandings = topStandings.map((standing: any) => ({
+          place: standing.place,
+          name: standing.name,
+          points: standing.total_points,
+          user_id: standing.user_id // Keep for matching
+        }));
+
+        const APP_URL = process.env.APP_URL || 'http://localhost:3003';
+        const standingsLink = `${APP_URL}`;
+
+        // Group participants by email to merge emails for shared addresses
+        const participantsByEmail = new Map<string, Array<{ id: number; name: string }>>();
+        participants.forEach((p: any) => {
+          if (!participantsByEmail.has(p.email)) {
+            participantsByEmail.set(p.email, []);
+          }
+          participantsByEmail.get(p.email)!.push({ id: p.id, name: p.name });
+        });
+
+        logger.info('Grouped participants by email', {
+          seasonId,
+          uniqueEmails: participantsByEmail.size,
+          totalParticipants: participants.length
+        });
+
+        // Send emails in batches to prevent overwhelming SMTP server
+        const BATCH_SIZE = 10;
+        const emailEntries = Array.from(participantsByEmail.entries());
+        
+        for (let i = 0; i < emailEntries.length; i += BATCH_SIZE) {
+          const batch = emailEntries.slice(i, i + BATCH_SIZE);
+          
+          logger.info(`Processing season ending email batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(emailEntries.length / BATCH_SIZE)}`, {
+            seasonId,
+            batchSize: batch.length,
+            startIndex: i
+          });
+
+          const batchResults = await Promise.allSettled(
+            batch.map(async ([email, users]) => {
+              try {
+                // Get rank and points for each user sharing this email
+                const usersWithStandings = users.map(user => {
+                  const standing = userRankMap.get(user.id);
+                  return {
+                    id: user.id,
+                    name: user.name,
+                    rank: standing?.rank || 999, // Default to 999 if not in standings
+                    points: standing?.points || 0
+                  };
+                });
+
+                // Create a set of user IDs for this email group for quick lookup
+                const emailUserIds = new Set(users.map(u => u.id));
+
+                // Mark users in top 5 standings for highlighting
+                const highlightedStandings = baseFinalStandings.map(standing => ({
+                  place: standing.place,
+                  name: standing.name,
+                  points: standing.points,
+                  isCurrentUser: emailUserIds.has(standing.user_id)
+                }));
+
+                await sendSeasonEndingEmail(
+                  email,
+                  usersWithStandings,
+                  season.name,
+                  season.year_start,
+                  season.year_end,
+                  highlightedStandings,
+                  totalRounds,
+                  scoringRules.map((r: any) => ({ place: r.place, points: r.points })),
+                  standingsLink
+                );
+
+                logger.debug('Successfully sent season ending email', { 
+                  seasonId,
+                  email: email.substring(0, 3) + '***',
+                  userCount: users.length
+                });
+              } catch (emailError: any) {
+                logger.error(`Failed to send season ending email`, { 
+                  seasonId,
+                  email: email.substring(0, 3) + '***',
+                  error: emailError.message 
+                });
+                throw emailError; // Re-throw to be caught by Promise.allSettled
+              }
+            })
+          );
+
+          // Log batch results
+          const batchSuccessCount = batchResults.filter(r => r.status === 'fulfilled').length;
+          const batchFailureCount = batchResults.filter(r => r.status === 'rejected').length;
+          logger.info(`Season ending email batch completed`, {
+            seasonId,
+            batchNumber: Math.floor(i / BATCH_SIZE) + 1,
+            successCount: batchSuccessCount,
+            failureCount: batchFailureCount
+          });
+        }
+
+        logger.info('Season ending email process finished', { 
+          seasonId,
+          totalEmails: emailEntries.length,
+          totalParticipants: participants.length
+        });
+      }
+    } catch (emailError: any) {
+      // Don't fail the season ending if emails fail
+      logger.error('Error sending season ending emails', { 
+        seasonId,
+        error: emailError.message 
+      });
+    }
     
     res.json({ 
       message: 'Season ended successfully',
