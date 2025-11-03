@@ -125,6 +125,12 @@ export class ScoringService {
           [seasonId]
         );
       }
+      
+      // Check if season is ended to determine if missing scoring rules is expected
+      const [seasonData] = await db.query<RowDataPacket[]>(
+        'SELECT ended_at FROM seasons_v2 WHERE id = ?',
+        [seasonId]
+      );
 
       // Build lookup maps for O(1) access
       const picksMap = new Map<string, any>();
@@ -139,8 +145,15 @@ export class ScoringService {
       });
       
       // If no scoring rules exist in v2, fall back to SettingsService (backward compatibility)
+      // This is expected for active seasons - scoring_rules_v2 is only populated when a season ends
+      // Only warn if season is ended but has no rules (indicates a problem)
       if (scoringRulesMap.size === 0) {
-        logger.warn('No scoring rules found in scoring_rules_v2, falling back to SettingsService', { seasonId });
+        const isEnded = seasonData.length > 0 && seasonData[0].ended_at !== null;
+        if (isEnded) {
+          logger.warn('Ended season has no scoring rules in scoring_rules_v2, falling back to SettingsService', { seasonId });
+        } else {
+          logger.debug('Active season has no scoring rules in scoring_rules_v2, using current settings (expected)', { seasonId });
+        }
         const points = await SettingsService.getPointsSettingsForSeason(seasonId);
         scoringRulesMap.set(1, points.pointsFirst);
         scoringRulesMap.set(2, points.pointsSecond);
@@ -276,14 +289,27 @@ export class ScoringService {
   static async calculateFinalStandings(seasonId: number): Promise<FinalStanding[]> {
     try {
       // Get scoring rules for this season from scoring_rules_v2
+      // Also check if season is ended to determine if this is expected
+      const [seasonData] = await db.query<RowDataPacket[]>(
+        'SELECT ended_at FROM seasons_v2 WHERE id = ?',
+        [seasonId]
+      );
+      
       const [scoringRules] = await db.query<RowDataPacket[]>(
         'SELECT place, points FROM scoring_rules_v2 WHERE season_id = ?',
         [seasonId]
       );
 
       // If no scoring rules exist, fall back to SettingsService
+      // This is expected for active seasons (scoring_rules_v2 is only populated when season ends)
+      // Only warn if season is ended but has no rules (indicates a problem)
       if (scoringRules.length === 0) {
-        logger.warn('No scoring rules found in scoring_rules_v2, falling back to SettingsService', { seasonId });
+        const isEnded = seasonData.length > 0 && seasonData[0].ended_at !== null;
+        if (isEnded) {
+          logger.warn('Ended season has no scoring rules in scoring_rules_v2, falling back to SettingsService', { seasonId });
+        } else {
+          logger.debug('Active season has no scoring rules in scoring_rules_v2, using current settings (expected)', { seasonId });
+        }
         const points = await SettingsService.getPointsSettings();
         
         // Calculate using score_details_v2 with fallback points

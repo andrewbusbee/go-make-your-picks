@@ -15,6 +15,7 @@ import { CreateRelationalSchemaV2Core } from './20250123000000_create_relational
 import { CreateRelationalSchemaV2PicksScoring } from './20250123000001_create_relational_schema_v2_picks_scoring';
 import { CreateSeasonWinnersV2 } from './20250123000002_create_season_winners_v2';
 import { RenameLegacyGameTables } from './20250123000003_rename_legacy_game_tables';
+import { UpdateMagicLinksFkToRoundsV2 } from './20250123000004_update_magic_links_fk_to_rounds_v2';
 
 /**
  * All migrations in order of execution
@@ -30,6 +31,7 @@ export const allMigrations: Migration[] = [
   new CreateRelationalSchemaV2PicksScoring(),
   new CreateSeasonWinnersV2(),
   new RenameLegacyGameTables(),
+  new UpdateMagicLinksFkToRoundsV2(),
   // Add new migrations here as needed
 ];
 
