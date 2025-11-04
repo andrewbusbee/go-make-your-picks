@@ -24,7 +24,7 @@ LABEL org.opencontainers.image.source="https://github.com/andrewbusbee/go-make-y
 LABEL org.opencontainers.image.authors="Andrew Busbee <andrew@andrewbusbee.com>"
 LABEL org.opencontainers.image.licenses="MIT"
 
-# Install build dependencies for native modules (like bcrypt) in one layer
+# Native build tools required to compile bcrypt (and other native Node modules) in this image
 RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
@@ -32,7 +32,7 @@ WORKDIR /app
 # Copy backend (only dist and necessary files)
 COPY --from=backend-builder /app/backend/dist ./backend/dist
 COPY --from=backend-builder /app/backend/package*.json ./backend/
-COPY backend/database ./backend/database
+COPY --from=backend-builder /app/backend/database ./backend/database
 
 # Copy frontend build (only dist)
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
@@ -43,6 +43,9 @@ COPY LICENSE /app/LICENSE
 # Install only production dependencies for backend
 WORKDIR /app/backend
 RUN npm ci --omit=dev --no-audit --no-fund
+
+# Install curl for healthcheck (needed at runtime)
+RUN apk add --no-cache curl
 
 # Clean up build dependencies and npm cache to reduce image size
 WORKDIR /app
@@ -63,7 +66,7 @@ USER nodejs
 EXPOSE 3003
 
 # Container healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://localhost:3003/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD curl -f http://localhost:3003/api/health || exit 1
 
 # Backend serves the frontend in production
 WORKDIR /app/backend
