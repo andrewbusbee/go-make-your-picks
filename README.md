@@ -206,6 +206,23 @@ These values are set in `docker-compose.yml` for Docker networking and should no
 | `MARIADB_HOST` | Database host (Docker service name) | `mariadb` |
 | `MARIADB_PORT` | Database port (internal Docker port) | `3306` |
 
+## 📧 Email Setup Guide
+
+### Gmail Configuration
+
+1. **Enable 2-Factor Authentication** on your Google account
+2. **Generate an App Password**:
+   - Go to Google Account → Security
+   - App passwords → Select "Mail" and your device
+   - Copy the generated 16-character password
+3. **Use the app password** in your `SMTP_PASSWORD` variable
+
+### Testing Email Configuration
+
+Use the built-in email test feature in the admin panel:
+1. Go to **Settings** → **Email**
+2. Click "Send Test Email"
+
 ### Email Provider Examples
 
 **Gmail:**
@@ -234,23 +251,6 @@ SMTP_SECURE=false
 SMTP_USER=your-email@domain.com
 SMTP_PASSWORD=your-brevo-smtp-key
 ```
-
-## 📧 Email Setup Guide
-
-### Gmail Configuration
-
-1. **Enable 2-Factor Authentication** on your Google account
-2. **Generate an App Password**:
-   - Go to Google Account → Security
-   - App passwords → Select "Mail" and your device
-   - Copy the generated 16-character password
-3. **Use the app password** in your `SMTP_PASSWORD` variable
-
-### Testing Email Configuration
-
-Use the built-in email test feature in the admin panel:
-1. Go to **Settings** → **Email**
-2. Click "Send Test Email"
 
 ## 🎯 Getting Started Guide
 
