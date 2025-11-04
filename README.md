@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Docker](https://img.shields.io/badge/docker-ghcr.io-blue.svg?logo=docker)
 
-![Node.js](https://img.shields.io/badge/node.js-18+-green.svg)
+![Node.js](https://img.shields.io/badge/node.js-24+-green.svg)
 ![Database](https://img.shields.io/badge/database-MariaDB-orange.svg)
 ![Frontend](https://img.shields.io/badge/frontend-React%2018-blue.svg)
 ![Backend](https://img.shields.io/badge/backend-Node.js%20Express-green.svg)
@@ -79,6 +79,40 @@ A modern, player-friendly sports prediction platform that brings people together
 - Docker and Docker Compose
 - Email service credentials (Gmail, SendGrid, etc.)
 
+### Setup Steps
+
+1. **Copy environment template**:
+   ```bash
+   cp env.template .env
+   ```
+
+2. **Generate a JWT secret** (required for security):
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   ```
+   Copy the output and add it to your `.env` file as `JWT_SECRET=...`
+
+3. **Fill in required variables** in `.env`:
+   - `JWT_SECRET` - Use the value from step 2
+   - `MARIADB_ROOT_PASSWORD` - Strong password for MariaDB root
+   - `MARIADB_PASSWORD` - Strong password for the application database user
+   - `SMTP_HOST` - Your email server (e.g., `smtp.gmail.com`)
+   - `SMTP_USER` - Your email address
+   - `SMTP_PASSWORD` - Your email app password (see Email Setup Guide below)
+
+4. **Start the application**:
+   ```bash
+   docker-compose up -d
+   ```
+
+5. **Wait for initialization** (30-60 seconds on first start):
+   - The database needs time to initialize
+   - Check logs: `docker-compose logs -f`
+
+6. **Access the application**:
+   - Frontend: http://localhost:3003
+   - Admin Panel: http://localhost:3003/admin/login
+   - API Docs: http://localhost:3003/api/docs
 
 ### First-Time Setup
 
@@ -192,10 +226,15 @@ These variables have default values but it is **highly recommended that they be 
 | `MARIADB_USER` | Database username | `gomakeyourpicksuser` | `gomakeyourpicksuser` |
 | `APP_URL` | Your application's public URL | `http://localhost:3003` | `https://yourdomain.com` |
 | `LOG_LEVEL` | Logging verbosity level | `INFO` | `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, `SILENT` |
-| `ENABLE_DEV_TOOLS` | Enable creation of seed data from admin dashboard for testing | `true` | `true` or `false` |
+| `ENABLE_DEV_TOOLS` | Enable creation of seed data from admin dashboard for testing | `true` (development) | Set to `false` for production |
 | `SMTP_PORT` | Email server port | `587` | `587` or `465` |
 | `SMTP_SECURE` | Use SSL/TLS encryption (set to false for port 587) | `false` | `true` or `false` |
 | `SMTP_FROM` | Sender email address (fallback used if not set) | `noreply@example.com` | `noreply@yourdomain.com` |
+
+**Note on `ENABLE_DEV_TOOLS`**: 
+- Default is `true` for development/testing convenience
+- **Must be set to `false` for production** to hide seed data buttons and prevent accidental data creation
+- Can be toggled anytime by changing the value and restarting Docker Compose (no rebuild required)
 
 ### Docker Internal Configuration (Do Not Change)
 
@@ -206,16 +245,34 @@ These values are set in `docker-compose.yml` for Docker networking and should no
 | `MARIADB_HOST` | Database host (Docker service name) | `mariadb` |
 | `MARIADB_PORT` | Database port (internal Docker port) | `3306` |
 
+### Development vs Production
+
+**Development/Testing (`ENABLE_DEV_TOOLS=true`):**
+- Seed data buttons visible in admin dashboard
+- Useful for exploring features and testing
+- Default value for convenience
+- Can create/delete sample data easily
+
+**Production (`ENABLE_DEV_TOOLS=false`):**
+- Seed data buttons hidden
+- No risk of accidentally creating test data
+- Recommended for live deployments
+- Set this before deploying to production
+
+**Important:** Always delete any sample data (using "Delete Sample Data" button) before setting `ENABLE_DEV_TOOLS=false` and deploying to production.
+
 ## 🌱 Seed Data Function
 
 The seed data function is a development/testing tool that populates your database with sample data to help you explore the application quickly. When enabled (via `ENABLE_DEV_TOOLS=true`), you can access it from the admin dashboard.
 
 **What it creates:**
-- 15 sample players with sample email addresses
+- 15 sample players (Player 01 through Player 15) with sample email addresses (player1@example.com through player15@example.com)
 - A test season with the current year and next year
-- Active sports with lock times set to 1 week from now
-- Completed sports with historical scores and picks
-- Sample picks for all players across all sports
+- 10 sports total:
+  - 2 active sports with lock times set to 1 week from now
+  - 8 completed sports with historical scores and picks
+  - "Wimbledon" is included as a write-in sport (active, not locked)
+- Sample picks for all players across all sports (picks are validated against actual team lists)
 
 **Note:** This feature is intended for development and testing purposes only. It should be disabled (`ENABLE_DEV_TOOLS=false`) in production environments, and any sample data should be deleted using the "Delete Sample Data" button in the admin dashboard before going to production.
 
@@ -292,7 +349,7 @@ SMTP_PASSWORD=your-brevo-smtp-key
 
 ### Architecture
 - **Frontend**: React 18 with TypeScript and Tailwind CSS
-- **Backend**: Node.js with Express and TypeScript
+- **Backend**: Node.js 24 with Express and TypeScript
 - **Database**: MariaDB 11.8 LTS with comprehensive schema
 - **Email**: Configurable SMTP with automatic retry logic
 - **Deployment**: Docker containers with health checks
@@ -312,15 +369,39 @@ Complete API documentation is available at `http://localhost:3003/api/docs` - th
 
 ### Common Issues
 
+**Port 3003 Already in Use:**
+- Check what's using the port: `netstat -ano | findstr :3003` (Windows) or `lsof -i :3003` (Linux/Mac)
+- Change the port in `docker-compose.yml` if needed: `"3004:3003"` (maps host port 3004 to container port 3003)
+- Update `APP_URL` in your `.env` file to match the new port
+
 **Magic Links Not Sending:**
 - Verify SMTP credentials in your configuration
 - Check that your email provider allows SMTP connections
-- Use the built-in email test feature in admin settings
+- Use the built-in email test feature in admin settings (Settings → Email → Send Test Email)
+- Check server logs: `docker-compose logs go-make-your-picks`
 
 **Database Connection Problems:**
 - Ensure MariaDB container is running: `docker-compose ps`
 - Wait for database initialization (30-60 seconds on first start)
 - Verify database credentials match your configuration
+- Check database logs: `docker-compose logs mariadb`
+- Verify health check passed: Wait for "mariadb is healthy" message
+
+**Container Won't Start:**
+- Check logs: `docker-compose logs -f`
+- Verify all required environment variables are set in `.env`
+- Ensure JWT_SECRET is at least 32 characters long
+- Try rebuilding: `docker-compose up --build -d`
+
+**Viewing Logs:**
+- All containers: `docker-compose logs -f`
+- Application only: `docker-compose logs -f go-make-your-picks`
+- Database only: `docker-compose logs -f mariadb`
+
+**Resetting Database (⚠️ Deletes All Data):**
+- Stop containers: `docker-compose down`
+- Remove volumes: `docker-compose down -v`
+- Start fresh: `docker-compose up -d`
 
 ## 📄 License
 
