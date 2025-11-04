@@ -481,10 +481,19 @@ export default function AdminDashboard() {
                   onClick={async () => {
                     if (!confirm('This will delete all sample data. Continue?')) return;
                     try {
-                      const res = await api.post('/admin/seed/clear-test-data');
-                      alert(res.data.message || 'Sample data deleted successfully!');
+                      await api.post('/admin/seed/clear-test-data');
                       setHasSampleData(false);
-                      window.location.reload();
+                      
+                      // Navigate away from season detail page if we're on a deleted season
+                      const currentPath = location.pathname;
+                      if (currentPath.startsWith('/admin/seasons/')) {
+                        navigate('/admin/seasons');
+                      }
+                      
+                      // Small delay to ensure cache is cleared, then reload
+                      setTimeout(() => {
+                        window.location.reload();
+                      }, 100);
                     } catch (error: any) {
                       alert(error.response?.data?.error || 'Failed to delete sample data');
                     }

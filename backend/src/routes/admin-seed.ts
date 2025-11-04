@@ -579,6 +579,14 @@ router.post('/clear-test-data', authenticateAdmin, requireMainAdmin, async (req:
       }
     });
 
+    // Invalidate all relevant caches after deletion
+    QueryCacheService.invalidatePattern('seasons:');
+    QueryCacheService.invalidatePattern('users:');
+    QueryCacheService.invalidatePattern('rounds:');
+    QueryCacheService.invalidatePattern('picks:');
+    QueryCacheService.invalidatePattern('participants:');
+    logInfo('Cache invalidated after sample data deletion');
+
     res.json({ message: 'Sample data deleted successfully!' });
 
   } catch (error) {
