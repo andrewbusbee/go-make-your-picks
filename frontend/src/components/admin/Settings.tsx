@@ -5,6 +5,7 @@ import TestEmail from './TestEmail';
 import AdminsManagement from './AdminsManagement';
 import HistoricalChampionsManagement from './HistoricalChampionsManagement';
 import DatabaseHealth from './DatabaseHealth';
+import ApiDocs from './ApiDocs';
 import {
   tabContainerClasses,
   tabButtonActiveClasses,
@@ -18,7 +19,7 @@ interface SettingsProps {
 export default function Settings({ isMainAdmin }: SettingsProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'customize' | 'email' | 'admins' | 'champions' | 'dbhealth'>('customize');
+  const [activeTab, setActiveTab] = useState<'customize' | 'email' | 'admins' | 'champions' | 'dbhealth' | 'api-docs'>('customize');
 
   // Determine active tab based on URL
   useEffect(() => {
@@ -30,12 +31,14 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
       setActiveTab('champions');
     } else if (location.pathname.includes('/admin/settings/db-health')) {
       setActiveTab('dbhealth');
+    } else if (location.pathname.includes('/admin/settings/api-docs')) {
+      setActiveTab('api-docs');
     } else {
       setActiveTab('customize');
     }
   }, [location.pathname]);
 
-  const handleTabChange = (tab: 'customize' | 'email' | 'admins' | 'champions' | 'dbhealth') => {
+  const handleTabChange = (tab: 'customize' | 'email' | 'admins' | 'champions' | 'dbhealth' | 'api-docs') => {
     setActiveTab(tab);
     if (tab === 'customize') {
       navigate('/admin/settings');
@@ -46,7 +49,7 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
     }
   };
 
-  const getSubTabClass = (tab: 'customize' | 'email' | 'admins' | 'champions' | 'dbhealth') => {
+  const getSubTabClass = (tab: 'customize' | 'email' | 'admins' | 'champions' | 'dbhealth' | 'api-docs') => {
     return activeTab === tab ? tabButtonActiveClasses : tabButtonInactiveClasses;
   };
 
@@ -84,6 +87,12 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
         >
           Database Health
         </button>
+        <button
+          onClick={() => handleTabChange('api-docs')}
+          className={getSubTabClass('api-docs')}
+        >
+          📚 API Docs
+        </button>
       </div>
 
       {/* Content */}
@@ -93,6 +102,7 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
         {activeTab === 'admins' && <AdminsManagement isMainAdmin={isMainAdmin} />}
         {activeTab === 'champions' && <HistoricalChampionsManagement />}
         {activeTab === 'dbhealth' && <DatabaseHealth />}
+        {activeTab === 'api-docs' && <ApiDocs />}
       </div>
     </div>
   );
