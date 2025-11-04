@@ -45,6 +45,7 @@ services:
       # ⚠️ CRITICAL SECURITY: Generate a strong JWT secret!
       # Run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
       JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY: ${JWT_EXPIRY:-8h}
       
       # SMTP Configuration
       SMTP_HOST: ${SMTP_HOST:-}

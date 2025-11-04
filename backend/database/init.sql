@@ -139,19 +139,23 @@ CREATE TABLE IF NOT EXISTS round_teams (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Magic links table
+-- Magic links are multi-use: same link can be used multiple times (mobile, desktop, etc.)
+-- until the round locks. Each validation issues a fresh JWT (8h expiry by default).
+-- There is at most one active magic link per (user_id, round_id) - enforced by unique constraint.
+-- Magic links expire when the round's lock_time is reached (expires_at is set to lock_time).
 CREATE TABLE IF NOT EXISTS magic_links (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     round_id INT NOT NULL,
     token VARCHAR(255) UNIQUE NOT NULL,
-    expires_at TIMESTAMP NOT NULL,
+    expires_at TIMESTAMP NOT NULL, -- Set to round.lock_time - link valid until round locks
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (round_id) REFERENCES rounds(id) ON DELETE CASCADE,
     INDEX idx_token (token),
     INDEX idx_expires (expires_at),
     INDEX idx_user_round (user_id, round_id),
-    UNIQUE KEY unique_user_round (user_id, round_id)
+    UNIQUE KEY unique_user_round (user_id, round_id) -- Ensures one active link per user+round
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Picks table

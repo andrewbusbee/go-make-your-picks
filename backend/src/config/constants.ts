@@ -5,7 +5,9 @@
 
 // Security & Authentication
 export const MIN_JWT_SECRET_LENGTH = 32;
-export const JWT_TOKEN_EXPIRY = '24h'; // 24 hours - reduced from 7 days for security
+// JWT access token expiry - configurable via JWT_EXPIRY env var (default: 8h)
+// Magic links remain valid until round locks, but JWTs expire independently for security
+export const JWT_TOKEN_EXPIRY: string = process.env.JWT_EXPIRY || '8h'; // Default 8 hours
 export const PASSWORD_SALT_ROUNDS = 12; // Increased from 10 for better security
 export const MAGIC_LINK_TOKEN_BYTES = 32;
 export const ADMIN_MAGIC_LINK_TOKEN_BYTES = 32;

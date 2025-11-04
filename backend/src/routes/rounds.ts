@@ -719,9 +719,16 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
     }
 
     // Delete all old magic links for this round (both types)
+    // Magic links are multi-use per (user_id, round_id) or (email, round_id) until round locks
+    // When a round is reactivated, old links are deleted and new ones created
+    // Each magic link validation issues a fresh JWT (8h expiry), but the magic link itself
+    // remains valid until the round locks, enabling multi-device access
     await db.query('DELETE FROM email_magic_links WHERE round_id = ?', [roundId]);
     await db.query('DELETE FROM magic_links WHERE round_id = ?', [roundId]);
 
+    // Set magic link expiry to round lock time
+    // Magic links remain valid until the round locks, allowing multi-device access
+    // Each successful validation exchanges the magic link for a fresh JWT (8h expiry)
     const expiresAt = round.lock_time;
     const magicLinksData: Array<{ email: string; users: any[]; token: string; magicLink: string }> = [];
     const userMagicLinkValues: Array<[number, number, string, Date]> = [];

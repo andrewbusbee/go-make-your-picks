@@ -45,13 +45,24 @@ export function generateAdminToken(adminId: number, email: string, isMainAdmin: 
   
   return jwt.sign(payload, JWT_SECRET, {
     expiresIn: JWT_TOKEN_EXPIRY
-  });
+  } as jwt.SignOptions);
 }
 
 /**
  * Generate JWT token for pick/player authentication
- * Token expires when the round locks (handled by magic link expiry)
- * But we still set a reasonable JWT expiry (24h) for security
+ * 
+ * Magic links are reusable per (user_id, round_id) or (email, round_id) until the round locks.
+ * Each successful magic link validation issues a fresh JWT access token with configurable expiry
+ * (default: 8h). If the JWT expires, users can click the same magic link again to get a new JWT.
+ * 
+ * The magic link itself remains valid until:
+ * - The round's lock_time is reached, OR
+ * - The magic link's expires_at is reached (typically set to round.lock_time)
+ * 
+ * This separation allows:
+ * - Multi-device access (same link works on mobile, desktop, etc.)
+ * - Session expiry (JWT expires independently for security)
+ * - Convenient re-authentication (click link again if JWT expired)
  */
 export function generatePickToken(
   roundId: number,
@@ -75,8 +86,8 @@ export function generatePickToken(
   }
   
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_TOKEN_EXPIRY // 24h - magic link expiry still enforced separately
-  });
+    expiresIn: JWT_TOKEN_EXPIRY // Default 8h - configurable via JWT_EXPIRY env var
+  } as jwt.SignOptions);
 }
 
 /**

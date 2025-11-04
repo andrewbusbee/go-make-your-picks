@@ -308,6 +308,7 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       });
 
       // Get round details for expires_at
+      // Magic links expire when the round locks, enabling multi-use until that time
       const [roundDetails] = await db.query<RowDataPacket[]>(
         'SELECT lock_time FROM rounds_v2 WHERE id = ?',
         [round.id]
@@ -316,6 +317,8 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       const expiresAt = roundDetails[0].lock_time;
 
       // Create magic links for users who don't have them
+      // Magic links are multi-use: same link can be used multiple times (mobile, desktop, etc.)
+      // until the round locks. Each validation issues a fresh JWT (8h expiry).
       const crypto = require('crypto');
       const magicLinkValues = usersNeedingLinks.map(user => {
         const token = crypto.randomBytes(32).toString('hex');
@@ -618,6 +621,7 @@ export const manualSendGenericReminder = async (roundId: number) => {
       });
 
       // Get round details for expires_at
+      // Magic links expire when the round locks, enabling multi-use until that time
       const [roundDetails] = await db.query<RowDataPacket[]>(
         'SELECT lock_time FROM rounds_v2 WHERE id = ?',
         [round.id]
@@ -626,6 +630,8 @@ export const manualSendGenericReminder = async (roundId: number) => {
       const expiresAt = roundDetails[0].lock_time;
 
       // Create magic links for users who don't have them
+      // Magic links are multi-use: same link can be used multiple times (mobile, desktop, etc.)
+      // until the round locks. Each validation issues a fresh JWT (8h expiry).
       const crypto = require('crypto');
       const magicLinkValues = usersNeedingLinks.map(user => {
         const token = crypto.randomBytes(32).toString('hex');

@@ -227,6 +227,7 @@ These variables have default values but it is **highly recommended that they be 
 | `APP_URL` | Your application's public URL | `http://localhost:3003` | `https://yourdomain.com` |
 | `LOG_LEVEL` | Logging verbosity level | `INFO` | `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, `SILENT` |
 | `ENABLE_DEV_TOOLS` | Enable creation of seed data from admin dashboard for testing | `false` | Set to `false` for production |
+| `JWT_EXPIRY` | JWT access token expiry (magic links auto expire when round locks) | `8h` | `8h`, `30m`, `1d` |
 | `SMTP_PORT` | Email server port | `587` | `587` or `465` |
 | `SMTP_SECURE` | Use SSL/TLS encryption (set to false for port 587) | `false` | `true` or `false` |
 | `SMTP_FROM` | Sender email address (fallback used if not set) | `noreply@example.com` | `noreply@yourdomain.com` |
