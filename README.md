@@ -102,16 +102,11 @@ services:
       - go-make-your-picks-network
     environment:
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
-      MARIADB_DATABASE: ${MARIADB_DATABASE}
-      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-gomakeyourpicks}
+      MARIADB_USER: ${MARIADB_USER:-gomakeyourpicksuser}
       MARIADB_PASSWORD: ${MARIADB_PASSWORD}
     volumes:
       - mariadb-data:/var/lib/mysql
-    # Database port - REMOVED FOR SECURITY
-    # MariaDB is accessible via Docker network (mariadb:3306) - no external exposure needed
-    # Uncomment below ONLY for local debugging with database admin tools
-    # ports:
-    #   - "127.0.0.1:3306:3306"  # Only accessible from VM localhost, not internet
     healthcheck:
       test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
       timeout: 20s
@@ -126,30 +121,27 @@ services:
     ports:
       - "3003:3003"
     environment:
-      NODE_ENV: production
-      PORT: 3003
       MARIADB_HOST: mariadb
       MARIADB_PORT: 3306
-      MARIADB_DATABASE: ${MARIADB_DATABASE}
-      MARIADB_USER: ${MARIADB_USER}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-gomakeyourpicks}
+      MARIADB_USER: ${MARIADB_USER:-gomakeyourpicksuser}
       MARIADB_PASSWORD: ${MARIADB_PASSWORD}
       # ⚠️ CRITICAL SECURITY: Generate a strong JWT secret!
       # Run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-      # Or use .env file override (recommended)
       JWT_SECRET: ${JWT_SECRET}
       # Log Level Configuration
       # Available levels: DEBUG, INFO, WARN, ERROR, FATAL, SILENT
       # Production default: INFO (shows info, warn, error, fatal)
       # Development: DEBUG (shows all logs)
       # Set LOG_LEVEL in .env file or override in docker-compose.override.yml
-      LOG_LEVEL: ${LOG_LEVEL}
-      SMTP_HOST: ${SMTP_HOST}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_SECURE: ${SMTP_SECURE}
-      SMTP_USER: ${SMTP_USER}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      APP_URL: ${APP_URL}
-      ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      APP_URL: ${APP_URL:-http://localhost:3003}
+      ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-false}
     depends_on:
       mariadb:
         condition: service_healthy
@@ -161,6 +153,7 @@ networks:
 
 volumes:
   mariadb-data:
+
 ```
 
 ## ⚙️ Environment Variables
