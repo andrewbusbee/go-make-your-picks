@@ -22,7 +22,7 @@ import { getOrCreateTeam } from '../utils/teamHelpers';
 const router = express.Router();
 
 // Helper function to prepare shared data for all completion emails (calculated once)
-// Updated to use v2 schema
+// Updated to use v2 schema and ID-based correctness
 const prepareCompletionEmailData = async (roundId: number, seasonId: number) => {
   try {
     // Get round data from rounds_v2
@@ -33,9 +33,9 @@ const prepareCompletionEmailData = async (roundId: number, seasonId: number) => 
 
     const round = roundData[0];
     
-    // Get final results from round_results_v2 + teams_v2
+    // Get final results from round_results_v2 + teams_v2 (include team_id for ID-based scoring)
     const [roundResults] = await db.query<RowDataPacket[]>(
-      `SELECT rr.place, t.name as team
+      `SELECT rr.place, rr.team_id, t.name as team
        FROM round_results_v2 rr
        JOIN teams_v2 t ON rr.team_id = t.id
        WHERE rr.round_id = ?
@@ -45,16 +45,25 @@ const prepareCompletionEmailData = async (roundId: number, seasonId: number) => 
 
     const finalResults = roundResults.map(rr => ({
       place: rr.place,
-      team: rr.team
+      team: rr.team,
+      team_id: rr.team_id
     }));
+
+    // Build map of teamId -> place for quick ID-based lookup
+    const resultPlaceByTeamId = new Map<number, number>();
+    roundResults.forEach(rr => {
+      if (typeof rr.team_id === 'number') {
+        resultPlaceByTeamId.set(rr.team_id, rr.place);
+      }
+    });
 
     // Get points settings once for all calculations
     const pointsSettings = await SettingsService.getPointsSettings();
 
-    // Get all picks for this round from picks_v2 + pick_items_v2 + teams_v2
+    // Get all picks for this round from picks_v2 + pick_items_v2 (IDs) and join teams for display
     const [allPicks] = await db.query<RowDataPacket[]>(
-      `SELECT p.user_id, t.name as pick_value 
-       FROM picks_v2 p 
+      `SELECT p.user_id, pi.team_id, t.name as team_name
+       FROM picks_v2 p
        LEFT JOIN pick_items_v2 pi ON p.id = pi.pick_id
        LEFT JOIN teams_v2 t ON pi.team_id = t.id
        WHERE p.round_id = ?
@@ -63,10 +72,12 @@ const prepareCompletionEmailData = async (roundId: number, seasonId: number) => 
     );
 
     // Build user picks map for O(1) lookup (take first pick per user)
-    const userPicksMap = new Map<number, string>();
+    const userPicksMap = new Map<number, { teamId: number | null; teamName: string | null }>();
     allPicks.forEach(pick => {
-      if (pick.pick_value && !userPicksMap.has(pick.user_id)) {
-        userPicksMap.set(pick.user_id, pick.pick_value);
+      if (!userPicksMap.has(pick.user_id)) {
+        const teamId = (pick.team_id ?? null) as number | null;
+        const teamName = (pick.team_name ?? null) as string | null;
+        userPicksMap.set(pick.user_id, { teamId, teamName });
       }
     });
 
@@ -149,6 +160,7 @@ const prepareCompletionEmailData = async (roundId: number, seasonId: number) => 
       finalResults,
       pointsSettings,
       userPicksMap,
+      resultPlaceByTeamId,
       sortedLeaderboard,
       sportName: round.sport_name
     };
@@ -159,48 +171,41 @@ const prepareCompletionEmailData = async (roundId: number, seasonId: number) => 
 };
 
 // Helper function to calculate user-specific performance data from shared data
-// Updated to use v2 schema: finalResults from round_results_v2 + teams_v2
+// Updated to use v2 schema and ID-based correctness (no name comparisons)
 const calculateUserPerformanceData = (
   userId: number,
   sharedData: {
     round: any;
     finalResults: any[];
     pointsSettings: any;
-    userPicksMap: Map<number, string>;
+    userPicksMap: Map<number, { teamId: number | null; teamName: string | null }>;
+    resultPlaceByTeamId: Map<number, number>;
     sortedLeaderboard: any[];
     sportName: string;
   }
 ) => {
-  const { round, finalResults, pointsSettings, userPicksMap, sortedLeaderboard, sportName } = sharedData;
+  const { round, finalResults, pointsSettings, userPicksMap, resultPlaceByTeamId, sortedLeaderboard, sportName } = sharedData;
   
-  // Get user's pick
-  const userPickValue = userPicksMap.get(userId);
+  // Get user's pick (team ID + display name)
+  const userPick = userPicksMap.get(userId);
   let userPoints = 0;
-  let userPick = 'No pick';
+  let userPickDisplay = 'No pick';
   
-  if (userPickValue) {
-    userPick = userPickValue;
-    const lowerPickValue = userPickValue.toLowerCase();
-    
-    // Calculate points based on placement using finalResults from round_results_v2
-    // finalResults is an array of { place, team }
-    const firstPlace = finalResults.find(r => r.place === 1);
-    const secondPlace = finalResults.find(r => r.place === 2);
-    const thirdPlace = finalResults.find(r => r.place === 3);
-    const fourthPlace = finalResults.find(r => r.place === 4);
-    const fifthPlace = finalResults.find(r => r.place === 5);
-    
-    if (firstPlace && lowerPickValue === firstPlace.team.toLowerCase()) {
-      userPoints = pointsSettings.pointsFirst;
-    } else if (secondPlace && lowerPickValue === secondPlace.team.toLowerCase()) {
-      userPoints = pointsSettings.pointsSecond;
-    } else if (thirdPlace && lowerPickValue === thirdPlace.team.toLowerCase()) {
-      userPoints = pointsSettings.pointsThird;
-    } else if (fourthPlace && lowerPickValue === fourthPlace.team.toLowerCase()) {
-      userPoints = pointsSettings.pointsFourth;
-    } else if (fifthPlace && lowerPickValue === fifthPlace.team.toLowerCase()) {
-      userPoints = pointsSettings.pointsFifth;
+  if (userPick && (userPick.teamId || userPick.teamName)) {
+    userPickDisplay = userPick.teamName || 'Unknown';
+
+    // If we have a teamId, match it to a place via the canonical results map
+    if (userPick.teamId) {
+      const place = resultPlaceByTeamId.get(userPick.teamId) || null;
+      if (place === 1) userPoints = pointsSettings.pointsFirst;
+      else if (place === 2) userPoints = pointsSettings.pointsSecond;
+      else if (place === 3) userPoints = pointsSettings.pointsThird;
+      else if (place === 4) userPoints = pointsSettings.pointsFourth;
+      else if (place === 5) userPoints = pointsSettings.pointsFifth;
+      else if (place && place >= 6) userPoints = pointsSettings.pointsSixthPlus;
+      else userPoints = pointsSettings.pointsSixthPlus;
     } else {
+      // No team ID (e.g., no pick), treat as sixth plus/default
       userPoints = pointsSettings.pointsSixthPlus;
     }
   }
@@ -215,7 +220,7 @@ const calculateUserPerformanceData = (
     }));
 
   return {
-    userPick,
+    userPick: userPickDisplay,
     userPoints,
     finalResults,
     leaderboard: formattedLeaderboard,
@@ -279,8 +284,8 @@ router.get('/season/:seasonId', async (req, res) => {
     const teamsMap = new Map<number, any[]>();
     
     if (rounds.length > 0) {
-      const [allTeams] = await db.query<RowDataPacket[]>(
-        `SELECT rt.round_id, t.name as team_name
+    const [allTeams] = await db.query<RowDataPacket[]>(
+      `SELECT rt.round_id, t.name as name
          FROM round_teams_v2 rt
          JOIN teams_v2 t ON rt.team_id = t.id
          WHERE rt.round_id IN (?)`,
@@ -1752,7 +1757,7 @@ router.get('/:id/complete-teams', authenticateAdmin, async (req: AuthRequest, re
 
     // Get all available teams for this round from round_teams_v2 + teams_v2
     const [allTeams] = await db.query<RowDataPacket[]>(
-      `SELECT t.id, t.name as team_name
+      `SELECT t.id, t.name as name
        FROM round_teams_v2 rt
        JOIN teams_v2 t ON rt.team_id = t.id
        WHERE rt.round_id = ?
@@ -1779,7 +1784,7 @@ router.get('/:id/complete-teams', authenticateAdmin, async (req: AuthRequest, re
     );
 
     const pickedTeams = picks.map(pick => pick.pick_value);
-    const playerPickTeams = allTeams.filter(team => pickedTeams.includes(team.team_name));
+    const playerPickTeams = allTeams.filter(team => pickedTeams.includes(team.name));
 
     return res.json({
       championTeams: allTeams, // Champion always gets full list

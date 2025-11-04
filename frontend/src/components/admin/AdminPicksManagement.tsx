@@ -179,7 +179,7 @@ export default function AdminPicksManagement() {
       if (existingPick?.pickItems && existingPick.pickItems.length > 0) {
         const pickValue = existingPick.pickItems[0].pickValue || '';
         // Find team by name in roundDetails.teams (which has IDs)
-        const team = roundDetails?.teams?.find((t: any) => t.name === pickValue || t.team_name === pickValue);
+        const team = roundDetails?.teams?.find((t: any) => t.name === pickValue);
         const teamId = team?.id || pickValue; // Use ID if available, fallback to name
         setChampionPick(teamId);
       } else {
@@ -390,7 +390,7 @@ export default function AdminPicksManagement() {
                       <div className={adminEditContainerClasses}>
                         <div className={adminEditPickChangeClasses}>
                           <span className={adminEditCheckmarkClasses}>✅ </span>
-                          {pickData.pick.original_pick || '(No Pick)'} → {pickData.pick.pickItems && pickData.pick.pickItems.length > 0 
+                          {'(Original Not Tracked)'} → {pickData.pick.pickItems && pickData.pick.pickItems.length > 0 
                             ? pickData.pick.pickItems.map((item: any) => item.pickValue).join(', ')
                             : '(No Pick)'}
                         </div>
@@ -469,9 +469,9 @@ export default function AdminPicksManagement() {
                     >
                       <option value="">Select a team...</option>
                       {roundDetails.teams.map((team: any) => {
-                        // Handle both formats: {id, name} or {id, team_name}
+                        // Team object format: {id, name}
                         const teamId = team.id;
-                        const teamName = team.name || team.team_name;
+                        const teamName = team.name;
                         return (
                           <option key={teamId} value={teamId}>
                             {teamName}

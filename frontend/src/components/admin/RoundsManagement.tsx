@@ -1585,7 +1585,7 @@ export default function RoundsManagement() {
                           <option value="">Select champion...</option>
                           {getAvailableTeams([], true).map((team: any) => {
                             const teamId = team.id;
-                            const teamName = team.name || team.team_name;
+                            const teamName = team.name;
                             return (
                               <option key={teamId} value={teamId}>
                                 {teamName}
@@ -1626,7 +1626,7 @@ export default function RoundsManagement() {
                           <option value="">Select 2nd place...</option>
                           {getAvailableTeams([firstPlaceTeam], false).map((team: any) => {
                             const teamId = team.id;
-                            const teamName = team.name || team.team_name;
+                            const teamName = team.name;
                             return (
                               <option key={teamId} value={teamId}>
                                 {teamName}
@@ -1677,7 +1677,7 @@ export default function RoundsManagement() {
                           <option value="">Select 3rd place...</option>
                           {getAvailableTeams([firstPlaceTeam, secondPlaceTeam], false).map((team: any) => {
                             const teamId = team.id;
-                            const teamName = team.name || team.team_name;
+                            const teamName = team.name;
                             return (
                               <option key={teamId} value={teamId}>
                                 {teamName}
@@ -1728,7 +1728,7 @@ export default function RoundsManagement() {
                           <option value="">Select 4th place...</option>
                           {getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam], false).map((team: any) => {
                             const teamId = team.id;
-                            const teamName = team.name || team.team_name;
+                            const teamName = team.name;
                             return (
                               <option key={teamId} value={teamId}>
                                 {teamName}
@@ -1779,7 +1779,7 @@ export default function RoundsManagement() {
                           <option value="">Select 5th place...</option>
                           {getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam, fourthPlaceTeam], false).map((team: any) => {
                             const teamId = team.id;
-                            const teamName = team.name || team.team_name;
+                            const teamName = team.name;
                             return (
                               <option key={teamId} value={teamId}>
                                 {teamName}

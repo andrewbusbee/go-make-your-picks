@@ -37,7 +37,7 @@ A modern, player-friendly sports prediction platform that brings people together
 |:---:|:---:|
 | <img src="docs/images/leaderboard.png" alt="Leaderboard" width="400"> | <img src="docs/images/completedSeasonStandings.png" alt="Completed Season Standings" width="400"> |
 
-| Season Champions | Player Pick Page |
+| Previous Season Champions | Player Pick Page |
 |:---:|:---:|
 | <img src="docs/images/championsTrophy.png" alt="Champions" width="400"> | <img src="docs/images/playerPickPage.png" alt="Player Pick Page" width="400"> |
 

@@ -48,12 +48,7 @@ router.post('/', authenticateAdmin, validateRequest(adminCreatePickValidators), 
         [roundId, userId]
       );
 
-      let originalPickValue: string | null = null;
-      if (existingPicks.length > 0) {
-        // Capture original pick value(s)
-        const originalValues = existingPicks.map(p => p.pick_value).filter(Boolean);
-        originalPickValue = originalValues.length > 0 ? originalValues.join(', ') : null;
-      }
+      // original_pick has been removed from picks_v2; retain only edit metadata
 
       // Submit pick using centralized service
       const shouldValidateTeams = pickType === 'single';
@@ -69,11 +64,10 @@ router.post('/', authenticateAdmin, validateRequest(adminCreatePickValidators), 
       await connection.query(
         `UPDATE picks_v2 
          SET admin_edited = TRUE,
-             original_pick = ?,
              edited_by_admin_id = ?,
              edited_at = NOW()
          WHERE round_id = ? AND user_id = ?`,
-        [originalPickValue, adminId, roundId, userId]
+        [adminId, roundId, userId]
       );
     });
 
