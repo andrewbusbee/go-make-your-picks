@@ -271,8 +271,40 @@ export class ScoringService {
         topScore: leaderboard[0]?.totalPoints || 0
       });
 
+      // Get round results for completed rounds (for display in frontend)
+      const completedRoundIds = rounds.filter(r => r.status === 'completed').map(r => r.id);
+      const roundResultsMap = new Map<number, Array<{place: number, teamId: number, teamName: string}>>();
+      
+      if (completedRoundIds.length > 0) {
+        const [allRoundResults] = await db.query<RowDataPacket[]>(
+          `SELECT rr.round_id, rr.place, rr.team_id, t.name as team_name
+           FROM round_results_v2 rr
+           JOIN teams_v2 t ON rr.team_id = t.id
+           WHERE rr.round_id IN (?)
+           ORDER BY rr.round_id, rr.place`,
+          [completedRoundIds]
+        );
+
+        allRoundResults.forEach(rr => {
+          if (!roundResultsMap.has(rr.round_id)) {
+            roundResultsMap.set(rr.round_id, []);
+          }
+          roundResultsMap.get(rr.round_id)!.push({
+            place: rr.place,
+            teamId: rr.team_id,
+            teamName: rr.team_name
+          });
+        });
+      }
+
+      // Attach results to rounds
+      const roundsWithResults = rounds.map(round => ({
+        ...round,
+        results: roundResultsMap.get(round.id) || undefined
+      }));
+
       return {
-        rounds,
+        rounds: roundsWithResults,
         leaderboard
       };
     } catch (error) {

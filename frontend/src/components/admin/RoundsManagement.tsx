@@ -502,11 +502,13 @@ export default function RoundsManagement() {
       setParticipants(participantsWithPicks);
       
       // Populate existing data if round was previously completed
-      setFirstPlaceTeam(roundRes.data.first_place_team || '');
-      setSecondPlaceTeam(roundRes.data.second_place_team || '');
-      setThirdPlaceTeam(roundRes.data.third_place_team || '');
-      setFourthPlaceTeam(roundRes.data.fourth_place_team || '');
-      setFifthPlaceTeam(roundRes.data.fifth_place_team || '');
+      // Use results from round_results_v2 (v2 schema)
+      const results = roundRes.data.results || [];
+      setFirstPlaceTeam(results.find((r: any) => r.place === 1)?.teamName || '');
+      setSecondPlaceTeam(results.find((r: any) => r.place === 2)?.teamName || '');
+      setThirdPlaceTeam(results.find((r: any) => r.place === 3)?.teamName || '');
+      setFourthPlaceTeam(results.find((r: any) => r.place === 4)?.teamName || '');
+      setFifthPlaceTeam(results.find((r: any) => r.place === 5)?.teamName || '');
       
       // Initialize manual scores state from existing scores (for multiple pick type)
       const initialScores: any = {};
@@ -1085,19 +1087,33 @@ export default function RoundsManagement() {
                           {getStatusBadge(round.status)}
                         </div>
 
-                        {round.first_place_team && (
+                        {round.results && round.results.length > 0 && (
                           <div className={`${alertSuccessClasses} mb-3`}>
-                            <p className={`${alertSuccessTextClasses} font-medium`}>
-                              🏆 Champion: {round.first_place_team}
-                            </p>
-                            {(round.second_place_team || round.third_place_team || round.fourth_place_team || round.fifth_place_team) && (
-                              <p className={`${alertSuccessTextClasses} mt-1 text-xs`}>
-                                {round.second_place_team && `🥈 2nd: ${round.second_place_team}`}
-                                {round.third_place_team && ` | 🥉 3rd: ${round.third_place_team}`}
-                                {round.fourth_place_team && ` | 4th: ${round.fourth_place_team}`}
-                                {round.fifth_place_team && ` | 5th: ${round.fifth_place_team}`}
-                              </p>
-                            )}
+                            {(() => {
+                              const firstPlace = round.results.find((r: any) => r.place === 1);
+                              const secondPlace = round.results.find((r: any) => r.place === 2);
+                              const thirdPlace = round.results.find((r: any) => r.place === 3);
+                              const fourthPlace = round.results.find((r: any) => r.place === 4);
+                              const fifthPlace = round.results.find((r: any) => r.place === 5);
+                              
+                              return (
+                                <>
+                                  {firstPlace && (
+                                    <p className={`${alertSuccessTextClasses} font-medium`}>
+                                      🏆 Champion: {firstPlace.teamName}
+                                    </p>
+                                  )}
+                                  {(secondPlace || thirdPlace || fourthPlace || fifthPlace) && (
+                                    <p className={`${alertSuccessTextClasses} mt-1 text-xs`}>
+                                      {secondPlace && `🥈 2nd: ${secondPlace.teamName}`}
+                                      {thirdPlace && ` | 🥉 3rd: ${thirdPlace.teamName}`}
+                                      {fourthPlace && ` | 4th: ${fourthPlace.teamName}`}
+                                      {fifthPlace && ` | 5th: ${fifthPlace.teamName}`}
+                                    </p>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </div>
                         )}
 

@@ -359,6 +359,8 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Round not found' });
     }
 
+    const round = rounds[0];
+
     // Get teams from round_teams_v2 + teams_v2 with IDs for editing
     const [teams] = await db.query<RowDataPacket[]>(
       `SELECT t.id, t.name
@@ -369,9 +371,26 @@ router.get('/:id', async (req, res) => {
       [roundId]
     );
 
+    // Get round results from round_results_v2 + teams_v2 (for completed rounds)
+    const [roundResults] = await db.query<RowDataPacket[]>(
+      `SELECT rr.place, rr.team_id, t.name as team_name
+       FROM round_results_v2 rr
+       JOIN teams_v2 t ON rr.team_id = t.id
+       WHERE rr.round_id = ?
+       ORDER BY rr.place`,
+      [roundId]
+    );
+
+    const results = roundResults.map(rr => ({
+      place: rr.place,
+      teamId: rr.team_id,
+      teamName: rr.team_name
+    }));
+
     res.json({
-      ...rounds[0],
-      teams: teams.map(t => ({ id: t.id, name: t.name }))
+      ...round,
+      teams: teams.map(t => ({ id: t.id, name: t.name })),
+      results: results.length > 0 ? results : undefined
     });
   } catch (error) {
     logger.error('Get round error', { error, roundId });

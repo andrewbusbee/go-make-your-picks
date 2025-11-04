@@ -30,14 +30,15 @@ export interface Round {
   lock_time: string;
   timezone: string;
   status: 'draft' | 'active' | 'locked' | 'completed';
-  first_place_team: string | null;
-  second_place_team: string | null;
-  third_place_team: string | null;
-  fourth_place_team: string | null;
-  fifth_place_team: string | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
+  // Round results from round_results_v2 (for completed rounds)
+  results?: Array<{
+    place: number;
+    teamId: number;
+    teamName: string;
+  }>;
 }
 
 export interface User {
@@ -71,7 +72,8 @@ export interface PickItem {
   id: number;
   pick_id: number;
   pick_number: number;
-  pick_value: string;
+  pick_value: string; // Display-only: team name or custom text (from teams_v2 join or direct text)
+  team_id?: number; // For normal teams: reference to teams_v2.id (optional, may not be in API response)
   created_at: string;
 }
 
@@ -90,10 +92,9 @@ export interface Score {
 }
 
 export interface RoundTeam {
-  id: number;
-  round_id: number;
-  team_name: string;
-  created_at: string;
+  id: number; // teams_v2.id
+  name: string; // teams_v2.name (display-only)
+  // Note: round_id relationship is via round_teams_v2, not stored here
 }
 
 export interface SeasonParticipant {
@@ -138,7 +139,8 @@ export interface LeaderboardEntry {
 export interface PickWithItems extends Pick {
   pickItems: Array<{
     pickNumber: number;
-    pickValue: string;
+    pickValue: string; // Display-only: team name or custom text
+    teamId?: number; // For normal teams: reference to teams_v2.id (optional, may not be in API response)
   }>;
 }
 

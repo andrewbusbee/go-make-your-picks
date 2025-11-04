@@ -22,11 +22,12 @@ interface Round {
   id: number;
   sport_name: string;
   status: string;
-  champion_team: string | null;
-  finals_team_1: string | null;
-  finals_team_2: string | null;
-  first_place_team: string | null;
   lock_time: string;
+  results?: Array<{
+    place: number;
+    teamId: number;
+    teamName: string;
+  }>;
 }
 
 interface LeaderboardEntry {
@@ -78,18 +79,21 @@ export default function LeaderboardTable({ rounds, leaderboard }: LeaderboardTab
               <th className={`${tableHeaderCellClasses} sticky left-0 z-10 bg-gray-50 dark:bg-gray-900 w-40 min-w-40`}>
                 Player
               </th>
-              {rounds.map((round) => (
-                <th key={round.id} className={`${tableHeaderCellClasses} whitespace-nowrap w-28 md:w-32 lg:w-36`}>
-                  <div className={textCenterClasses}>
-                    <div>{round.sport_name}</div>
-                    {round.first_place_team && (
-                      <div className={textXsGrayNormalClasses}>
-                        ({round.first_place_team})
-                      </div>
-                    )}
-                  </div>
-                </th>
-              ))}
+              {rounds.map((round) => {
+                const firstPlace = round.results?.find(r => r.place === 1);
+                return (
+                  <th key={round.id} className={`${tableHeaderCellClasses} whitespace-nowrap w-28 md:w-32 lg:w-36`}>
+                    <div className={textCenterClasses}>
+                      <div>{round.sport_name}</div>
+                      {firstPlace && (
+                        <div className={textXsGrayNormalClasses}>
+                          ({firstPlace.teamName})
+                        </div>
+                      )}
+                    </div>
+                  </th>
+                );
+              })}
               <th className={`${tableHeaderCellClasses} w-24 text-center`}>
                 Total
               </th>
