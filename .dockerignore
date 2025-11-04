@@ -54,9 +54,11 @@ vite.config.ts
 tailwind.config.js
 postcss.config.js
 
-# Package lock files (will be regenerated)
+# Package lock files (allow subproject lockfiles for reproducible builds)
 package-lock.json
 yarn.lock
+!backend/package-lock.json
+!frontend/package-lock.json
 
 # Docker files (not needed inside container)
 Dockerfile

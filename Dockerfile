@@ -16,6 +16,7 @@ RUN npm run build
 
 # Production stage
 FROM node:24-alpine
+ENV NODE_ENV=production
 LABEL org.opencontainers.image.title="Go Make Your Picks"
 LABEL org.opencontainers.image.description="Self-hosted sports picks app"
 LABEL org.opencontainers.image.url="https://github.com/andrewbusbee/go-make-your-picks"
@@ -60,6 +61,9 @@ USER nodejs
 
 # Expose port
 EXPOSE 3003
+
+# Container healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD wget -qO- http://localhost:3003/api/health || exit 1
 
 # Backend serves the frontend in production
 WORKDIR /app/backend
