@@ -7,7 +7,9 @@
     "dev": "nodemon --exec ts-node src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "guard:queries": "ts-node scripts/guard/no_string_teamname_check.ts"
+    "guard:queries": "ts-node scripts/guard/no_string_teamname_check.ts",
+    "audit": "npm audit",
+    "audit:fix": "npm audit fix"
   },
   "dependencies": {
     "@types/node-cron": "^3.0.11",
@@ -25,7 +27,7 @@
     "moment-timezone": "^0.5.43",
     "mysql2": "^3.6.5",
     "node-cron": "^3.0.3",
-    "nodemailer": "^6.9.7",
+    "nodemailer": "^7.0.10",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.11.0",

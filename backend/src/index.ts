@@ -21,12 +21,11 @@ import settingsRoutes from './routes/settings';
 import configRoutes from './routes/config';
 import historicalChampionsRoutes from './routes/historical-champions';
 import apiDocsRoutes from './routes/api-docs';
-import dbHealthRoutes from './routes/db-health';
 // ⚠️ TEMPORARY - ONLY LOAD IN DEVELOPMENT ⚠️
 import adminSeedRoutes from './routes/admin-seed';
 import { startReminderScheduler } from './services/reminderScheduler';
 import { validateEnvironment, printEnvironmentSummary } from './utils/envValidator';
-import { validateDatabaseConnection, getDatabaseHealth } from './utils/dbHealthCheck';
+import { validateDatabaseConnection } from './utils/dbHealthCheck';
 import { verifySmtpConnection } from './services/emailService';
 import { runStartupValidation } from './utils/startupValidation';
 import logger from './utils/logger';
@@ -63,6 +62,13 @@ printEnvironmentSummary();
 // Run startup validation (JWT_SECRET, etc.)
 logger.info('Running startup validation checks');
 runStartupValidation();
+
+// Central enableDevTools flag - only enable dev routes when explicitly set to 'true'
+const enableDevTools = process.env.ENABLE_DEV_TOOLS === 'true';
+
+if (process.env.NODE_ENV === 'production' && enableDevTools) {
+  logger.warn('⚠️ ENABLE_DEV_TOOLS is TRUE in production. Dev seed/admin tools are enabled!');
+}
 
 const app = express();
 const PORT = parseInt(process.env.PORT || String(DEFAULT_PORT));
@@ -135,37 +141,7 @@ const publicLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Enhanced health check endpoint
-app.get('/api/health', async (req, res) => {
-  const dbHealth = await getDatabaseHealth();
-  
-  // Check SMTP connection if configured
-  let emailHealth: any = { status: 'not_configured' };
-  if (process.env.SMTP_HOST) {
-    const smtpCheck = await verifySmtpConnection();
-    emailHealth = {
-      status: smtpCheck.connected ? 'connected' : 'error',
-      error: smtpCheck.error
-    };
-  }
-  
-  const health = {
-    status: dbHealth.status === 'healthy' && (emailHealth.status === 'connected' || emailHealth.status === 'not_configured') 
-      ? 'healthy' 
-      : 'unhealthy',
-    timestamp: new Date().toISOString(),
-    uptime: Math.floor(process.uptime()),
-    environment: process.env.NODE_ENV || 'development',
-    version: packageJson.version,
-    services: {
-      database: dbHealth,
-      email: emailHealth
-    }
-  };
-  
-  const statusCode = health.status === 'healthy' ? 200 : 503;
-  res.status(statusCode).json(health);
-});
+// Health check endpoint removed for security (was exposing DB/SMTP status)
 
 // API Routes - Clean structure with /admin, /public, /auth prefixes
 
@@ -195,11 +171,15 @@ app.use('/api/admin/leaderboard', leaderboardRoutes);
 app.use('/api/admin/test-email', testEmailRoutes);
 app.use('/api/admin/settings', settingsRoutes);
 app.use('/api/admin/historical-champions', historicalChampionsRoutes);
-app.use('/api/admin/db-health', dbHealthRoutes);
 
-// ⚠️ Seed routes - Only shown in UI when ENABLE_DEV_TOOLS=true ⚠️
+// Seed routes - Only enabled when ENABLE_DEV_TOOLS=true
 // Routes are protected by admin authentication
-app.use('/api/admin/seed', adminSeedRoutes);
+if (enableDevTools) {
+  app.use('/api/admin/seed', adminSeedRoutes);
+  logger.info('✅ Dev seed routes enabled (ENABLE_DEV_TOOLS=true)');
+} else {
+  logger.info('🔒 Dev seed routes disabled (ENABLE_DEV_TOOLS not set or false)');
+}
 
 // Serve frontend static files in production
 if (process.env.NODE_ENV === 'production') {
@@ -231,15 +211,17 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Error handling
+// Error handling - always return generic messages to clients
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
   logger.error('Unhandled error', {
     error: err.message,
     stack: err.stack,
     url: req.url,
     method: req.method,
+    userId: (req as any).adminId ?? null,
   });
-  res.status(500).json({ error: 'Internal server error' });
+  // Always return generic error message to prevent information leakage
+  res.status(500).json({ error: 'Server error' });
 });
 
 // Async startup with validation
@@ -269,7 +251,6 @@ async function startServer() {
       logger.info('═══════════════════════════════════════════════');
       logger.info(`📡 Server running on port ${PORT}`);
       logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`🔗 Health check: http://localhost:${PORT}/api/health`);
       logger.info('═══════════════════════════════════════════════');
       
       // Start the reminder scheduler

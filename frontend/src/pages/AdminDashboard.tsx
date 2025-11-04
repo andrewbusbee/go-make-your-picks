@@ -535,7 +535,6 @@ export default function AdminDashboard() {
           <Route path="/settings/email" element={<Settings isMainAdmin={adminData?.is_main_admin || false} />} />
           <Route path="/settings/admins" element={<Settings isMainAdmin={adminData?.is_main_admin || false} />} />
           <Route path="/settings/champions" element={<Settings isMainAdmin={adminData?.is_main_admin || false} />} />
-          <Route path="/settings/db-health" element={<Settings isMainAdmin={adminData?.is_main_admin || false} />} />
           <Route path="/settings/api-docs" element={<Settings isMainAdmin={adminData?.is_main_admin || false} />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>

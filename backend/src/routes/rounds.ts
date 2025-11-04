@@ -1387,7 +1387,7 @@ router.post('/:id/teams', authenticateAdmin, async (req: AuthRequest, res: Respo
     res.json({ message: 'Teams updated successfully' });
   } catch (error: any) {
     logger.error('Update teams error', { error, roundId });
-    res.status(500).json({ error: error.message || 'Server error' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -1603,7 +1603,7 @@ router.post('/:id/send-reminder', authenticateAdmin, async (req: AuthRequest, re
     res.json(result);
   } catch (error: any) {
     logger.error('Send reminder error', { error, roundId });
-    res.status(500).json({ error: error.message || 'Server error' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -1663,7 +1663,7 @@ router.post('/force-send-daily-reminders', authenticateAdmin, requireMainAdmin, 
     });
   } catch (error: any) {
     logger.error('Force send daily reminders error:', error);
-    res.status(500).json({ error: error.message || 'Server error' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -1718,7 +1718,7 @@ router.post('/test-completion-email', authenticateAdmin, async (req: AuthRequest
     res.json({ message: 'Test completion email sent successfully' });
   } catch (error: any) {
     logger.error('Test completion email error:', error);
-    res.status(500).json({ error: error.message || 'Server error' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 
@@ -1730,7 +1730,7 @@ router.post('/:id/send-locked-notification', authenticateAdmin, async (req: Auth
     res.json({ message: 'Locked notification sent successfully' });
   } catch (error: any) {
     logger.error('Send locked notification error', { error, roundId });
-    res.status(500).json({ error: error.message || 'Server error' });
+    res.status(500).json({ error: 'Server error' });
   }
 });
 

@@ -376,14 +376,15 @@ router.post('/:token', pickSubmissionLimiter, validateRequest(submitPickValidato
   } catch (error: any) {
     logger.error('Submit pick error', { error, token });
     
-    // Handle specific error messages
+    // Handle specific error messages (safe to expose)
     if (error.message === 'Invalid magic link') {
       return res.status(404).json({ error: 'Invalid magic link' });
     } else if (error.message === 'This round is now locked') {
       return res.status(403).json({ error: 'This round is now locked' });
     }
     
-    res.status(500).json({ error: error.message || 'Server error' });
+    // Generic error for all other cases
+    res.status(500).json({ error: 'Server error' });
   }
 });
 

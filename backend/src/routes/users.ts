@@ -3,6 +3,8 @@ import { authenticateAdmin, AuthRequest } from '../middleware/auth';
 import db from '../config/database';
 import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import logger from '../utils/logger';
+import { validateRequest } from '../middleware/validator';
+import { createUserValidators, updateUserValidators } from '../validators/usersValidators';
 
 const router = express.Router();
 
@@ -61,25 +63,8 @@ router.get('/:id/has-data', authenticateAdmin, async (req: AuthRequest, res: Res
 });
 
 // Create new user
-router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+router.post('/', authenticateAdmin, validateRequest(createUserValidators), async (req: AuthRequest, res: Response) => {
   const { name, email } = req.body;
-
-  if (!name) {
-    return res.status(400).json({ error: 'Name is required' });
-  }
-
-  // Validate string length
-  if (name.length > 100) {
-    return res.status(400).json({ error: 'Name must be 100 characters or less' });
-  }
-
-  // Email is optional - if provided, validate it
-  if (email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
-    }
-  }
 
   // Use a placeholder email if none provided (to maintain uniqueness)
   const finalEmail = email || `noemail-${Date.now()}@placeholder.local`;
@@ -101,26 +86,9 @@ router.post('/', authenticateAdmin, async (req: AuthRequest, res: Response) => {
 });
 
 // Update user
-router.put('/:id', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+router.put('/:id', authenticateAdmin, validateRequest(updateUserValidators), async (req: AuthRequest, res: Response) => {
   const userId = parseInt(req.params.id);
   const { name, email } = req.body;
-
-  if (!name) {
-    return res.status(400).json({ error: 'Name is required' });
-  }
-
-  // Validate string length
-  if (name.length > 100) {
-    return res.status(400).json({ error: 'Name must be 100 characters or less' });
-  }
-
-  // Email is optional - if provided, validate it
-  if (email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ error: 'Invalid email format' });
-    }
-  }
 
   // Use a placeholder email if none provided
   const finalEmail = email || `noemail-${Date.now()}@placeholder.local`;

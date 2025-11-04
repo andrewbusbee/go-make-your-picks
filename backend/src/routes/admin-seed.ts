@@ -439,14 +439,12 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
     // Check if data already exists
     if (error.code === 'ER_DUP_ENTRY') {
       return res.status(400).json({ 
-        error: 'Sample data may already exist. Delete existing sample users first or reset the database.',
-        details: error.message
+        error: 'Sample data may already exist. Delete existing sample users first or reset the database.'
       });
     }
     
     res.status(500).json({ 
-      error: 'Failed to seed sample data',
-      details: process.env.NODE_ENV === 'development' ? error.message : 'Check server logs for details'
+      error: 'Failed to seed sample data'
     });
   }
 });
