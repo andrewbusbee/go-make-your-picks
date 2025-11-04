@@ -171,36 +171,41 @@ Variables without a default (like `${JWT_SECRET}`) are **required** and must be 
 
 ### Required Configuration
 
-Some of these variables have default values but it is **highly recommended that they be changed** for your deployment:
+These variables must be set in your `.env` file or environment (no defaults):
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `MARIADB_ROOT_PASSWORD` | Database root password (for MariaDB service) | `your-root-password` |
+| `MARIADB_PASSWORD` | Database password for the application user | `your-secure-password` |
+| `JWT_SECRET` | Secret key for admin authentication (minimum 32 characters) | `generate-a-strong-random-string` |
+| `SMTP_HOST` | Email server hostname | `smtp.gmail.com` |
+| `SMTP_USER` | Email account username | `your-email@gmail.com` |
+| `SMTP_PASSWORD` | Email account password/app password | `your-app-password` |
+
+### Recommended to Change from Defaults
+
+These variables have default values but it is **highly recommended that they be changed** for your deployment:
 
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
-| `JWT_SECRET` | Secret key for admin authentication (minimum 32 characters) | none | `generate-a-strong-random-string` |
-| `MARIADB_PASSWORD` | Database password for the application user | none | `your-secure-password` |
-| `MARIADB_ROOT_PASSWORD` | Database root password (for MariaDB service) | none | `your-root-password` |
-| `SMTP_HOST` | Email server hostname | none | `smtp.gmail.com` |
-| `SMTP_USER` | Email account username | none | `your-email@gmail.com` |
-| `SMTP_PASSWORD` | Email account password/app password | none | `your-app-password` |
-| `SMTP_FROM` | Sender email address (fallback used if not set) | `noreply@example.com` | `noreply@yourdomain.com` |
-| `APP_URL` | Your application's public URL | none | `http://localhost:3003` |
-| `MARIADB_PASSWORD` | Database password | none | `your-secure-password` |
-| `APP_URL` | Your application's public URL | `http://localhost:3003` | `https://yourdomain.com` |
-| `LOG_LEVEL` | Logging verbosity level | `INFO` | `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, `SILENT` |
 | `MARIADB_DATABASE` | Database name | `gomakeyourpicks` | `gomakeyourpicks` |
 | `MARIADB_USER` | Database username | `gomakeyourpicksuser` | `gomakeyourpicksuser` |
-| `MARIADB_HOST` | Database host (usually `mariadb` in Docker) | `mariadb` | `mariadb` |
-| `MARIADB_PORT` | Database port (usually `3306` in Docker) | `3306` | `3306` |
-| `SMTP_PORT` | Email server port | `587` | `587` or `465` |
-| `SMTP_SECURE` | Use SSL/TLS encryption | `false` | `true` or `false` |
+| `APP_URL` | Your application's public URL | `http://localhost:3003` | `https://yourdomain.com` |
+| `LOG_LEVEL` | Logging verbosity level | `INFO` | `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, `SILENT` |
 | `ENABLE_DEV_TOOLS` | Enable creation of seed data for testing | `false` | `true` or `false` |
+| `SMTP_PORT` | Email server port | `587` | `587` or `465` |
+| `SMTP_SECURE` | Use SSL/TLS encryption (set to false for port 587) | `false` | `true` or `false` |
+| `SMTP_FROM` | Sender email address (fallback used if not set) | `noreply@example.com` | `noreply@yourdomain.com` |
 
+### Docker Internal Configuration (Do Not Change)
 
-### These should not change unless you know what you are doing as it can break things easily
+These values are set in `docker-compose.yml` for Docker networking and should not be modified unless you understand the impacts:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MARIADB_HOST` | Database host | `mariadb` |
-| `MARIADB_PORT` | Database port | `3306` |
+| `MARIADB_HOST` | Database host (Docker service name) | `mariadb` |
+| `MARIADB_PORT` | Database port (internal Docker port) | `3306` |
+
 ### Email Provider Examples
 
 **Gmail:**
