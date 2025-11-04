@@ -19,8 +19,6 @@ import {
   alertErrorTextClasses,
   alertSuccessClasses,
   alertSuccessTextClasses,
-  alertWarningClasses,
-  alertWarningTextClasses,
   alertInfoClasses,
   alertInfoTextClasses,
   labelClasses,
@@ -108,8 +106,8 @@ export default function RoundsManagement() {
   const [emailMessage, setEmailMessage] = useState('');
   const [lockTime, setLockTime] = useState('');
   const [timezone, setTimezone] = useState('America/New_York');
-  const [teamsInput, setTeamsInput] = useState('');
-  const [teamsUnlocked, setTeamsUnlocked] = useState(false);
+  const [teams, setTeams] = useState<Array<{id?: number, name: string}>>([]);
+  const [teamsWithPicks, setTeamsWithPicks] = useState<Set<number>>(new Set());
   
   // Validation function to check if a sport can be activated
   const canActivateRound = (round: any): boolean => {
@@ -124,7 +122,7 @@ export default function RoundsManagement() {
     
     // Check teams/picks based on pick type
     const hasTeamsOrPicks = 
-      (round.pick_type === 'single' && round.teams && round.teams.length > 0) ||
+      (round.pick_type === 'single' && round.teams && Array.isArray(round.teams) && round.teams.length > 0) ||
       (round.pick_type === 'multiple' && round.num_write_in_picks > 0);
     
     
@@ -272,7 +270,8 @@ export default function RoundsManagement() {
     setEmailMessage('');
     setLockTime('');
     setTimezone(defaultTimezone); // Use default timezone from settings
-    setTeamsInput('');
+    setTeams([{ name: '' }]); // Start with one empty team
+    setTeamsWithPicks(new Set());
     setError('');
     setEditingRound(null);
     setShowCreateModal(true);
@@ -306,9 +305,26 @@ export default function RoundsManagement() {
       
       setTimezone(roundData.timezone);
       
-      // Convert teams array to text
-      const teamsText = roundData.teams?.map((t: any) => t.team_name).join('\n') || '';
-      setTeamsInput(teamsText);
+      // Convert teams array to team objects with IDs
+      const teamsData = roundData.teams?.map((t: any) => ({ id: t.id, name: t.name })) || [];
+      setTeams(teamsData.length > 0 ? teamsData : [{ name: '' }]);
+      
+      // Load which teams have picks (for delete validation)
+      if (roundData.pick_type === 'single') {
+        try {
+          const picksRes = await api.get(`/admin/rounds/${round.id}/teams-with-picks`);
+          const teamsWithPicksData = picksRes.data.teams || [];
+          const teamsWithPicksSet = new Set<number>(
+            teamsWithPicksData.filter((t: any) => t.hasPicks).map((t: any) => t.id as number)
+          );
+          setTeamsWithPicks(teamsWithPicksSet);
+        } catch (error) {
+          logger.error('Error loading teams with picks:', error);
+          setTeamsWithPicks(new Set());
+        }
+      } else {
+        setTeamsWithPicks(new Set());
+      }
       
       setError('');
       setShowEditModal(true);
@@ -322,7 +338,8 @@ export default function RoundsManagement() {
     setShowEditModal(false);
     setError('');
     setEditingRound(null);
-    setTeamsUnlocked(false);
+    setTeams([{ name: '' }]);
+    setTeamsWithPicks(new Set());
   };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
@@ -336,10 +353,16 @@ export default function RoundsManagement() {
     setLoading(true);
 
     try {
-      const teams = teamsInput
-        .split('\n')
-        .map(t => t.trim())
-        .filter(t => t.length > 0);
+      // Filter out empty teams and validate
+      const validTeams = teams
+        .map(t => ({ ...t, name: t.name.trim() }))
+        .filter(t => t.name.length > 0);
+
+      if (pickType === 'single' && validTeams.length === 0) {
+        setError('At least one team is required for "Select From Available Teams"');
+        setLoading(false);
+        return;
+      }
 
       // Send datetime as-is - backend will interpret it in the selected timezone
       // Don't convert to ISO/UTC here as that would apply the browser's timezone
@@ -353,7 +376,7 @@ export default function RoundsManagement() {
         emailMessage,
         lockTime: lockTimeISO,
         timezone,
-        teams: pickType === 'single' ? teams : []
+        teams: pickType === 'single' ? validTeams.map(t => ({ name: t.name })) : []
       };
 
       // Only include numWriteInPicks if pick type is multiple (always 1 for manual entry)
@@ -402,18 +425,13 @@ export default function RoundsManagement() {
 
       // Update teams only if pick type is 'single'
       if (pickType === 'single') {
-        const teams = teamsInput
-          .split('\n')
-          .map(t => t.trim())
-          .filter(t => t.length > 0);
+        // Filter out empty teams
+        const validTeams = teams
+          .map(t => ({ ...t, name: t.name.trim() }))
+          .filter(t => t.name.length > 0);
 
-        // Delete existing teams
-        await api.delete(`/admin/rounds/${editingRound.id}/teams`);
-        
-        // Add new teams if provided
-        if (teams.length > 0) {
-          await api.post(`/admin/rounds/${editingRound.id}/teams`, { teams });
-        }
+        // Send teams with IDs for update
+        await api.post(`/admin/rounds/${editingRound.id}/teams`, { teams: validTeams });
       }
       
       await loadRounds(currentSeason.id);
@@ -423,6 +441,22 @@ export default function RoundsManagement() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper functions for team management
+  const addTeam = () => {
+    setTeams([...teams, { name: '' }]);
+  };
+
+  const removeTeam = (index: number) => {
+    const newTeams = teams.filter((_, i) => i !== index);
+    setTeams(newTeams.length > 0 ? newTeams : [{ name: '' }]);
+  };
+
+  const updateTeamName = (index: number, name: string) => {
+    const newTeams = [...teams];
+    newTeams[index] = { ...newTeams[index], name };
+    setTeams(newTeams);
   };
 
   const handleActivateRound = async (roundId: number) => {
@@ -1172,15 +1206,35 @@ export default function RoundsManagement() {
               {pickType === 'single' && (
                 <div>
                   <label className={labelClasses}>
-                    Available Teams (one per line)
+                    Available Teams
                   </label>
-                  <textarea
-                    value={teamsInput}
-                    onChange={(e) => setTeamsInput(e.target.value)}
-                    rows={4}
-                    placeholder="Yankees&#10;Red Sox&#10;Dodgers&#10;..."
-                    className={`${inputClasses} font-mono text-sm`}
-                  />
+                  <div className="space-y-2">
+                    {teams.map((team, index) => (
+                      <div key={index} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={team.name}
+                          onChange={(e) => updateTeamName(index, e.target.value)}
+                          placeholder="Team name"
+                          className={`${inputClasses} flex-1`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeTeam(index)}
+                          className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={addTeam}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      + Add Team
+                    </button>
+                  </div>
                   <p className={`mt-1 ${helpTextClasses}`}>
                     Users will pick from this list
                   </p>
@@ -1277,14 +1331,6 @@ export default function RoundsManagement() {
               </div>
             )}
 
-            {editingRound.status !== 'draft' && (
-              <div className={`${alertWarningClasses} mb-4`}>
-                <p className={alertWarningTextClasses}>
-                  <strong>Warning:</strong> This sport is {editingRound.status}. 
-                  Editing available teams may affect user picks and final scoring.
-                </p>
-              </div>
-            )}
 
             <form onSubmit={handleEditSubmit} className={formSectionClasses}>
               {/* Sport Name */}
@@ -1345,37 +1391,47 @@ export default function RoundsManagement() {
               {/* Conditional: Available Teams (for single pick type) */}
               {pickType === 'single' && (
                 <div>
-                  {/* Second warning for active/locked sports */}
-                  {editingRound.status !== 'draft' && (
-                    <div className={`${alertWarningClasses} mb-4`}>
-                      <p className={alertWarningTextClasses}>
-                        <strong>Warning:</strong> Editing or changing the available teams below will cause scoring issues for any users who have already picked. You will need to adjust their picks manually if you change names below.
-                      </p>
-                      {!teamsUnlocked && (
-                        <button
-                          type="button"
-                          onClick={() => setTeamsUnlocked(true)}
-                          className="mt-3 bg-orange-600 text-white py-2 px-4 rounded-md font-semibold hover:bg-orange-700 transition-colors"
-                        >
-                          I understand
-                        </button>
-                      )}
-                    </div>
-                  )}
-
                   <label className={labelClasses}>
-                    Available Teams (one per line)
+                    Available Teams
                   </label>
-                  <textarea
-                    value={teamsInput}
-                    onChange={(e) => setTeamsInput(e.target.value)}
-                    rows={4}
-                    placeholder="Yankees&#10;Red Sox&#10;Dodgers&#10;..."
-                    className={`${inputClasses} font-mono text-sm ${editingRound.status !== 'draft' && !teamsUnlocked ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    disabled={editingRound.status !== 'draft' && !teamsUnlocked}
-                  />
+                  <div className="space-y-2">
+                    {teams.map((team, index) => {
+                      const hasPicks = team.id ? teamsWithPicks.has(team.id) : false;
+                      return (
+                        <div key={index} className="flex gap-2">
+                          <input
+                            type="text"
+                            value={team.name}
+                            onChange={(e) => updateTeamName(index, e.target.value)}
+                            placeholder="Team name"
+                            className={`${inputClasses} flex-1`}
+                          />
+                          {hasPicks ? (
+                            <span className="px-3 py-2 bg-gray-300 text-gray-600 rounded-md cursor-not-allowed">
+                              In Use
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => removeTeam(index)}
+                              className="px-3 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={addTeam}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                    >
+                      + Add Team
+                    </button>
+                  </div>
                   <p className={`mt-1 ${helpTextClasses}`}>
-                    Users will pick from this list
+                    Users will pick from this list. Teams with picks cannot be deleted.
                   </p>
                 </div>
               )}

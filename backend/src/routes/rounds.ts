@@ -359,9 +359,9 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ error: 'Round not found' });
     }
 
-    // Get teams from round_teams_v2 + teams_v2
+    // Get teams from round_teams_v2 + teams_v2 with IDs for editing
     const [teams] = await db.query<RowDataPacket[]>(
-      `SELECT t.id, t.name as team_name
+      `SELECT t.id, t.name
        FROM round_teams_v2 rt
        JOIN teams_v2 t ON rt.team_id = t.id
        WHERE rt.round_id = ?
@@ -371,7 +371,7 @@ router.get('/:id', async (req, res) => {
 
     res.json({
       ...rounds[0],
-      teams
+      teams: teams.map(t => ({ id: t.id, name: t.name }))
     });
   } catch (error) {
     logger.error('Get round error', { error, roundId });
@@ -450,29 +450,69 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
       const roundId = result.insertId;
 
       // Add teams if provided (only for single pick type)
-      // Use teams_v2 + round_teams_v2 instead of round_teams
+      // Accept either string array (legacy) or team objects with IDs
       if (validPickType === 'single' && teams && Array.isArray(teams) && teams.length > 0) {
-        // Validate team name lengths
-        for (const team of teams) {
-          if (team.length > 100) {
-            throw new Error('Team names must be 100 characters or less');
+        let teamIds: number[] = [];
+
+        // Check if teams are objects with id/name or just strings (legacy format)
+        if (typeof teams[0] === 'object' && teams[0] !== null) {
+          // New format: array of {id?, name}
+          for (const team of teams) {
+            if (!team.name || typeof team.name !== 'string') {
+              throw new Error('Each team must have a name');
+            }
+            if (team.name.length > 100) {
+              throw new Error('Team names must be 100 characters or less');
+            }
+
+            const sanitizedName = sanitizePlainTextArray([team.name])[0];
+
+            if (team.id) {
+              // Update existing team name if changed
+              const [existing] = await connection.query<RowDataPacket[]>(
+                'SELECT id, name FROM teams_v2 WHERE id = ?',
+                [team.id]
+              );
+
+              if (existing.length === 0) {
+                throw new Error(`Team with ID ${team.id} not found`);
+              }
+
+              if (existing[0].name !== sanitizedName) {
+                await connection.query(
+                  'UPDATE teams_v2 SET name = ? WHERE id = ?',
+                  [sanitizedName, team.id]
+                );
+              }
+
+              teamIds.push(team.id);
+            } else {
+              // Create new team
+              const teamId = await getOrCreateTeam(connection, sanitizedName);
+              teamIds.push(teamId);
+            }
+          }
+        } else {
+          // Legacy format: array of strings
+          const cleanedTeams = sanitizePlainTextArray(teams as string[]);
+          
+          // Get or create teams in teams_v2, then insert into round_teams_v2
+          for (const team of cleanedTeams) {
+            if (team.length > 100) {
+              throw new Error('Team names must be 100 characters or less');
+            }
+            const teamId = await getOrCreateTeam(connection, team);
+            teamIds.push(teamId);
           }
         }
-        // Sanitize inputs without HTML-encoding characters like '/'
-        const cleanedTeams = sanitizePlainTextArray(teams);
         
-        // Get or create teams in teams_v2, then insert into round_teams_v2
-        const teamIds: number[] = [];
-        for (const team of cleanedTeams) {
-          const teamId = await getOrCreateTeam(connection, team);
-          teamIds.push(teamId);
+        if (teamIds.length > 0) {
+          const teamValues = teamIds.map(teamId => [roundId, teamId]);
+          await connection.query(
+            'INSERT INTO round_teams_v2 (round_id, team_id) VALUES ?',
+            [teamValues]
+          );
         }
-        
-        const teamValues = teamIds.map(teamId => [roundId, teamId]);
-        await connection.query(
-          'INSERT INTO round_teams_v2 (round_id, team_id) VALUES ?',
-          [teamValues]
-        );
       }
 
       return roundId;
@@ -1189,7 +1229,41 @@ router.delete('/:id/teams', authenticateAdmin, async (req: AuthRequest, res: Res
   }
 });
 
-// Add round teams (admin only)
+// Get teams with picks status for a round (admin only) - used to determine which teams can be deleted
+router.get('/:id/teams-with-picks', authenticateAdmin, async (req: AuthRequest, res: Response) => {
+  const roundId = parseInt(req.params.id);
+
+  try {
+    // Get all teams for this round and check if any have picks
+    const [teamsWithPicks] = await db.query<RowDataPacket[]>(
+      `SELECT 
+        t.id,
+        t.name,
+        MAX(CASE WHEN pi.team_id IS NOT NULL THEN 1 ELSE 0 END) as has_picks
+      FROM round_teams_v2 rt
+      JOIN teams_v2 t ON rt.team_id = t.id
+      LEFT JOIN picks_v2 p ON p.round_id = ?
+      LEFT JOIN pick_items_v2 pi ON pi.pick_id = p.id AND pi.team_id = t.id
+      WHERE rt.round_id = ?
+      GROUP BY t.id, t.name
+      ORDER BY t.name`,
+      [roundId, roundId]
+    );
+
+    res.json({
+      teams: teamsWithPicks.map(t => ({
+        id: t.id,
+        name: t.name,
+        hasPicks: t.has_picks === 1
+      }))
+    });
+  } catch (error) {
+    logger.error('Get teams with picks error', { error, roundId });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Add or update round teams (admin only) - accepts team objects with IDs
 router.post('/:id/teams', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   const roundId = parseInt(req.params.id);
   const { teams } = req.body;
@@ -1200,26 +1274,77 @@ router.post('/:id/teams', authenticateAdmin, async (req: AuthRequest, res: Respo
 
   try {
     await withTransaction(async (connection) => {
-      const cleaned = sanitizePlainTextArray(teams);
-      
-      // Get or create teams in teams_v2, then insert into round_teams_v2
-      const teamIds: number[] = [];
-      for (const team of cleaned) {
-        const teamId = await getOrCreateTeam(connection, team);
-        teamIds.push(teamId);
+      // Validate team objects: must have name, id is optional
+      for (const team of teams) {
+        if (!team.name || typeof team.name !== 'string') {
+          throw new Error('Each team must have a name');
+        }
+        if (team.name.length > 100) {
+          throw new Error('Team names must be 100 characters or less');
+        }
+        if (team.id !== undefined && typeof team.id !== 'number') {
+          throw new Error('Team ID must be a number if provided');
+        }
       }
-      
-      const teamValues = teamIds.map(teamId => [roundId, teamId]);
+
+      // Sanitize team names
+      const sanitizedTeams = teams.map(t => ({
+        id: t.id,
+        name: sanitizePlainTextArray([t.name])[0]
+      }));
+
+      const teamIds: number[] = [];
+
+      // Process each team: update existing or create new
+      for (const team of sanitizedTeams) {
+        if (team.id) {
+          // Team has ID - check if it exists and update name if changed
+          const [existing] = await connection.query<RowDataPacket[]>(
+            'SELECT id, name FROM teams_v2 WHERE id = ?',
+            [team.id]
+          );
+
+          if (existing.length === 0) {
+            throw new Error(`Team with ID ${team.id} not found`);
+          }
+
+          // Update team name if it changed
+          if (existing[0].name !== team.name) {
+            await connection.query(
+              'UPDATE teams_v2 SET name = ? WHERE id = ?',
+              [team.name, team.id]
+            );
+            logger.info('Updated team name', { teamId: team.id, oldName: existing[0].name, newName: team.name });
+          }
+
+          teamIds.push(team.id);
+        } else {
+          // New team - create it
+          const teamId = await getOrCreateTeam(connection, team.name);
+          teamIds.push(teamId);
+        }
+      }
+
+      // Delete all existing round-team relationships
       await connection.query(
-        'INSERT INTO round_teams_v2 (round_id, team_id) VALUES ?',
-        [teamValues]
+        'DELETE FROM round_teams_v2 WHERE round_id = ?',
+        [roundId]
       );
+
+      // Insert new relationships
+      if (teamIds.length > 0) {
+        const teamValues = teamIds.map(teamId => [roundId, teamId]);
+        await connection.query(
+          'INSERT INTO round_teams_v2 (round_id, team_id) VALUES ?',
+          [teamValues]
+        );
+      }
     });
 
-    res.json({ message: 'Teams added successfully' });
-  } catch (error) {
-    logger.error('Add teams error', { error, roundId });
-    res.status(500).json({ error: 'Server error' });
+    res.json({ message: 'Teams updated successfully' });
+  } catch (error: any) {
+    logger.error('Update teams error', { error, roundId });
+    res.status(500).json({ error: error.message || 'Server error' });
   }
 });
 
