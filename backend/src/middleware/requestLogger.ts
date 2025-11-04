@@ -1,10 +1,11 @@
 /**
  * Request Logging Middleware
  * Logs HTTP requests with timing information
+ * Masks tokens in URLs for security
  */
 
 import { Request, Response, NextFunction } from 'express';
-import logger from '../utils/logger';
+import logger, { maskTokenInUrl } from '../utils/logger';
 
 export const requestLogger = (req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
@@ -24,11 +25,13 @@ export const requestLogger = (req: Request, res: Response, next: NextFunction) =
     }
     // 2xx/3xx responses stay at 'http' level (default)
     
-    const message = `${method} ${originalUrl} ${statusCode} ${duration}ms`;
+    // Mask tokens in URL for safe logging
+    const maskedUrl = maskTokenInUrl(originalUrl);
+    const message = `${method} ${maskedUrl} ${statusCode} ${duration}ms`;
     
     logger[level](message, {
       method,
-      url: originalUrl,
+      url: maskedUrl, // Use masked URL
       statusCode,
       duration: `${duration}ms`,
       ip,

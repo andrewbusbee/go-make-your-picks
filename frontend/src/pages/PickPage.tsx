@@ -26,6 +26,7 @@ import {
 
 export default function PickPage() {
   const { token } = useParams<{ token: string }>();
+  const [magicToken, setMagicToken] = useState<string | null>(token || null); // Store token in state before URL cleanup
   const [pickData, setPickData] = useState<any>(null);
   const [championPick, setChampionPick] = useState<string | number>(''); // Can be team ID (number) or empty string
   const [writeInPicks, setWriteInPicks] = useState<string[]>([]);
@@ -47,8 +48,36 @@ export default function PickPage() {
   useEffect(() => {
     loadSettings();
     loadCommissioner();
-    loadPickData();
+    
+    // Exchange magic link token for JWT if token is present and we don't have a JWT yet
+    if (token && !localStorage.getItem('pickToken')) {
+      // Store token in state before URL cleanup
+      setMagicToken(token);
+      exchangeTokenForJWT(token);
+    } else if (magicToken) {
+      // If we already have a stored token, just load data
+      loadPickData();
+    }
   }, [token]);
+  
+  const exchangeTokenForJWT = async (magicToken: string) => {
+    try {
+      const res = await api.post(`/picks/exchange/${magicToken}`);
+      const { token: jwtToken } = res.data;
+      
+      // Store JWT token
+      localStorage.setItem('pickToken', jwtToken);
+      
+      // Load pick data BEFORE cleaning URL (needs token for validate endpoint)
+      await loadPickData();
+      
+      // Clean URL - remove token from path after exchange and data load
+      window.history.replaceState({}, '', '/pick');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Invalid or expired link');
+      setLoading(false);
+    }
+  };
 
   const loadSettings = async () => {
     try {
@@ -73,7 +102,16 @@ export default function PickPage() {
 
   const loadPickData = async () => {
     try {
-      const res = await api.get(`/picks/validate/${token}`);
+      // Use token from state (stored before URL cleanup) or URL params
+      const tokenToUse = magicToken || token;
+      if (!tokenToUse) {
+        // If no token available, show error
+        setError('Invalid or expired link');
+        setLoading(false);
+        return;
+      }
+      
+      const res = await api.get(`/picks/validate/${tokenToUse}`);
       setPickData(res.data);
       
       const pickType = res.data.round.pickType || 'single';
@@ -224,7 +262,8 @@ export default function PickPage() {
           if (picksToSubmit.length > 0) {
             hasAnyPicks = true;
             // Submit each user's picks sequentially to avoid deadlocks
-            await api.post(`/picks/${token}`, {
+            // Use new JWT-based endpoint
+        await api.post('/picks/submit', {
               picks: picksToSubmit,
               userId: parseInt(userId)
             });
@@ -261,7 +300,8 @@ export default function PickPage() {
           }
         }
 
-        await api.post(`/picks/${token}`, {
+        // Use new JWT-based endpoint
+        await api.post('/picks/submit', {
           picks: picksToSubmit
         });
         

@@ -22,7 +22,7 @@ import {
   forgotPasswordValidators,
   resetPasswordValidators,
 } from '../validators/authValidators';
-import logger, { redactEmail } from '../utils/logger';
+import logger, { redactEmail, maskMagicToken } from '../utils/logger';
 import { 
   PASSWORD_SALT_ROUNDS, 
   ADMIN_MAGIC_LINK_TOKEN_BYTES,
@@ -114,7 +114,12 @@ router.post('/send-magic-link', adminMagicLinkLimiter, validateRequest(requestLo
     const magicLink = `${process.env.APP_URL}/admin/login?token=${token}`;
     await sendAdminMagicLink(email, admin.name || 'Admin', magicLink);
 
-    logger.info('Magic link sent', { adminId: admin.id, emailRedacted: redactEmail(email), expiresAt });
+    logger.info('Magic link sent', { 
+      adminId: admin.id, 
+      emailRedacted: redactEmail(email), 
+      expiresAt,
+      tokenMasked: maskMagicToken(token)
+    });
     res.json({ message: MAGIC_LINK_SENT_MESSAGE });
 
   } catch (error: any) {
@@ -301,8 +306,8 @@ router.post('/verify-magic-link', validateRequest(verifyMagicLinkValidators), as
       [admin.email, ipAddress]
     );
 
-    // Generate JWT token
-    const jwtToken = generateToken(admin.id, admin.email, admin.is_main_admin);
+    // Generate JWT token (use centralized utility)
+    const jwtToken = generateAdminToken(admin.id, admin.email, admin.is_main_admin);
 
     logger.info('Magic link authentication successful', { 
       adminId: admin.id, 

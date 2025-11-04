@@ -38,6 +38,45 @@ export function hashEmail(email: string): string {
   return crypto.createHash('sha256').update(email).digest('hex').substring(0, 12);
 }
 
+/**
+ * Mask magic link token for safe logging
+ * Shows first 6 characters and masks the rest
+ */
+export function maskMagicToken(token: string): string {
+  if (!token || token.length < 6) {
+    return '****';
+  }
+  return `${token.substring(0, 6)}****`;
+}
+
+/**
+ * Mask JWT token for safe logging
+ * Shows first 10 characters and masks the rest
+ */
+export function maskJwtToken(token: string): string {
+  if (!token || token.length < 10) {
+    return '****';
+  }
+  return `${token.substring(0, 10)}****`;
+}
+
+/**
+ * Mask token in URL for safe logging
+ * Replaces token values in query params and path params
+ */
+export function maskTokenInUrl(url: string): string {
+  // Mask query params like ?token=... or &token=...
+  let masked = url.replace(/[?&]token=[^&$]*/gi, (match) => {
+    return match.substring(0, match.indexOf('=') + 1) + '****';
+  });
+  
+  // Mask path params like /pick/TOKEN or /validate/TOKEN
+  // This is a simple heuristic - replace long hex strings in path (64+ chars for magic links)
+  masked = masked.replace(/\/([a-f0-9]{64,})/gi, '/****');
+  
+  return masked;
+}
+
 // Define log levels
 const levels = {
   fatal: 0,

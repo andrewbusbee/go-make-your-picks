@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { JWT_TOKEN_EXPIRY } from '../config/constants';
 import db from '../config/database';
 import { RowDataPacket } from 'mysql2';
+import { generateAdminToken } from '../utils/jwtToken';
 
 // JWT_SECRET validation is now handled by startupValidation.ts on app start
 const JWT_SECRET = process.env.JWT_SECRET!;
@@ -75,10 +76,5 @@ export const requireMainAdmin = (req: AuthRequest, res: Response, next: NextFunc
   next();
 };
 
-export const generateToken = (adminId: number, email: string, isMainAdmin: boolean): string => {
-  return jwt.sign(
-    { adminId, email, isMainAdmin },
-    JWT_SECRET,
-    { expiresIn: JWT_TOKEN_EXPIRY }
-  );
-};
+// Re-export for backward compatibility
+export const generateToken = generateAdminToken;

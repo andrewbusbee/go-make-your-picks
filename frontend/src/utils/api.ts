@@ -9,24 +9,31 @@ const api = axios.create({
   timeoutErrorMessage: 'Request timeout - please try again',
 });
 
-// Request interceptor - Simple prefix-based token management
+// Request interceptor - Token management for both admin and pick JWTs
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('adminToken');
+  // Check for admin token first
+  const adminToken = localStorage.getItem('adminToken');
+  
+  // Check for pick token (stored separately)
+  const pickToken = localStorage.getItem('pickToken');
   
   logger.debug('API Request', {
     url: config.url,
     method: config.method,
-    hasToken: !!token
+    hasAdminToken: !!adminToken,
+    hasPickToken: !!pickToken
   });
   
-  if (!token) {
+  // Add admin token to admin and auth routes
+  if (adminToken && (config.url?.startsWith('/admin/') || config.url?.startsWith('/auth/'))) {
+    config.headers.Authorization = `Bearer ${adminToken}`;
     return config;
   }
   
-  // Add token to admin and auth routes only
-  // Public routes (/public/*) and magic link picks (/picks/*) don't get admin token
-  if (config.url?.startsWith('/admin/') || config.url?.startsWith('/auth/')) {
-    config.headers.Authorization = `Bearer ${token}`;
+  // Add pick token to pick routes (submit endpoint)
+  if (pickToken && config.url?.startsWith('/picks/submit')) {
+    config.headers.Authorization = `Bearer ${pickToken}`;
+    return config;
   }
   
   return config;
@@ -66,18 +73,24 @@ api.interceptors.response.use(
     // Handle 401 Unauthorized errors
     if (error.response?.status === 401) {
       const isAuthEndpoint = error.config?.url?.includes('/auth/');
+      const isPickEndpoint = error.config?.url?.includes('/picks/');
       const currentPath = window.location.pathname;
       
       // Don't auto-logout on auth endpoints (login, password reset, etc.)
       // Let the component handle those errors
       if (!isAuthEndpoint) {
-        // Clear tokens on any other 401 error
-        localStorage.removeItem('adminToken');
-        localStorage.removeItem('adminData');
-        
-        // Redirect to login if we're in the admin section
-        if (currentPath.startsWith('/admin') && currentPath !== '/admin/login') {
-          window.location.href = '/admin/login';
+        if (isPickEndpoint) {
+          // Clear pick token on 401 for pick endpoints
+          localStorage.removeItem('pickToken');
+        } else {
+          // Clear admin tokens on any other 401 error
+          localStorage.removeItem('adminToken');
+          localStorage.removeItem('adminData');
+          
+          // Redirect to login if we're in the admin section
+          if (currentPath.startsWith('/admin') && currentPath !== '/admin/login') {
+            window.location.href = '/admin/login';
+          }
         }
       }
     }
