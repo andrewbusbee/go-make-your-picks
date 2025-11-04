@@ -61,31 +61,31 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
           onClick={() => handleTabChange('customize')}
           className={getSubTabClass('customize')}
         >
-          Customize App
+          🎨 Customize App
         </button>
         <button
           onClick={() => handleTabChange('email')}
           className={getSubTabClass('email')}
         >
-          Email
+          📧 Email
         </button>
         <button
           onClick={() => handleTabChange('admins')}
           className={getSubTabClass('admins')}
         >
-          Admins
+          👤 Admins
         </button>
         <button
           onClick={() => handleTabChange('champions')}
           className={getSubTabClass('champions')}
         >
-          Add Previous Champions
+          🏆 Add Previous Champions
         </button>
         <button
           onClick={() => handleTabChange('dbhealth')}
           className={getSubTabClass('dbhealth')}
         >
-          Database Health
+          📊 Database Health
         </button>
         <button
           onClick={() => handleTabChange('api-docs')}

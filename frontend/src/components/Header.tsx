@@ -126,7 +126,7 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
                 onClick={handleAdminClick}
                 className="bg-white text-blue-600 px-4 py-2 rounded-lg font-semibold hover:bg-blue-50 transition"
               >
-                Admin
+                🔐 Admin
               </button>
             )}
             

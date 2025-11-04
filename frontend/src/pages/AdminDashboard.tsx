@@ -351,37 +351,37 @@ export default function AdminDashboard() {
               to="/admin/getting-started"
               className={getTabClass('/admin/getting-started')}
             >
-              Getting Started
+              🚀 Getting Started
             </Link>
             <Link
               to="/admin/users"
               className={getTabClass('/admin/users')}
             >
-              Players
+              👥 Players
             </Link>
             <Link
               to="/admin/seasons"
               className={getTabClass('/admin/seasons')}
             >
-              Seasons
+              📅 Seasons
             </Link>
             <Link
               to="/admin/rounds"
               className={getTabClass('/admin/rounds')}
             >
-              Sports
+              🏈 Sports
             </Link>
             <Link
               to="/admin/manage-picks"
               className={getTabClass('/admin/manage-picks')}
             >
-              Manage Picks
+              ✏️ Manage Picks
             </Link>
             <Link
               to="/admin/settings"
               className={getTabClass('/admin/settings')}
             >
-              Settings
+              ⚙️ Settings
             </Link>
           </nav>
         </div>
