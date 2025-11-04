@@ -168,7 +168,7 @@ services:
       # Application Configuration
       APP_URL: ${APP_URL:-http://localhost:3003}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-true}
+      ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-false}
       
       # Security Configuration
       # ⚠️ CRITICAL SECURITY: Generate a strong JWT secret!
@@ -226,13 +226,13 @@ These variables have default values but it is **highly recommended that they be 
 | `MARIADB_USER` | Database username | `gomakeyourpicksuser` | `gomakeyourpicksuser` |
 | `APP_URL` | Your application's public URL | `http://localhost:3003` | `https://yourdomain.com` |
 | `LOG_LEVEL` | Logging verbosity level | `INFO` | `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, `SILENT` |
-| `ENABLE_DEV_TOOLS` | Enable creation of seed data from admin dashboard for testing | `true` (development) | Set to `false` for production |
+| `ENABLE_DEV_TOOLS` | Enable creation of seed data from admin dashboard for testing | `false` | Set to `false` for production |
 | `SMTP_PORT` | Email server port | `587` | `587` or `465` |
 | `SMTP_SECURE` | Use SSL/TLS encryption (set to false for port 587) | `false` | `true` or `false` |
 | `SMTP_FROM` | Sender email address (fallback used if not set) | `noreply@example.com` | `noreply@yourdomain.com` |
 
 **Note on `ENABLE_DEV_TOOLS`**: 
-- Default is `true` for development/testing convenience
+- Default is `false` and can be set to `true` for development/testing convenience
 - **Must be set to `false` for production** to hide seed data buttons and prevent accidental data creation
 - Can be toggled anytime by changing the value and restarting Docker Compose (no rebuild required)
 
