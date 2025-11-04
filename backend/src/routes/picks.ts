@@ -61,9 +61,9 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
         return res.status(404).json({ error: 'No active users found for this email' });
       }
 
-      // Get available teams from round_teams_v2 + teams_v2
+      // Get available teams from round_teams_v2 + teams_v2 (with IDs for dropdown)
       const [teams] = await db.query<RowDataPacket[]>(
-        `SELECT t.name as team_name
+        `SELECT t.id, t.name
          FROM round_teams_v2 rt
          JOIN teams_v2 t ON rt.team_id = t.id
          WHERE rt.round_id = ?
@@ -131,7 +131,7 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
           seasonName: link.season_name,
           email_message: link.email_message
         },
-        teams: teams.map(t => t.team_name)
+        teams: teams.map(t => ({ id: t.id, name: t.name }))
       });
     }
 
@@ -166,9 +166,9 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
       });
     }
 
-    // Get available teams from round_teams_v2 + teams_v2
+    // Get available teams from round_teams_v2 + teams_v2 (with IDs for dropdown)
     const [teams] = await db.query<RowDataPacket[]>(
-      `SELECT t.name as team_name
+      `SELECT t.id, t.name
        FROM round_teams_v2 rt
        JOIN teams_v2 t ON rt.team_id = t.id
        WHERE rt.round_id = ?
@@ -222,7 +222,7 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
         seasonName: link.season_name,
         email_message: link.email_message
       },
-      teams: teams.map(t => t.team_name),
+      teams: teams.map(t => ({ id: t.id, name: t.name })),
       currentPick
     });
   } catch (error) {

@@ -12,8 +12,8 @@ import { getOrCreateTeam } from '../utils/teamHelpers';
 export interface SubmitPickOptions {
   userId: number;
   roundId: number;
-  picks: string[];
-  validateTeams?: boolean;
+  picks: (string | number)[]; // Can be team IDs (numbers) or team names (strings for write-ins)
+  validateTeams?: boolean; // If true, validates picks are valid team IDs for this round
 }
 
 export class PicksService {
@@ -58,27 +58,43 @@ export class PicksService {
   /**
    * Validates picks against available teams for a round
    * Uses v2 schema: round_teams_v2 + teams_v2
+   * Accepts both team IDs (numbers) and team names (strings) for validation
    */
   static async validatePicksAgainstTeams(
     connection: PoolConnection,
     roundId: number,
-    picks: string[]
+    picks: (string | number)[]
   ): Promise<{ valid: boolean; error?: string }> {
     try {
       // Get available teams from round_teams_v2 + teams_v2
       const [teams] = await connection.query<RowDataPacket[]>(
-        `SELECT t.name 
+        `SELECT t.id, t.name 
          FROM round_teams_v2 rt
          JOIN teams_v2 t ON rt.team_id = t.id
          WHERE rt.round_id = ?`,
         [roundId]
       );
 
-      const teamNames = teams.map(t => t.name.toLowerCase());
+      if (teams.length === 0) {
+        return { valid: true }; // No teams to validate against
+      }
+
+      const validTeamIds = new Set(teams.map(t => t.id));
+      const validTeamNames = new Set(teams.map(t => t.name.toLowerCase()));
       
-      if (teamNames.length > 0) {
-        for (const pick of picks) {
-          if (!teamNames.includes(pick.toLowerCase())) {
+      for (const pick of picks) {
+        // Check if pick is a number (ID) or string (name)
+        if (typeof pick === 'number') {
+          // ID-based validation: check if team_id exists in round_teams_v2
+          if (!validTeamIds.has(pick)) {
+            return {
+              valid: false,
+              error: `Invalid team ID: ${pick}. Please select from available teams.`
+            };
+          }
+        } else if (typeof pick === 'string') {
+          // Name-based validation (for backward compatibility or write-ins)
+          if (!validTeamNames.has(pick.toLowerCase())) {
             return {
               valid: false,
               error: `Invalid pick: ${pick}. Please select from available teams.`
@@ -106,30 +122,43 @@ export class PicksService {
     const { userId, roundId, picks, validateTeams = false } = options;
 
     return this.retryOnDeadlock(async () => {
-      // Validate pick values (length only)
+      // Validate picks: if they're strings, check length; if numbers, validate as IDs
       for (const pick of picks) {
-        if (pick && pick.length > 100) {
+        if (typeof pick === 'string' && pick.length > 100) {
           throw new Error('Pick values must be 100 characters or less');
+        }
+        if (typeof pick === 'number' && pick <= 0) {
+          throw new Error('Invalid team ID');
         }
       }
 
-      // Sanitize picks to strip tags but not encode '/'
-      const cleanedPicks = sanitizePlainTextArray(picks);
-
-      // Validate against teams if requested
+      // Validate against teams if requested (works for both IDs and names)
       if (validateTeams) {
-        const validation = await this.validatePicksAgainstTeams(connection, roundId, cleanedPicks);
+        const validation = await this.validatePicksAgainstTeams(connection, roundId, picks);
         if (!validation.valid) {
           throw new Error(validation.error);
         }
       }
 
-      // Get or create teams for each pick (normalized to teams_v2)
+      // Convert picks to team IDs
+      // If pick is a number (ID), use it directly
+      // If pick is a string (name), get or create team
       const teamIds: number[] = [];
-      for (const pick of cleanedPicks) {
-        if (pick && pick.trim().length > 0) {
-          const teamId = await getOrCreateTeam(connection, pick);
-          teamIds.push(teamId);
+      for (const pick of picks) {
+        if (pick === null || pick === undefined || pick === '') {
+          continue; // Skip empty picks
+        }
+        
+        if (typeof pick === 'number') {
+          // Already an ID, use it directly (already validated if validateTeams=true)
+          teamIds.push(pick);
+        } else if (typeof pick === 'string') {
+          // String: sanitize and get/create team
+          const cleanedPick = sanitizePlainTextArray([pick])[0];
+          if (cleanedPick && cleanedPick.trim().length > 0) {
+            const teamId = await getOrCreateTeam(connection, cleanedPick);
+            teamIds.push(teamId);
+          }
         }
       }
 

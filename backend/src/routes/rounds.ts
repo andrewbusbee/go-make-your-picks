@@ -832,26 +832,45 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
       );
 
       // Get or create teams for results and store in round_results_v2
+      // Accept either team IDs (numbers) or team names (strings)
       const resultTeams: { place: number; teamId: number | null }[] = [];
       
+      // Helper to convert team ID or name to team ID
+      const getTeamId = async (teamInput: string | number): Promise<number> => {
+        if (typeof teamInput === 'number') {
+          // Already an ID, validate it exists
+          const [teams] = await connection.query<RowDataPacket[]>(
+            'SELECT id FROM teams_v2 WHERE id = ?',
+            [teamInput]
+          );
+          if (teams.length === 0) {
+            throw new Error(`Team with ID ${teamInput} not found`);
+          }
+          return teamInput;
+        } else {
+          // String name, get or create team
+          return await getOrCreateTeam(connection, teamInput);
+        }
+      };
+      
       if (firstPlaceTeam) {
-        const teamId = await getOrCreateTeam(connection, firstPlaceTeam);
+        const teamId = await getTeamId(firstPlaceTeam);
         resultTeams.push({ place: 1, teamId });
       }
       if (secondPlaceTeam) {
-        const teamId = await getOrCreateTeam(connection, secondPlaceTeam);
+        const teamId = await getTeamId(secondPlaceTeam);
         resultTeams.push({ place: 2, teamId });
       }
       if (thirdPlaceTeam) {
-        const teamId = await getOrCreateTeam(connection, thirdPlaceTeam);
+        const teamId = await getTeamId(thirdPlaceTeam);
         resultTeams.push({ place: 3, teamId });
       }
       if (fourthPlaceTeam) {
-        const teamId = await getOrCreateTeam(connection, fourthPlaceTeam);
+        const teamId = await getTeamId(fourthPlaceTeam);
         resultTeams.push({ place: 4, teamId });
       }
       if (fifthPlaceTeam) {
-        const teamId = await getOrCreateTeam(connection, fifthPlaceTeam);
+        const teamId = await getTeamId(fifthPlaceTeam);
         resultTeams.push({ place: 5, teamId });
       }
 

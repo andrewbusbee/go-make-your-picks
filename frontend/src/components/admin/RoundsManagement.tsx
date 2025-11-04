@@ -130,11 +130,11 @@ export default function RoundsManagement() {
   };
   
   // Complete form
-  const [firstPlaceTeam, setFirstPlaceTeam] = useState('');
-  const [secondPlaceTeam, setSecondPlaceTeam] = useState('');
-  const [thirdPlaceTeam, setThirdPlaceTeam] = useState('');
-  const [fourthPlaceTeam, setFourthPlaceTeam] = useState('');
-  const [fifthPlaceTeam, setFifthPlaceTeam] = useState('');
+  const [firstPlaceTeam, setFirstPlaceTeam] = useState<string | number>(''); // Can be team ID (number) or empty string
+  const [secondPlaceTeam, setSecondPlaceTeam] = useState<string | number>('');
+  const [thirdPlaceTeam, setThirdPlaceTeam] = useState<string | number>('');
+  const [fourthPlaceTeam, setFourthPlaceTeam] = useState<string | number>('');
+  const [fifthPlaceTeam, setFifthPlaceTeam] = useState<string | number>('');
   const [participants, setParticipants] = useState<any[]>([]);
   const [manualScores, setManualScores] = useState<{[key: number]: string}>({});  // Now stores placement: 'first', 'second', etc.
   
@@ -151,19 +151,24 @@ export default function RoundsManagement() {
   const [otherTeams, setOtherTeams] = useState<any[]>([]);
 
   // Helper function to get available teams for each dropdown (excludes already selected teams)
-  const getAvailableTeams = (excludeTeams: string[], isChampion: boolean = false) => {
+  const getAvailableTeams = (excludeTeamIds: (string | number)[], isChampion: boolean = false) => {
     // Use champion teams for 1st place, other teams for 2nd-5th places
     const teamList = isChampion ? championTeams : otherTeams;
     
     if (!teamList?.length) return [];
     
-    return teamList.filter((team: any) => 
-      !excludeTeams.includes(team.team_name)
-    );
+    // Filter by team ID (convert excludeTeamIds to numbers for comparison)
+    const excludeIds = excludeTeamIds.map(id => typeof id === 'string' ? parseInt(id, 10) : id).filter(id => !isNaN(id));
+    
+    return teamList.filter((team: any) => {
+      const teamId = team.id || (typeof team === 'object' ? team.id : null);
+      return !excludeIds.includes(teamId);
+    });
   };
 
   // Helper function to handle team selection changes and clear dependent dropdowns
-  const handleFirstPlaceChange = (value: string) => {
+  // Values can be team IDs (numbers) or team names (strings for write-ins)
+  const handleFirstPlaceChange = (value: string | number) => {
     setFirstPlaceTeam(value);
     // Clear all subsequent selections when champion changes
     setSecondPlaceTeam('');
@@ -172,7 +177,7 @@ export default function RoundsManagement() {
     setFifthPlaceTeam('');
   };
 
-  const handleSecondPlaceChange = (value: string) => {
+  const handleSecondPlaceChange = (value: string | number) => {
     setSecondPlaceTeam(value);
     // Clear subsequent selections when 2nd place changes
     setThirdPlaceTeam('');
@@ -180,14 +185,14 @@ export default function RoundsManagement() {
     setFifthPlaceTeam('');
   };
 
-  const handleThirdPlaceChange = (value: string) => {
+  const handleThirdPlaceChange = (value: string | number) => {
     setThirdPlaceTeam(value);
     // Clear subsequent selections when 3rd place changes
     setFourthPlaceTeam('');
     setFifthPlaceTeam('');
   };
 
-  const handleFourthPlaceChange = (value: string) => {
+  const handleFourthPlaceChange = (value: string | number) => {
     setFourthPlaceTeam(value);
     // Clear subsequent selections when 4th place changes
     setFifthPlaceTeam('');
@@ -503,12 +508,19 @@ export default function RoundsManagement() {
       
       // Populate existing data if round was previously completed
       // Use results from round_results_v2 (v2 schema)
+      // Store team IDs instead of names for consistency
       const results = roundRes.data.results || [];
-      setFirstPlaceTeam(results.find((r: any) => r.place === 1)?.teamName || '');
-      setSecondPlaceTeam(results.find((r: any) => r.place === 2)?.teamName || '');
-      setThirdPlaceTeam(results.find((r: any) => r.place === 3)?.teamName || '');
-      setFourthPlaceTeam(results.find((r: any) => r.place === 4)?.teamName || '');
-      setFifthPlaceTeam(results.find((r: any) => r.place === 5)?.teamName || '');
+      const firstPlace = results.find((r: any) => r.place === 1);
+      const secondPlace = results.find((r: any) => r.place === 2);
+      const thirdPlace = results.find((r: any) => r.place === 3);
+      const fourthPlace = results.find((r: any) => r.place === 4);
+      const fifthPlace = results.find((r: any) => r.place === 5);
+      
+      setFirstPlaceTeam(firstPlace?.teamId || '');
+      setSecondPlaceTeam(secondPlace?.teamId || '');
+      setThirdPlaceTeam(thirdPlace?.teamId || '');
+      setFourthPlaceTeam(fourthPlace?.teamId || '');
+      setFifthPlaceTeam(fifthPlace?.teamId || '');
       
       // Initialize manual scores state from existing scores (for multiple pick type)
       const initialScores: any = {};
@@ -1559,19 +1571,28 @@ export default function RoundsManagement() {
                       Champion (1st Place) *
                     </label>
                     {selectedRound.pick_type === 'single' && selectedRound.teams?.length > 0 ? (
-                      <select
-                        value={firstPlaceTeam}
-                        onChange={(e) => handleFirstPlaceChange(e.target.value)}
-                        className={inputClasses}
-                        required
-                      >
-                        <option value="">Select champion...</option>
-                        {getAvailableTeams([], true).map((team: any) => (
-                          <option key={team.id} value={team.team_name}>
-                            {team.team_name}
-                          </option>
-                        ))}
-                      </select>
+                        <select
+                          value={firstPlaceTeam}
+                          onChange={(e) => {
+                            // Convert string value to number if it's an ID
+                            const value = e.target.value;
+                            const numValue = value ? parseInt(value, 10) : '';
+                            handleFirstPlaceChange(isNaN(numValue as number) ? value : numValue);
+                          }}
+                          className={inputClasses}
+                          required
+                        >
+                          <option value="">Select champion...</option>
+                          {getAvailableTeams([], true).map((team: any) => {
+                            const teamId = team.id;
+                            const teamName = team.name || team.team_name;
+                            return (
+                              <option key={teamId} value={teamId}>
+                                {teamName}
+                              </option>
+                            );
+                          })}
+                        </select>
                     ) : (
                       <input
                         type="text"
@@ -1593,16 +1614,25 @@ export default function RoundsManagement() {
                       <>
                         <select
                           value={secondPlaceTeam}
-                          onChange={(e) => handleSecondPlaceChange(e.target.value)}
+                          onChange={(e) => {
+                            // Convert string value to number if it's an ID
+                            const value = e.target.value;
+                            const numValue = value ? parseInt(value, 10) : '';
+                            handleSecondPlaceChange(isNaN(numValue as number) ? value : numValue);
+                          }}
                           className={`${inputClasses} ${!firstPlaceTeam ? 'opacity-50 cursor-not-allowed' : ''}`}
                           disabled={!firstPlaceTeam}
                         >
                           <option value="">Select 2nd place...</option>
-                          {getAvailableTeams([firstPlaceTeam], false).map((team: any) => (
-                            <option key={team.id} value={team.team_name}>
-                              {team.team_name}
-                            </option>
-                          ))}
+                          {getAvailableTeams([firstPlaceTeam], false).map((team: any) => {
+                            const teamId = team.id;
+                            const teamName = team.name || team.team_name;
+                            return (
+                              <option key={teamId} value={teamId}>
+                                {teamName}
+                              </option>
+                            );
+                          })}
                         </select>
                         {!firstPlaceTeam && (
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -1635,16 +1665,25 @@ export default function RoundsManagement() {
                       <>
                         <select
                           value={thirdPlaceTeam}
-                          onChange={(e) => handleThirdPlaceChange(e.target.value)}
+                          onChange={(e) => {
+                            // Convert string value to number if it's an ID
+                            const value = e.target.value;
+                            const numValue = value ? parseInt(value, 10) : '';
+                            handleThirdPlaceChange(isNaN(numValue as number) ? value : numValue);
+                          }}
                           className={`${inputClasses} ${!firstPlaceTeam ? 'opacity-50 cursor-not-allowed' : ''}`}
                           disabled={!firstPlaceTeam}
                         >
                           <option value="">Select 3rd place...</option>
-                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam], false).map((team: any) => (
-                            <option key={team.id} value={team.team_name}>
-                              {team.team_name}
-                            </option>
-                          ))}
+                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam], false).map((team: any) => {
+                            const teamId = team.id;
+                            const teamName = team.name || team.team_name;
+                            return (
+                              <option key={teamId} value={teamId}>
+                                {teamName}
+                              </option>
+                            );
+                          })}
                         </select>
                         {!firstPlaceTeam && (
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -1677,16 +1716,25 @@ export default function RoundsManagement() {
                       <>
                         <select
                           value={fourthPlaceTeam}
-                          onChange={(e) => handleFourthPlaceChange(e.target.value)}
+                          onChange={(e) => {
+                            // Convert string value to number if it's an ID
+                            const value = e.target.value;
+                            const numValue = value ? parseInt(value, 10) : '';
+                            handleFourthPlaceChange(isNaN(numValue as number) ? value : numValue);
+                          }}
                           className={`${inputClasses} ${!firstPlaceTeam ? 'opacity-50 cursor-not-allowed' : ''}`}
                           disabled={!firstPlaceTeam}
                         >
                           <option value="">Select 4th place...</option>
-                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam], false).map((team: any) => (
-                            <option key={team.id} value={team.team_name}>
-                              {team.team_name}
-                            </option>
-                          ))}
+                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam], false).map((team: any) => {
+                            const teamId = team.id;
+                            const teamName = team.name || team.team_name;
+                            return (
+                              <option key={teamId} value={teamId}>
+                                {teamName}
+                              </option>
+                            );
+                          })}
                         </select>
                         {!firstPlaceTeam && (
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -1719,16 +1767,25 @@ export default function RoundsManagement() {
                       <>
                         <select
                           value={fifthPlaceTeam}
-                          onChange={(e) => setFifthPlaceTeam(e.target.value)}
+                          onChange={(e) => {
+                            // Convert string value to number if it's an ID
+                            const value = e.target.value;
+                            const numValue = value ? parseInt(value, 10) : '';
+                            setFifthPlaceTeam(isNaN(numValue as number) ? value : numValue);
+                          }}
                           className={`${inputClasses} ${!firstPlaceTeam ? 'opacity-50 cursor-not-allowed' : ''}`}
                           disabled={!firstPlaceTeam}
                         >
                           <option value="">Select 5th place...</option>
-                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam, fourthPlaceTeam], false).map((team: any) => (
-                            <option key={team.id} value={team.team_name}>
-                              {team.team_name}
-                            </option>
-                          ))}
+                          {getAvailableTeams([firstPlaceTeam, secondPlaceTeam, thirdPlaceTeam, fourthPlaceTeam], false).map((team: any) => {
+                            const teamId = team.id;
+                            const teamName = team.name || team.team_name;
+                            return (
+                              <option key={teamId} value={teamId}>
+                                {teamName}
+                              </option>
+                            );
+                          })}
                         </select>
                         {!firstPlaceTeam && (
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">

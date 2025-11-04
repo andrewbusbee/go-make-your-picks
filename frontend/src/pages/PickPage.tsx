@@ -27,9 +27,9 @@ import {
 export default function PickPage() {
   const { token } = useParams<{ token: string }>();
   const [pickData, setPickData] = useState<any>(null);
-  const [championPick, setChampionPick] = useState('');
+  const [championPick, setChampionPick] = useState<string | number>(''); // Can be team ID (number) or empty string
   const [writeInPicks, setWriteInPicks] = useState<string[]>([]);
-  const [userPicks, setUserPicks] = useState<{[userId: number]: {championPick: string, writeInPicks: string[]}}>({});
+  const [userPicks, setUserPicks] = useState<{[userId: number]: {championPick: string | number, writeInPicks: string[]}}>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -87,8 +87,13 @@ export default function PickPage() {
             const items = user.currentPick.pickItems;
             
             if (pickType === 'single') {
+              // Find the team ID from the pick value
+              const pickValue = items.length > 0 ? items[0].pickValue : '';
+              const team = res.data.teams?.find((t: any) => t.name === pickValue || (typeof t === 'string' && t === pickValue));
+              const teamId = team?.id || (typeof team === 'string' ? null : team);
+              
               newUserPicks[user.id] = {
-                championPick: items.length > 0 ? items[0].pickValue : '',
+                championPick: teamId || pickValue, // Use ID if available, fallback to name
                 writeInPicks: []
               };
             } else if (pickType === 'multiple') {
@@ -129,8 +134,11 @@ export default function PickPage() {
           const items = res.data.currentPick.pickItems;
           
           if (pickType === 'single') {
-            // Single pick type - set first item
-            setChampionPick(items.length > 0 ? items[0].pickValue : '');
+            // Find the team ID from the pick value
+            const pickValue = items.length > 0 ? items[0].pickValue : '';
+            const team = res.data.teams?.find((t: any) => t.name === pickValue || (typeof t === 'string' && t === pickValue));
+            const teamId = team?.id || (typeof team === 'string' ? null : team);
+            setChampionPick(teamId || pickValue); // Use ID if available, fallback to name
           } else if (pickType === 'multiple') {
             // Multiple pick type - load all items
             const numPicks = res.data.round.numWriteInPicks || 1;
@@ -161,7 +169,7 @@ export default function PickPage() {
   // Auto-save function removed - picks now save only on "Submit All Picks"
 
   // Handle individual pick changes with auto-save
-  const handleUserPickChange = async (userId: number, pickType: 'single' | 'multiple', value: string | string[], index?: number) => {
+  const handleUserPickChange = async (userId: number, pickType: 'single' | 'multiple', value: string | number | string[], index?: number) => {
     const newUserPicks = { ...userPicks };
     
     if (!newUserPicks[userId]) {
@@ -169,7 +177,8 @@ export default function PickPage() {
     }
     
     if (pickType === 'single') {
-      newUserPicks[userId].championPick = value as string;
+      // Value can be team ID (number) or empty string
+      newUserPicks[userId].championPick = value as string | number;
       setUserPicks(newUserPicks);
       
       // Auto-save removed for multi-user picks - saves only on "Submit All Picks"
@@ -201,10 +210,11 @@ export default function PickPage() {
         let hasAnyPicks = false;
         
         for (const [userId, userPick] of Object.entries(userPicks)) {
-          let picksToSubmit: string[] = [];
+          let picksToSubmit: (string | number)[] = [];
           
           if (pickType === 'single') {
             if (userPick.championPick) {
+              // Submit as-is: if it's a number (ID), submit as number; if string (name), submit as string
               picksToSubmit = [userPick.championPick];
             }
           } else if (pickType === 'multiple') {
@@ -229,18 +239,19 @@ export default function PickPage() {
         setSuccess('All picks have been submitted successfully! You can return to this page and update them anytime before the lock time.');
       } else {
         // Handle single user scenario (legacy)
-        let picksToSubmit: string[] = [];
+        let picksToSubmit: (string | number)[] = [];
 
         if (pickType === 'single') {
-          // Single pick type - submit champion pick
+          // Single pick type - submit champion pick (can be team ID or name)
           if (!championPick) {
             setError('Please select a team/player');
             setSubmitting(false);
             return;
           }
+          // Submit as-is: if it's a number (ID), submit as number; if string (name), submit as string
           picksToSubmit = [championPick];
         } else if (pickType === 'multiple') {
-          // Multiple pick type - submit write-in picks
+          // Multiple pick type - submit write-in picks (always strings)
           picksToSubmit = writeInPicks.filter(p => p && p.trim().length > 0);
           
           if (picksToSubmit.length === 0) {
@@ -531,13 +542,25 @@ export default function PickPage() {
                             {pickData.teams && pickData.teams.length > 0 ? (
                               <select
                                 value={userPicks[user.id]?.championPick || ''}
-                                onChange={(e) => handleUserPickChange(user.id, 'single', e.target.value)}
+                                onChange={(e) => {
+                                  // Convert string value to number if it's an ID, otherwise keep as string
+                                  const value = e.target.value;
+                                  const numValue = value ? parseInt(value, 10) : '';
+                                  handleUserPickChange(user.id, 'single', isNaN(numValue as number) ? value : numValue);
+                                }}
                                 className={`${selectClasses} py-3`}
                               >
                                 <option value="">Select a team/player...</option>
-                                {pickData.teams.map((team: string) => (
-                                  <option key={team} value={team}>{team}</option>
-                                ))}
+                                {pickData.teams.map((team: any) => {
+                                  // Handle both old format (string) and new format ({id, name})
+                                  const teamId = typeof team === 'object' ? team.id : null;
+                                  const teamName = typeof team === 'object' ? team.name : team;
+                                  return (
+                                    <option key={teamId || teamName} value={teamId || teamName}>
+                                      {teamName}
+                                    </option>
+                                  );
+                                })}
                               </select>
                             ) : (
                               <div className="bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md p-4 text-center">

@@ -50,7 +50,7 @@ export default function AdminPicksManagement() {
   const [picks, setPicks] = useState<any[]>([]);
   const [showPickModal, setShowPickModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
-  const [championPick, setChampionPick] = useState('');
+  const [championPick, setChampionPick] = useState<string | number>(''); // Can be team ID (number) or empty string
   const [writeInPicks, setWriteInPicks] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -175,9 +175,13 @@ export default function AdminPicksManagement() {
     const pickType = roundDetails?.pick_type || 'single';
     
     if (pickType === 'single') {
-      // Load first pick item
+      // Load first pick item - find team ID from pick value
       if (existingPick?.pickItems && existingPick.pickItems.length > 0) {
-        setChampionPick(existingPick.pickItems[0].pickValue || '');
+        const pickValue = existingPick.pickItems[0].pickValue || '';
+        // Find team by name in roundDetails.teams (which has IDs)
+        const team = roundDetails?.teams?.find((t: any) => t.name === pickValue || t.team_name === pickValue);
+        const teamId = team?.id || pickValue; // Use ID if available, fallback to name
+        setChampionPick(teamId);
       } else {
         setChampionPick('');
       }
@@ -219,7 +223,7 @@ export default function AdminPicksManagement() {
     const pickType = roundDetails?.pick_type || 'single';
 
     try {
-      let picksToSubmit: string[] = [];
+      let picksToSubmit: (string | number)[] = [];
 
       if (pickType === 'single') {
         if (!championPick) {
@@ -227,6 +231,7 @@ export default function AdminPicksManagement() {
           setLoading(false);
           return;
         }
+        // Submit as-is: if it's a number (ID), submit as number; if string (name), submit as string
         picksToSubmit = [championPick];
       } else if (pickType === 'multiple') {
         picksToSubmit = writeInPicks.filter(p => p && p.trim().length > 0);
@@ -453,16 +458,26 @@ export default function AdminPicksManagement() {
                   {roundDetails.teams && roundDetails.teams.length > 0 ? (
                     <select
                       value={championPick}
-                      onChange={(e) => setChampionPick(e.target.value)}
+                      onChange={(e) => {
+                        // Convert string value to number if it's an ID
+                        const value = e.target.value;
+                        const numValue = value ? parseInt(value, 10) : '';
+                        setChampionPick(isNaN(numValue as number) ? value : numValue);
+                      }}
                       className={inputClasses}
                       required
                     >
                       <option value="">Select a team...</option>
-                      {roundDetails.teams.map((team: any) => (
-                        <option key={team.id} value={team.team_name}>
-                          {team.team_name}
-                        </option>
-                      ))}
+                      {roundDetails.teams.map((team: any) => {
+                        // Handle both formats: {id, name} or {id, team_name}
+                        const teamId = team.id;
+                        const teamName = team.name || team.team_name;
+                        return (
+                          <option key={teamId} value={teamId}>
+                            {teamName}
+                          </option>
+                        );
+                      })}
                     </select>
                   ) : (
                     <input
