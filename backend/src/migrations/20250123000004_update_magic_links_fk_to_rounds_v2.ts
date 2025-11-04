@@ -46,18 +46,46 @@ export class UpdateMagicLinksFkToRoundsV2 implements Migration {
         if (fkInfo.length > 0) {
           const fkName = fkInfo[0].CONSTRAINT_NAME;
           
+          // Check if FK already points to rounds_v2
+          const [fkDetails] = await db.query(
+            `SELECT REFERENCED_TABLE_NAME 
+             FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+             WHERE TABLE_SCHEMA = DATABASE() 
+             AND TABLE_NAME = 'magic_links' 
+             AND CONSTRAINT_NAME = ?`,
+            [fkName]
+          ) as any;
+          
+          if (fkDetails.length > 0 && fkDetails[0].REFERENCED_TABLE_NAME === 'rounds_v2') {
+            logger.info('Foreign key already points to rounds_v2, skipping');
+            return;
+          }
+          
           // Drop the old foreign key
           await db.query(`ALTER TABLE magic_links DROP FOREIGN KEY ${fkName}`);
           logger.info(`Dropped foreign key ${fkName} from magic_links`);
         }
 
-        // Add new foreign key to rounds_v2
-        await db.query(`
-          ALTER TABLE magic_links
-          ADD CONSTRAINT magic_links_round_id_fk_v2
-          FOREIGN KEY (round_id) REFERENCES rounds_v2(id) ON DELETE CASCADE
-        `);
-        logger.info('Added foreign key from magic_links.round_id to rounds_v2.id');
+        // Check if the new FK already exists before adding
+        const [newFkExists] = await db.query(
+          `SELECT CONSTRAINT_NAME 
+           FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+           WHERE TABLE_SCHEMA = DATABASE() 
+           AND TABLE_NAME = 'magic_links' 
+           AND CONSTRAINT_NAME = 'magic_links_round_id_fk_v2'`
+        ) as any;
+
+        if (newFkExists.length === 0) {
+          // Add new foreign key to rounds_v2
+          await db.query(`
+            ALTER TABLE magic_links
+            ADD CONSTRAINT magic_links_round_id_fk_v2
+            FOREIGN KEY (round_id) REFERENCES rounds_v2(id) ON DELETE CASCADE
+          `);
+          logger.info('Added foreign key from magic_links.round_id to rounds_v2.id');
+        } else {
+          logger.info('Foreign key magic_links_round_id_fk_v2 already exists, skipping');
+        }
       } else {
         logger.info('magic_links table does not exist, skipping');
       }
@@ -92,18 +120,46 @@ export class UpdateMagicLinksFkToRoundsV2 implements Migration {
         if (fkInfo.length > 0) {
           const fkName = fkInfo[0].CONSTRAINT_NAME;
           
+          // Check if FK already points to rounds_v2
+          const [fkDetails] = await db.query(
+            `SELECT REFERENCED_TABLE_NAME 
+             FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+             WHERE TABLE_SCHEMA = DATABASE() 
+             AND TABLE_NAME = 'email_magic_links' 
+             AND CONSTRAINT_NAME = ?`,
+            [fkName]
+          ) as any;
+          
+          if (fkDetails.length > 0 && fkDetails[0].REFERENCED_TABLE_NAME === 'rounds_v2') {
+            logger.info('Foreign key already points to rounds_v2, skipping');
+            return;
+          }
+          
           // Drop the old foreign key
           await db.query(`ALTER TABLE email_magic_links DROP FOREIGN KEY ${fkName}`);
           logger.info(`Dropped foreign key ${fkName} from email_magic_links`);
         }
 
-        // Add new foreign key to rounds_v2
-        await db.query(`
-          ALTER TABLE email_magic_links
-          ADD CONSTRAINT email_magic_links_round_id_fk_v2
-          FOREIGN KEY (round_id) REFERENCES rounds_v2(id) ON DELETE CASCADE
-        `);
-        logger.info('Added foreign key from email_magic_links.round_id to rounds_v2.id');
+        // Check if the new FK already exists before adding
+        const [newFkExists] = await db.query(
+          `SELECT CONSTRAINT_NAME 
+           FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+           WHERE TABLE_SCHEMA = DATABASE() 
+           AND TABLE_NAME = 'email_magic_links' 
+           AND CONSTRAINT_NAME = 'email_magic_links_round_id_fk_v2'`
+        ) as any;
+
+        if (newFkExists.length === 0) {
+          // Add new foreign key to rounds_v2
+          await db.query(`
+            ALTER TABLE email_magic_links
+            ADD CONSTRAINT email_magic_links_round_id_fk_v2
+            FOREIGN KEY (round_id) REFERENCES rounds_v2(id) ON DELETE CASCADE
+          `);
+          logger.info('Added foreign key from email_magic_links.round_id to rounds_v2.id');
+        } else {
+          logger.info('Foreign key email_magic_links_round_id_fk_v2 already exists, skipping');
+        }
       } else {
         logger.info('email_magic_links table does not exist, skipping');
       }
@@ -138,18 +194,46 @@ export class UpdateMagicLinksFkToRoundsV2 implements Migration {
         if (fkInfo.length > 0) {
           const fkName = fkInfo[0].CONSTRAINT_NAME;
           
+          // Check if FK already points to rounds_v2
+          const [fkDetails] = await db.query(
+            `SELECT REFERENCED_TABLE_NAME 
+             FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+             WHERE TABLE_SCHEMA = DATABASE() 
+             AND TABLE_NAME = 'reminder_log' 
+             AND CONSTRAINT_NAME = ?`,
+            [fkName]
+          ) as any;
+          
+          if (fkDetails.length > 0 && fkDetails[0].REFERENCED_TABLE_NAME === 'rounds_v2') {
+            logger.info('Foreign key already points to rounds_v2, skipping');
+            return;
+          }
+          
           // Drop the old foreign key
           await db.query(`ALTER TABLE reminder_log DROP FOREIGN KEY ${fkName}`);
           logger.info(`Dropped foreign key ${fkName} from reminder_log`);
         }
 
-        // Add new foreign key to rounds_v2
-        await db.query(`
-          ALTER TABLE reminder_log
-          ADD CONSTRAINT reminder_log_round_id_fk_v2
-          FOREIGN KEY (round_id) REFERENCES rounds_v2(id) ON DELETE CASCADE
-        `);
-        logger.info('Added foreign key from reminder_log.round_id to rounds_v2.id');
+        // Check if the new FK already exists before adding
+        const [newFkExists] = await db.query(
+          `SELECT CONSTRAINT_NAME 
+           FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+           WHERE TABLE_SCHEMA = DATABASE() 
+           AND TABLE_NAME = 'reminder_log' 
+           AND CONSTRAINT_NAME = 'reminder_log_round_id_fk_v2'`
+        ) as any;
+
+        if (newFkExists.length === 0) {
+          // Add new foreign key to rounds_v2
+          await db.query(`
+            ALTER TABLE reminder_log
+            ADD CONSTRAINT reminder_log_round_id_fk_v2
+            FOREIGN KEY (round_id) REFERENCES rounds_v2(id) ON DELETE CASCADE
+          `);
+          logger.info('Added foreign key from reminder_log.round_id to rounds_v2.id');
+        } else {
+          logger.info('Foreign key reminder_log_round_id_fk_v2 already exists, skipping');
+        }
       } else {
         logger.info('reminder_log table does not exist, skipping');
       }

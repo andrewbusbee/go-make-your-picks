@@ -134,7 +134,7 @@ services:
       # Application Configuration
       APP_URL: ${APP_URL:-http://localhost:3003}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-false}
+      ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-true}
       
       # Security Configuration
       # ⚠️ CRITICAL SECURITY: Generate a strong JWT secret!
@@ -192,7 +192,7 @@ These variables have default values but it is **highly recommended that they be 
 | `MARIADB_USER` | Database username | `gomakeyourpicksuser` | `gomakeyourpicksuser` |
 | `APP_URL` | Your application's public URL | `http://localhost:3003` | `https://yourdomain.com` |
 | `LOG_LEVEL` | Logging verbosity level | `INFO` | `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, `SILENT` |
-| `ENABLE_DEV_TOOLS` | Enable creation of seed data for testing | `false` | `true` or `false` |
+| `ENABLE_DEV_TOOLS` | Enable creation of seed data from admin dashboard for testing | `true` | `true` or `false` |
 | `SMTP_PORT` | Email server port | `587` | `587` or `465` |
 | `SMTP_SECURE` | Use SSL/TLS encryption (set to false for port 587) | `false` | `true` or `false` |
 | `SMTP_FROM` | Sender email address (fallback used if not set) | `noreply@example.com` | `noreply@yourdomain.com` |
@@ -205,6 +205,19 @@ These values are set in `docker-compose.yml` for Docker networking and should no
 |----------|-------------|---------|
 | `MARIADB_HOST` | Database host (Docker service name) | `mariadb` |
 | `MARIADB_PORT` | Database port (internal Docker port) | `3306` |
+
+## 🌱 Seed Data Function
+
+The seed data function is a development/testing tool that populates your database with sample data to help you explore the application quickly. When enabled (via `ENABLE_DEV_TOOLS=true`), you can access it from the admin dashboard.
+
+**What it creates:**
+- 15 sample players with sample email addresses
+- A test season with the current year and next year
+- Active sports with lock times set to 1 week from now
+- Completed sports with historical scores and picks
+- Sample picks for all players across all sports
+
+**Note:** This feature is intended for development and testing purposes only. It should be disabled (`ENABLE_DEV_TOOLS=false`) in production environments, and any sample data should be deleted using the "Delete Sample Data" button in the admin dashboard before going to production.
 
 ## 📧 Email Setup Guide
 

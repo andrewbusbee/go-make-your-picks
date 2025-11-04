@@ -430,7 +430,7 @@ export default function AdminPicksManagement() {
         </div>
       ) : (
         <div className={`${cardClasses} shadow-md text-center`}>
-          <p className={bodyTextClasses}>Select a season and round to manage picks</p>
+          <p className={bodyTextClasses}>Select a season and sport to manage picks</p>
         </div>
       )}
 

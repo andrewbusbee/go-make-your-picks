@@ -1195,6 +1195,9 @@ export default function RoundsManagement() {
                 <label className={labelClasses}>
                   Select Season:
                 </label>
+                <p className={`mt-1 mb-3 ${helpTextClasses}`}>
+                  Select which season this sport belongs to. Only active seasons are shown.
+                </p>
                 <select
                   value={selectedSeasonId || ''}
                   onChange={(e) => setSelectedSeasonId(Number(e.target.value) || null)}
@@ -1210,9 +1213,6 @@ export default function RoundsManagement() {
                       </option>
                     ))}
                 </select>
-                <p className={`${helpTextClasses} mt-1`}>
-                  Select which season this sport belongs to. Only active seasons are shown.
-                </p>
               </div>
 
               {/* Pick Type */}
@@ -1272,7 +1272,7 @@ export default function RoundsManagement() {
               {/* Manual Entry always uses 1 pick */}
               {pickType === 'multiple' && (
                 <div>
-                  <p className={`${helpTextClasses} bg-blue-50 p-3 rounded-md`}>
+                  <p className={`${helpTextClasses} bg-blue-50 dark:bg-blue-900/30 p-3 rounded-md dark:text-black`}>
                     <strong>Manual Entry:</strong> Users will see 1 blank text box to write in their pick
                   </p>
                 </div>
@@ -1283,6 +1283,9 @@ export default function RoundsManagement() {
                 <label className={labelClasses}>
                   Email Message to Players (Optional)
                 </label>
+                <p className={`mt-1 mb-3 ${helpTextClasses}`}>
+                  This message will be included in the email sent to players with their pick link
+                </p>
                 <textarea
                   value={emailMessage}
                   onChange={(e) => setEmailMessage(e.target.value)}
@@ -1290,9 +1293,6 @@ export default function RoundsManagement() {
                   placeholder="Add a personal message that will be included in the magic link email such as a link to standings, rankings, etc..."
                   className={inputClasses}
                 />
-                <p className={`mt-1 ${helpTextClasses}`}>
-                  This message will be included in the email sent to players with their pick link
-                </p>
               </div>
 
               {/* Lock Date & Time */}
@@ -1381,6 +1381,9 @@ export default function RoundsManagement() {
                 <label className={labelClasses}>
                   Select Season:
                 </label>
+                <p className={`mt-1 mb-3 ${helpTextClasses}`}>
+                  Select which season this sport belongs to. Only active seasons are shown.
+                </p>
                 <select
                   value={selectedSeasonId || ''}
                   onChange={(e) => setSelectedSeasonId(Number(e.target.value) || null)}
@@ -1396,9 +1399,6 @@ export default function RoundsManagement() {
                       </option>
                     ))}
                 </select>
-                <p className={`${helpTextClasses} mt-1`}>
-                  Select which season this sport belongs to. Only active seasons are shown.
-                </p>
               </div>
 
               {/* Pick Type */}
@@ -1422,6 +1422,9 @@ export default function RoundsManagement() {
                   <label className={labelClasses}>
                     Available Teams
                   </label>
+                  <p className={`mt-1 mb-3 ${helpTextClasses}`}>
+                    Users will pick from this list. Teams with picks cannot be deleted.
+                  </p>
                   <div className="space-y-2">
                     {teams.map((team, index) => {
                       const hasPicks = team.id ? teamsWithPicks.has(team.id) : false;
@@ -1458,16 +1461,13 @@ export default function RoundsManagement() {
                       + Add Team
                     </button>
                   </div>
-                  <p className={`mt-1 ${helpTextClasses}`}>
-                    Users will pick from this list. Teams with picks cannot be deleted.
-                  </p>
                 </div>
               )}
 
               {/* Manual Entry always uses 1 pick */}
               {pickType === 'multiple' && (
                 <div>
-                  <p className={`${helpTextClasses} bg-blue-50 p-3 rounded-md`}>
+                  <p className={`${helpTextClasses} bg-blue-50 dark:bg-blue-900/30 p-3 rounded-md dark:text-black`}>
                     <strong>Manual Entry:</strong> Users will see 1 blank text box to write in their pick
                   </p>
                 </div>

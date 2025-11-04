@@ -39,7 +39,7 @@ services:
       # Application Configuration
       APP_URL: ${APP_URL:-http://localhost:3003}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-false}
+      ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-true}
       
       # Security Configuration
       # ⚠️ CRITICAL SECURITY: Generate a strong JWT secret!

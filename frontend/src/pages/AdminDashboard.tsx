@@ -43,6 +43,7 @@ export default function AdminDashboard() {
   const [hasSeasons, setHasSeasons] = useState(false);
   const [hasSports, setHasSports] = useState(false);
   const [enableDevTools, setEnableDevTools] = useState(false);
+  const [hasSampleData, setHasSampleData] = useState(false);
   const [emailNotificationsEnabled, setEmailNotificationsEnabled] = useState(true);
   const [customizationState, setCustomizationState] = useState({
     branding: false,
@@ -91,6 +92,7 @@ export default function AdminDashboard() {
     loadSettings();
     checkSystemStatus();
     loadConfig();
+    checkSampleData();
   }, []);
 
   // Close user menu when clicking outside
@@ -115,7 +117,15 @@ export default function AdminDashboard() {
     checkSystemStatus();
     // Also reload settings to update customization state when navigating
     loadSettings();
+    checkSampleData();
   }, [location.pathname]);
+
+  // Check sample data when enableDevTools or adminData changes
+  useEffect(() => {
+    if (enableDevTools && adminData?.is_main_admin) {
+      checkSampleData();
+    }
+  }, [enableDevTools, adminData]);
 
   const checkSystemStatus = async () => {
     try {
@@ -190,6 +200,18 @@ export default function AdminDashboard() {
     } catch (error) {
       logger.error('Error loading config:', error);
       setEnableDevTools(false);
+    }
+  };
+
+  const checkSampleData = async () => {
+    if (!enableDevTools || !adminData?.is_main_admin) return;
+    
+    try {
+      const res = await api.get('/admin/seed/check-sample-data');
+      setHasSampleData(res.data.hasSampleData || false);
+    } catch (error) {
+      logger.error('Error checking sample data:', error);
+      setHasSampleData(false);
     }
   };
 
@@ -426,7 +448,7 @@ export default function AdminDashboard() {
                 <div>
                   <h3 className="text-sm font-semibold text-yellow-900 dark:text-yellow-200">Development Tools</h3>
                   <p className="text-xs text-yellow-700 dark:text-yellow-400">
-                    Sample data: 15 players + 1 season + 11 sports (2 active, 9 completed) + picks & scores
+                    Sample data: 15 players + 1 season + 10 sports (2 active, 8 completed) + picks & scores
                   </p>
                   <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-1">
                     To hide this section, set ENABLE_DEV_TOOLS: "false" in docker-compose and restart. Delete sample data first if you have seeded it.
@@ -440,12 +462,18 @@ export default function AdminDashboard() {
                     try {
                       const res = await api.post('/admin/seed/seed-test-data');
                       alert(res.data.message || 'Sample data seeded successfully!');
+                      setHasSampleData(true);
                       window.location.reload();
                     } catch (error: any) {
                       alert(error.response?.data?.error || 'Failed to seed sample data');
                     }
                   }}
-                  className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
+                  disabled={hasSampleData}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    hasSampleData
+                      ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                      : 'bg-green-600 text-white hover:bg-green-700'
+                  }`}
                 >
                   🌱 Seed Sample Data
                 </button>
@@ -455,12 +483,18 @@ export default function AdminDashboard() {
                     try {
                       const res = await api.post('/admin/seed/clear-test-data');
                       alert(res.data.message || 'Sample data deleted successfully!');
+                      setHasSampleData(false);
                       window.location.reload();
                     } catch (error: any) {
                       alert(error.response?.data?.error || 'Failed to delete sample data');
                     }
                   }}
-                  className="px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-md hover:bg-red-700 transition-colors"
+                  disabled={!hasSampleData}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    !hasSampleData
+                      ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                      : 'bg-red-600 text-white hover:bg-red-700'
+                  }`}
                 >
                   🗑️ Delete Sample Data
                 </button>

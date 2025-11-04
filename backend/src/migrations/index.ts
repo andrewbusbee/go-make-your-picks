@@ -18,6 +18,7 @@ import { RenameLegacyGameTables } from './20250123000003_rename_legacy_game_tabl
 import { UpdateMagicLinksFkToRoundsV2 } from './20250123000004_update_magic_links_fk_to_rounds_v2';
 import { FixScoringRulesPlaceConstraint } from './20250123000005_fix_scoring_rules_place_constraint';
 import { DropOriginalPickFromPicksV2 } from './20250123000005_drop_original_pick';
+import { CreateSeedDataMetadata } from './20250123000006_create_seed_data_metadata';
 
 /**
  * All migrations in order of execution
@@ -36,6 +37,7 @@ export const allMigrations: Migration[] = [
   new UpdateMagicLinksFkToRoundsV2(),
   new FixScoringRulesPlaceConstraint(),
   new DropOriginalPickFromPicksV2(),
+  new CreateSeedDataMetadata(),
   // Add new migrations here as needed
 ];
 

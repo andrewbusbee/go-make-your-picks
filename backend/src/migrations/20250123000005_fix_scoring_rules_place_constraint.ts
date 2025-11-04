@@ -31,7 +31,25 @@ export class FixScoringRulesPlaceConstraint implements Migration {
         return;
       }
 
-      // Drop the old constraint
+      // Check if constraint already exists with correct definition
+      const [constraintInfo] = await db.query(
+        `SELECT CHECK_CLAUSE 
+         FROM INFORMATION_SCHEMA.CHECK_CONSTRAINTS 
+         WHERE TABLE_SCHEMA = DATABASE() 
+         AND TABLE_NAME = 'scoring_rules_v2' 
+         AND CONSTRAINT_NAME = 'check_place_range_scoring'`
+      ) as any;
+
+      if (constraintInfo.length > 0) {
+        const checkClause = constraintInfo[0].CHECK_CLAUSE;
+        // Check if it already allows place >= 0
+        if (checkClause && checkClause.includes('place >= 0')) {
+          logger.info('Constraint already allows place >= 0, skipping');
+          return;
+        }
+      }
+
+      // Drop the old constraint if it exists
       try {
         await db.query(`ALTER TABLE scoring_rules_v2 DROP CONSTRAINT check_place_range_scoring`);
         logger.info('Dropped old check_place_range_scoring constraint');
