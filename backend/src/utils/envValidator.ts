@@ -25,7 +25,6 @@ const productionConfig: EnvConfig = {
   ],
   optional: [
     'MARIADB_PORT',
-    'PORT',
     'SMTP_PORT',
     'SMTP_SECURE'
   ]
@@ -41,7 +40,6 @@ const developmentConfig: EnvConfig = {
     'MARIADB_USER',
     'MARIADB_PASSWORD',
     'MARIADB_PORT',
-    'PORT',
     'SMTP_HOST',
     'SMTP_USER',
     'SMTP_PASSWORD',
