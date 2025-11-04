@@ -5,6 +5,7 @@
 
 import { MIN_JWT_SECRET_LENGTH } from '../config/constants';
 import logger from './logger';
+import { NODE_ENV, IS_PRODUCTION } from './env';
 
 /**
  * Validates JWT_SECRET environment variable
@@ -12,7 +13,6 @@ import logger from './logger';
  */
 export function validateJwtSecret(): void {
   const JWT_SECRET = process.env.JWT_SECRET;
-  const NODE_ENV = process.env.NODE_ENV || 'development';
   
   if (!JWT_SECRET || JWT_SECRET.trim() === '') {
     logger.error('FATAL: JWT_SECRET environment variable is not set!');
@@ -25,7 +25,7 @@ export function validateJwtSecret(): void {
     logger.error(`FATAL: JWT_SECRET is too short (minimum ${MIN_JWT_SECRET_LENGTH} characters required)`);
     logger.error(`Current length: ${JWT_SECRET.length} characters`);
     
-    if (NODE_ENV === 'production') {
+    if (IS_PRODUCTION) {
       logger.error('Cannot start in production with weak JWT_SECRET');
       process.exit(1);
     } else {
@@ -49,7 +49,7 @@ export function validateJwtSecret(): void {
     logger.error('Please generate a secure random secret.');
     logger.error('Run: node -e "require(\'crypto\').randomBytes(32).toString(\'hex\')"');
     
-    if (NODE_ENV === 'production') {
+    if (IS_PRODUCTION) {
       process.exit(1);
     } else {
       logger.warn('⚠️  WARNING: Using default JWT_SECRET in development');

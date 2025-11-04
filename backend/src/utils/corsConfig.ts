@@ -2,6 +2,7 @@
 // Licensed under the MIT License. See LICENSE file for details.
 
 import logger from './logger';
+import { IS_PRODUCTION } from './env';
 
 /**
  * Compute allowed CORS origins based on environment
@@ -12,9 +13,7 @@ import logger from './logger';
  * @returns Array of allowed origin strings, or a callback function for dynamic origin checking
  */
 export function getAllowedOrigins(): string[] | ((origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => void) {
-  const isProduction = process.env.NODE_ENV === 'production';
-  
-  if (isProduction) {
+  if (IS_PRODUCTION) {
     // Production: Use explicit allowlist from ALLOWED_ORIGINS env var or fallback to APP_URL
     const allowedOriginsEnv = process.env.ALLOWED_ORIGINS;
     
@@ -77,7 +76,6 @@ export function getAllowedOrigins(): string[] | ((origin: string | undefined, ca
  * Logs warnings for unexpected origins in production
  */
 export function corsOriginCallback(origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void): void {
-  const isProduction = process.env.NODE_ENV === 'production';
   const allowedOrigins = getAllowedOrigins();
   
   // Handle undefined origin (e.g., same-origin requests, mobile apps, Postman)
@@ -100,7 +98,7 @@ export function corsOriginCallback(origin: string | undefined, callback: (err: E
     }
     
     // Origin not in allowlist
-    if (isProduction) {
+    if (IS_PRODUCTION) {
       logger.warn('CORS: Rejected origin not in allowlist', {
         origin: origin.replace(/\/\/.*@/, '//***@'), // Mask credentials in logs
         allowedOrigins: allowedOrigins.map(o => o.replace(/\/\/.*@/, '//***@'))

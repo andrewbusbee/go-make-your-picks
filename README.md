@@ -158,6 +158,11 @@ services:
     ports:
       - "3003:3003"
     environment:
+      # Runtime Environment Configuration
+      # NODE_ENV controls runtime behavior (production vs development) for Express, logging, CORS, etc.
+      # In production, enables production-safe settings (optimized builds, tighter CORS, less verbose logging, limited error details)
+      NODE_ENV: production
+
       # Database Configuration
       MARIADB_HOST: mariadb
       MARIADB_PORT: 3306
@@ -174,7 +179,8 @@ services:
       # ⚠️ CRITICAL SECURITY: Generate a strong JWT secret!
       # Run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
       JWT_SECRET: ${JWT_SECRET}
-      
+      JWT_EXPIRY: ${JWT_EXPIRY:-8h}
+
       # SMTP Configuration
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -245,6 +251,30 @@ These values are set in `docker-compose.yml` for Docker networking and should no
 |----------|-------------|---------|
 | `MARIADB_HOST` | Database host (Docker service name) | `mariadb` |
 | `MARIADB_PORT` | Database port (internal Docker port) | `3306` |
+| `NODE_ENV` | Runtime environment mode (production vs development) | `production` |
+
+### NODE_ENV
+
+`NODE_ENV` controls the runtime mode for the backend application:
+
+- **`production`** – Used in Docker / deployed environments. Enables production-safe settings:
+  - Optimized builds and performance
+  - Tighter CORS restrictions (only explicitly allowed origins)
+  - Less verbose logging (default log level: `info`)
+  - Limited error details (no stack traces in responses)
+  - Security headers enabled
+  - Admin-only API documentation
+
+- **`development`** – Used for local development. Enables development-friendly settings:
+  - Verbose logging (default log level: `debug`)
+  - Permissive CORS for localhost origins
+  - Detailed error messages with stack traces
+  - Public API documentation (no authentication required)
+
+**Configuration:**
+- In `docker-compose.yml`, the backend service is configured with `NODE_ENV=production` by default.
+- For local development, use `NODE_ENV=development` via `docker-compose.override.yml` or `.env` file.
+- The Dockerfile sets `ENV NODE_ENV=production` in the production stage, but Docker Compose environment variables take precedence.
 
 ### Development vs Production
 

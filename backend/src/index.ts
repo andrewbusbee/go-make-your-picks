@@ -33,6 +33,7 @@ import logger from './utils/logger';
 import { requestLogger } from './middleware/requestLogger';
 import { validateBodySize } from './middleware/validator';
 import { corsOriginCallback, getAllowedOrigins } from './utils/corsConfig';
+import { IS_PRODUCTION, IS_DEVELOPMENT, NODE_ENV } from './utils/env';
 import packageJson from '../package.json';
 import { DEFAULT_PORT, PUBLIC_RATE_LIMIT_WINDOW_MS, PUBLIC_RATE_LIMIT_MAX, MAX_JSON_PAYLOAD_SIZE } from './config/constants';
 import { authLimiter, writeLimiter, readLimiter } from './middleware/rateLimiter';
@@ -45,14 +46,14 @@ dotenv.config();
 logger.info('Starting Go Make Your Picks application', {
   nodeVersion: process.version,
   platform: process.platform,
-  environment: process.env.NODE_ENV || 'development',
+  environment: NODE_ENV,
   logLevel: process.env.LOG_LEVEL || 'default'
 });
 
 // Log logging configuration details
 logger.info('📊 Logging Configuration', {
   logLevel: process.env.LOG_LEVEL || 'default',
-  environment: process.env.NODE_ENV || 'development',
+  environment: NODE_ENV,
   fileLogging: 'disabled (console only)',
   availableLevels: ['FATAL', 'ERROR', 'WARN', 'INFO', 'HTTP', 'DEBUG', 'SILENT']
 });
@@ -69,7 +70,7 @@ runStartupValidation();
 // Central enableDevTools flag - only enable dev routes when explicitly set to 'true'
 const enableDevTools = process.env.ENABLE_DEV_TOOLS === 'true';
 
-if (process.env.NODE_ENV === 'production' && enableDevTools) {
+if (IS_PRODUCTION && enableDevTools) {
   logger.warn('⚠️ ENABLE_DEV_TOOLS is TRUE in production. Dev seed/admin tools are enabled!');
 }
 
@@ -81,7 +82,7 @@ const PORT = parseInt(process.env.PORT || String(DEFAULT_PORT));
 app.set('trust proxy', 1);
 
 // Security headers for production
-if (process.env.NODE_ENV === 'production') {
+if (IS_PRODUCTION) {
   app.use((req, res, next) => {
     // Prevent clickjacking
     res.setHeader('X-Frame-Options', 'DENY');
@@ -189,7 +190,7 @@ if (enableDevTools) {
 }
 
 // Serve frontend static files in production
-if (process.env.NODE_ENV === 'production') {
+if (IS_PRODUCTION) {
   const frontendPath = path.join(__dirname, '../../frontend/dist');
   
   // Serve static assets (JS, CSS, images, etc.) but NOT index.html
@@ -257,7 +258,7 @@ async function startServer() {
       logger.info('🏆 Go Make Your Picks API Server');
       logger.info('═══════════════════════════════════════════════');
       logger.info(`📡 Server running on port ${PORT}`);
-      logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`🌍 Environment: ${NODE_ENV}`);
       logger.info('═══════════════════════════════════════════════');
       
       // Start the reminder scheduler

@@ -4,10 +4,10 @@
 import swaggerJsdoc from 'swagger-jsdoc';
 import { Express } from 'express';
 import packageJson from '../../package.json';
+import { IS_PRODUCTION } from '../utils/env';
 
 const baseUrl = process.env.APP_URL || 'http://localhost:3003';
-const isProduction = process.env.NODE_ENV === 'production';
-const serverDescription = isProduction ? 'Production Server' : 'Development Server';
+const serverDescription = IS_PRODUCTION ? 'Production Server' : 'Development Server';
 
 /**
  * OpenAPI 3.0 Specification Configuration

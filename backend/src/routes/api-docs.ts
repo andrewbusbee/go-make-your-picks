@@ -6,9 +6,9 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from '../config/swagger';
 import logger from '../utils/logger';
 import { authenticateAdmin } from '../middleware/auth';
+import { IS_PRODUCTION } from '../utils/env';
 
 const router = Router();
-const isProduction = process.env.NODE_ENV === 'production';
 
 /**
  * API Documentation using Swagger/OpenAPI
@@ -68,7 +68,7 @@ const swaggerUiOptions = {
 };
 
 // Apply admin authentication in production only
-const middleware = isProduction ? [authenticateAdmin] : [];
+const middleware = IS_PRODUCTION ? [authenticateAdmin] : [];
 
 router.use('/', ...middleware, swaggerUi.serve);
 router.get('/', ...middleware, swaggerUi.setup(swaggerSpec, swaggerUiOptions));

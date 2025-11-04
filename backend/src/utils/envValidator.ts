@@ -4,6 +4,7 @@
  */
 
 import { logInfo, logWarn, logError, logFatal } from './logger';
+import { NODE_ENV, IS_PRODUCTION } from './env';
 
 interface EnvConfig {
   required: string[];
@@ -50,10 +51,9 @@ const developmentConfig: EnvConfig = {
 };
 
 export function validateEnvironment(): void {
-  const env = process.env.NODE_ENV || 'development';
-  const config = env === 'production' ? productionConfig : developmentConfig;
+  const config = IS_PRODUCTION ? productionConfig : developmentConfig;
   
-  logInfo(`Validating environment variables for ${env.toUpperCase()} mode`);
+  logInfo(`Validating environment variables for ${NODE_ENV.toUpperCase()} mode`);
   
   const missing: string[] = [];
   const warnings: string[] = [];
@@ -85,7 +85,7 @@ export function validateEnvironment(): void {
   }
   
   // Report warnings for optional variables
-  if (warnings.length > 0 && env === 'production') {
+  if (warnings.length > 0 && IS_PRODUCTION) {
     logWarn('Missing optional environment variables in production', { warnings });
     logWarn('⚠️  WARNING: Missing optional environment variables:');
     warnings.forEach(key => {
@@ -109,12 +109,12 @@ function validateSpecificValues(): void {
     logFatal(errorMsg, null, { 
       currentLength: jwtSecret.length, 
       minimumLength: 32,
-      environment: process.env.NODE_ENV 
+      environment: NODE_ENV 
     });
     logFatal('❌ CRITICAL: JWT_SECRET is too short');
     logFatal(`   Current length: ${jwtSecret.length} characters`);
     logFatal('   Minimum length: 32 characters');
-    if (process.env.NODE_ENV === 'production') {
+    if (IS_PRODUCTION) {
       logFatal('   Cannot start in production with weak JWT_SECRET');
       process.exit(1);
     } else {
@@ -146,7 +146,7 @@ function validateSpecificValues(): void {
   if (appUrl && !appUrl.match(/^https?:\/\/.+/)) {
     logFatal('APP_URL must start with http:// or https://', null, { providedValue: appUrl });
     logFatal(`❌ CRITICAL: APP_URL must start with http:// or https:// (got: ${appUrl})`);
-    if (process.env.NODE_ENV === 'production') {
+    if (IS_PRODUCTION) {
       process.exit(1);
     } else {
       logWarn('Invalid APP_URL format, setting default for development', { 
@@ -160,7 +160,7 @@ function validateSpecificValues(): void {
   }
   
   // Set default APP_URL for development if not provided
-  if (!appUrl && process.env.NODE_ENV !== 'production') {
+  if (!appUrl && !IS_PRODUCTION) {
     process.env.APP_URL = 'http://localhost:3003';
     logInfo('Using default APP_URL for development', { 
       defaultValue: process.env.APP_URL 
@@ -182,7 +182,7 @@ function validateSpecificValues(): void {
  */
 export function printEnvironmentSummary(): void {
   const summary = {
-    nodeEnvironment: process.env.NODE_ENV || 'development',
+    nodeEnvironment: NODE_ENV,
     databaseHost: process.env.MARIADB_HOST,
     databaseName: process.env.MARIADB_DATABASE,
     smtpHost: process.env.SMTP_HOST || 'not configured',

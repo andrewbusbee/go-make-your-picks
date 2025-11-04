@@ -29,6 +29,11 @@ services:
     ports:
       - "3003:3003"
     environment:
+      # Runtime Environment Configuration
+      # NODE_ENV controls runtime behavior (production vs development) for Express, logging, CORS, etc.
+      # In production, enables production-safe settings (optimized builds, tighter CORS, less verbose logging, limited error details)
+      NODE_ENV: production
+      
       # Database Configuration
       MARIADB_HOST: mariadb
       MARIADB_PORT: 3306

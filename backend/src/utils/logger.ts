@@ -121,6 +121,7 @@ const level = () => {
   }
   
   // Fallback to environment-based defaults
+  // Note: Import IS_DEVELOPMENT here would cause circular dependency, so use process.env directly
   const env = process.env.NODE_ENV || 'development';
   return env === 'development' ? 'debug' : 'info';
 };
@@ -138,6 +139,7 @@ const consoleFormat = printf(({ level, message, timestamp, stack, ...metadata })
   }
   
   // Show stack traces in development for easier debugging
+  // Note: Import IS_PRODUCTION here would cause circular dependency, so use process.env directly
   if (stack && process.env.NODE_ENV !== 'production') {
     msg += `\n${stack}`;
   }
