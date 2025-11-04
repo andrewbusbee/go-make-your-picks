@@ -4,6 +4,7 @@ import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import { sendMagicLink, sendLockedNotification, sendAdminReminderSummary } from './emailService';
 import logger, { logSchedulerEvent, redactEmail } from '../utils/logger';
 import { SettingsService } from './settingsService';
+import { generateMagicLinkToken, hashMagicLinkToken } from '../utils/magicLinkToken';
 
 // Cleanup old login attempts (older than 30 days)
 export const cleanupOldLoginAttempts = async () => {
@@ -319,12 +320,13 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       // Create magic links for users who don't have them
       // Magic links are multi-use: same link can be used multiple times (mobile, desktop, etc.)
       // until the round locks. Each validation issues a fresh JWT (8h expiry).
-      const crypto = require('crypto');
+      // SECURITY: Store hashed token in DB, send plain token in email
       const magicLinkValues = usersNeedingLinks.map(user => {
-        const token = crypto.randomBytes(32).toString('hex');
-        // Store the token on the user object so we can use it below
-        user.token = token;
-        return [user.id, round.id, token, expiresAt];
+        const plainToken = generateMagicLinkToken();
+        const tokenHash = hashMagicLinkToken(plainToken);
+        // Store the plain token on the user object so we can use it below for email
+        user.token = plainToken;
+        return [user.id, round.id, tokenHash, expiresAt]; // Store hash in DB
       });
 
       await db.query(
@@ -632,12 +634,13 @@ export const manualSendGenericReminder = async (roundId: number) => {
       // Create magic links for users who don't have them
       // Magic links are multi-use: same link can be used multiple times (mobile, desktop, etc.)
       // until the round locks. Each validation issues a fresh JWT (8h expiry).
-      const crypto = require('crypto');
+      // SECURITY: Store hashed token in DB, send plain token in email
       const magicLinkValues = usersNeedingLinks.map(user => {
-        const token = crypto.randomBytes(32).toString('hex');
-        // Store the token on the user object so we can use it below
-        user.token = token;
-        return [user.id, round.id, token, expiresAt];
+        const plainToken = generateMagicLinkToken();
+        const tokenHash = hashMagicLinkToken(plainToken);
+        // Store the plain token on the user object so we can use it below for email
+        user.token = plainToken;
+        return [user.id, round.id, tokenHash, expiresAt]; // Store hash in DB
       });
 
       await db.query(

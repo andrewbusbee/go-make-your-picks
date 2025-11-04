@@ -88,31 +88,20 @@ const swaggerDefinition = {
     { name: 'Picks', description: 'Pick submission via magic links' },
   ],
   paths: {
-    '/api/health': {
+    '/api/healthz': {
       get: {
         tags: ['Health'],
         summary: 'Health check endpoint',
-        description: 'Returns health status of the API and connected services',
+        description: 'Lightweight health check endpoint for container monitoring. Returns simple status without exposing internal service details.',
         responses: {
           '200': {
-            description: 'Service health status',
+            description: 'Service is responding',
             content: {
               'application/json': {
                 schema: {
                   type: 'object',
                   properties: {
-                    status: { type: 'string', example: 'healthy' },
-                    timestamp: { type: 'string', format: 'date-time' },
-                    uptime: { type: 'number', example: 3600 },
-                    environment: { type: 'string', example: 'development' },
-                    version: { type: 'string', example: '1.0.0' },
-                    services: {
-                      type: 'object',
-                      properties: {
-                        database: { type: 'object' },
-                        email: { type: 'object' },
-                      },
-                    },
+                    status: { type: 'string', example: 'ok' },
                   },
                 },
               },

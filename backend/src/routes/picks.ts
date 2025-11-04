@@ -13,8 +13,18 @@ import { PicksService } from '../services/picksService';
 import { withTransaction } from '../utils/transactionWrapper';
 import { generatePickToken } from '../utils/jwtToken';
 import { authenticatePick, PickAuthRequest } from '../middleware/pickAuth';
+import { hashMagicLinkToken, verifyMagicLinkToken } from '../utils/magicLinkToken';
 
 const router = express.Router();
+
+/**
+ * TODO: Future Enhancement - POST-based magic link validation
+ * 
+ * Consider adding a POST /api/picks/validate endpoint that accepts the token
+ * in the request body instead of the URL path. This would further reduce token
+ * exposure in logs, browser history, and referrer headers. The GET endpoint
+ * should be kept for backward compatibility during migration.
+ */
 
 /**
  * Validate magic link and get round info
@@ -29,13 +39,16 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
 
   try {
     // First try email-based magic links
+    // SECURITY: Hash the incoming token and compare to stored hash
+    // Also support legacy plain-text tokens for backward compatibility during migration
+    const validateEmailTokenHash = hashMagicLinkToken(token);
     const [emailLinks] = await db.query<RowDataPacket[]>(
       `SELECT eml.*, r.*, s.name as season_name
        FROM email_magic_links eml
        JOIN rounds_v2 r ON eml.round_id = r.id
        JOIN seasons_v2 s ON r.season_id = s.id
-       WHERE eml.token = ?`,
-      [token]
+       WHERE (eml.token = ? OR eml.token = ?)`,
+      [validateEmailTokenHash, token] // Try hash first, then plain text for legacy tokens
     );
 
     if (emailLinks.length > 0) {
@@ -145,14 +158,17 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
     }
 
     // Fallback to user-based magic links (legacy support)
+    // SECURITY: Hash the incoming token and compare to stored hash
+    // Also support legacy plain-text tokens for backward compatibility during migration
+    const userTokenHash = hashMagicLinkToken(token);
     const [links] = await db.query<RowDataPacket[]>(
       `SELECT ml.*, u.name as user_name, u.email, r.*, s.name as season_name
        FROM magic_links ml
        JOIN users u ON ml.user_id = u.id
        JOIN rounds_v2 r ON ml.round_id = r.id
        JOIN seasons_v2 s ON r.season_id = s.id
-       WHERE ml.token = ?`,
-      [token]
+       WHERE (ml.token = ? OR ml.token = ?)`,
+      [userTokenHash, token] // Try hash first, then plain text for legacy tokens
     );
 
     if (links.length === 0) {
@@ -257,13 +273,16 @@ router.post('/exchange/:token', magicLinkValidationLimiter, async (req, res) => 
 
   try {
     // First try email-based magic links
+    // SECURITY: Hash the incoming token and compare to stored hash
+    // Also support legacy plain-text tokens for backward compatibility during migration
+    const exchangeEmailTokenHash = hashMagicLinkToken(token);
     const [emailLinks] = await db.query<RowDataPacket[]>(
       `SELECT eml.*, r.season_id, r.lock_time, r.timezone, r.status
        FROM email_magic_links eml
        JOIN rounds_v2 r ON eml.round_id = r.id
-       WHERE eml.token = ?
+       WHERE (eml.token = ? OR eml.token = ?)
        AND eml.expires_at > NOW()`,
-      [token]
+      [exchangeEmailTokenHash, token] // Try hash first, then plain text for legacy tokens
     );
 
     if (emailLinks.length > 0) {
@@ -302,13 +321,16 @@ router.post('/exchange/:token', magicLinkValidationLimiter, async (req, res) => 
     }
 
     // Fallback to user-based magic links
+    // SECURITY: Hash the incoming token and compare to stored hash
+    // Also support legacy plain-text tokens for backward compatibility during migration
+    const exchangeUserTokenHash = hashMagicLinkToken(token);
     const [links] = await db.query<RowDataPacket[]>(
       `SELECT ml.*, r.season_id, r.lock_time, r.timezone, r.status
        FROM magic_links ml
        JOIN rounds_v2 r ON ml.round_id = r.id
-       WHERE ml.token = ?
+       WHERE (ml.token = ? OR ml.token = ?)
        AND ml.expires_at > NOW()`,
-      [token]
+      [exchangeUserTokenHash, token] // Try hash first, then plain text for legacy tokens
     );
 
     if (links.length === 0) {
@@ -462,13 +484,16 @@ router.post('/:token', pickSubmissionLimiter, validateRequest(submitPickValidato
   try {
     await withTransaction(async (connection) => {
       // First try email-based magic links
+      // SECURITY: Hash the incoming token and compare to stored hash
+      // Also support legacy plain-text tokens for backward compatibility during migration
+      const legacyEmailTokenHash = hashMagicLinkToken(token);
       const [emailLinks] = await connection.query<RowDataPacket[]>(
         `SELECT eml.*, r.lock_time, r.timezone, r.status, r.pick_type, r.num_write_in_picks, r.season_id
          FROM email_magic_links eml
          JOIN rounds_v2 r ON eml.round_id = r.id
-         WHERE eml.token = ?
+         WHERE (eml.token = ? OR eml.token = ?)
          AND eml.expires_at > NOW()`,
-        [token]
+        [legacyEmailTokenHash, token] // Try hash first, then plain text for legacy tokens
       );
 
       logger.debug('Magic link lookup (legacy endpoint)', { 
@@ -532,13 +557,16 @@ router.post('/:token', pickSubmissionLimiter, validateRequest(submitPickValidato
       }
 
       // Fallback to user-based magic links
+      // SECURITY: Hash the incoming token and compare to stored hash
+      // Also support legacy plain-text tokens for backward compatibility during migration
+      const legacyUserTokenHash = hashMagicLinkToken(token);
       const [links] = await connection.query<RowDataPacket[]>(
         `SELECT ml.*, r.lock_time, r.timezone, r.status, r.pick_type, r.num_write_in_picks
          FROM magic_links ml
          JOIN rounds_v2 r ON ml.round_id = r.id
-         WHERE ml.token = ?
+         WHERE (ml.token = ? OR ml.token = ?)
          AND ml.expires_at > NOW()`,
-        [token]
+        [legacyUserTokenHash, token] // Try hash first, then plain text for legacy tokens
       );
 
       if (links.length === 0) {

@@ -18,6 +18,7 @@ import logger, { redactEmail } from '../utils/logger';
 import { withTransaction } from '../utils/transactionWrapper';
 import { sanitizePlainText, sanitizePlainTextArray } from '../utils/textSanitizer';
 import { getOrCreateTeam } from '../utils/teamHelpers';
+import { generateMagicLinkToken, hashMagicLinkToken } from '../utils/magicLinkToken';
 
 const router = express.Router();
 
@@ -735,27 +736,31 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
     const emailMagicLinkValues: Array<[string, number, string, Date]> = [];
 
     // Generate email-based magic links for shared emails
+    // SECURITY: Store hashed token in DB, send plain token in email
     for (const { email, users } of sharedEmails) {
-      const token = crypto.randomBytes(32).toString('hex');
+      const plainToken = generateMagicLinkToken();
+      const tokenHash = hashMagicLinkToken(plainToken);
       magicLinksData.push({
         email,
         users,
-        token,
-        magicLink: `${APP_URL}/pick/${token}`
+        token: plainToken, // Plain token for email
+        magicLink: `${APP_URL}/pick/${plainToken}`
       });
-      emailMagicLinkValues.push([email, roundId, token, expiresAt]);
+      emailMagicLinkValues.push([email, roundId, tokenHash, expiresAt]); // Store hash in DB
     }
 
     // Generate user-based magic links for single-user emails
+    // SECURITY: Store hashed token in DB, send plain token in email
     for (const { user } of singleUserEmails) {
-      const token = crypto.randomBytes(32).toString('hex');
+      const plainToken = generateMagicLinkToken();
+      const tokenHash = hashMagicLinkToken(plainToken);
       magicLinksData.push({
         email: user.email,
         users: [user],
-        token,
-        magicLink: `${APP_URL}/pick/${token}`
+        token: plainToken, // Plain token for email
+        magicLink: `${APP_URL}/pick/${plainToken}`
       });
-      userMagicLinkValues.push([user.id, roundId, token, expiresAt]);
+      userMagicLinkValues.push([user.id, roundId, tokenHash, expiresAt]); // Store hash in DB
     }
 
     // Create email-based magic links for shared emails

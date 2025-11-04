@@ -21,6 +21,7 @@ import settingsRoutes from './routes/settings';
 import configRoutes from './routes/config';
 import historicalChampionsRoutes from './routes/historical-champions';
 import apiDocsRoutes from './routes/api-docs';
+import healthRoutes from './routes/health';
 // ⚠️ TEMPORARY - ONLY LOAD IN DEVELOPMENT ⚠️
 import adminSeedRoutes from './routes/admin-seed';
 import { startReminderScheduler } from './services/reminderScheduler';
@@ -31,8 +32,10 @@ import { runStartupValidation } from './utils/startupValidation';
 import logger from './utils/logger';
 import { requestLogger } from './middleware/requestLogger';
 import { validateBodySize } from './middleware/validator';
+import { corsOriginCallback, getAllowedOrigins } from './utils/corsConfig';
 import packageJson from '../package.json';
 import { DEFAULT_PORT, PUBLIC_RATE_LIMIT_WINDOW_MS, PUBLIC_RATE_LIMIT_MAX, MAX_JSON_PAYLOAD_SIZE } from './config/constants';
+import { authLimiter, writeLimiter, readLimiter } from './middleware/rateLimiter';
 import { migrationRunner, allMigrations } from './migrations';
 
 // Load environment variables first
@@ -123,8 +126,16 @@ if (process.env.NODE_ENV === 'production') {
 app.use(requestLogger); // Log all requests
 app.use(compression()); // Compress responses (60-80% size reduction)
 
+// CORS configuration with production-safe origin validation
+const allowedOrigins = getAllowedOrigins();
+const corsOrigin = Array.isArray(allowedOrigins) 
+  ? (allowedOrigins.length === 1 && allowedOrigins[0] === '*' 
+      ? '*' 
+      : corsOriginCallback)
+  : corsOriginCallback;
+
 app.use(cors({
-  origin: process.env.APP_URL || `http://localhost:${process.env.PORT || 3003}`,
+  origin: corsOrigin,
   credentials: false, // Disabled - we use JWT in Authorization header, not cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -132,45 +143,41 @@ app.use(cors({
 app.use(express.json({ limit: MAX_JSON_PAYLOAD_SIZE })); // Limit payload size for security
 app.use(validateBodySize); // Explicit validation with clear error messages
 
-// Rate limiter for public endpoints
-const publicLimiter = rateLimit({
-  windowMs: PUBLIC_RATE_LIMIT_WINDOW_MS,
-  max: PUBLIC_RATE_LIMIT_MAX,
-  message: { error: 'Too many requests, please try again later.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+// Note: Public rate limiter removed - using tiered rate limiters (authLimiter, writeLimiter, readLimiter) instead
 
-// Health check endpoint removed for security (was exposing DB/SMTP status)
+// Health check endpoint (lightweight, unauthenticated - for Docker HEALTHCHECK only)
+app.use('/api', healthRoutes);
 
 // API Routes - Clean structure with /admin, /public, /auth prefixes
+// Rate limiters are applied at route group level for better control
 
-// Auth routes (login, password reset, etc.)
-app.use('/api/auth', authRoutes);
+// Auth routes (login, password reset, magic links) - strict auth rate limiting
+app.use('/api/auth', authLimiter, authRoutes);
 
-// Public routes (no authentication required) - with rate limiting
-app.use('/api/public/config', publicLimiter, configRoutes);
-app.use('/api/public/seasons', publicLimiter, seasonsRoutes);
-app.use('/api/public/leaderboard', publicLimiter, leaderboardRoutes);
-app.use('/api/public/settings', publicLimiter, settingsRoutes);
+// Magic link pick submission (uses magic link token, not admin token) - auth rate limiting
+// These endpoints validate magic links and exchange them for JWTs
+app.use('/api/picks', authLimiter, picksRoutes);
 
-// API Documentation (public)
-app.use('/api/docs', publicLimiter, apiDocsRoutes);
+// Public read routes (no authentication required) - relaxed read rate limiting
+app.use('/api/public/config', readLimiter, configRoutes);
+app.use('/api/public/seasons', readLimiter, seasonsRoutes);
+app.use('/api/public/leaderboard', readLimiter, leaderboardRoutes);
+app.use('/api/public/settings', readLimiter, settingsRoutes);
 
-// Magic link pick submission (uses magic link token, not admin token)
-app.use('/api/picks', picksRoutes);
+// API Documentation - read rate limiting (requires admin auth in production)
+app.use('/api/docs', readLimiter, apiDocsRoutes);
 
-// Admin routes (require admin authentication)
-app.use('/api/admin/admins', adminsRoutes);
-app.use('/api/admin/users', usersRoutes);
-app.use('/api/admin/seasons', seasonsRoutes);
-app.use('/api/admin/season-participants', seasonParticipantsRoutes);
-app.use('/api/admin/rounds', roundsRoutes);
-app.use('/api/admin/picks', adminPicksRoutes);
-app.use('/api/admin/leaderboard', leaderboardRoutes);
-app.use('/api/admin/test-email', testEmailRoutes);
-app.use('/api/admin/settings', settingsRoutes);
-app.use('/api/admin/historical-champions', historicalChampionsRoutes);
+// Admin write routes (require admin authentication) - moderate write rate limiting
+app.use('/api/admin/admins', writeLimiter, adminsRoutes);
+app.use('/api/admin/users', writeLimiter, usersRoutes);
+app.use('/api/admin/seasons', writeLimiter, seasonsRoutes);
+app.use('/api/admin/season-participants', writeLimiter, seasonParticipantsRoutes);
+app.use('/api/admin/rounds', writeLimiter, roundsRoutes);
+app.use('/api/admin/picks', writeLimiter, adminPicksRoutes);
+app.use('/api/admin/leaderboard', writeLimiter, leaderboardRoutes);
+app.use('/api/admin/test-email', writeLimiter, testEmailRoutes);
+app.use('/api/admin/settings', writeLimiter, settingsRoutes);
+app.use('/api/admin/historical-champions', writeLimiter, historicalChampionsRoutes);
 
 // Seed routes - Only enabled when ENABLE_DEV_TOOLS=true
 // Routes are protected by admin authentication

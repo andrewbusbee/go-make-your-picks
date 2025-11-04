@@ -65,8 +65,9 @@ USER nodejs
 # Expose port
 EXPOSE 3003
 
-# Container healthcheck
-HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD curl -f http://localhost:3003/api/health || exit 1
+# Container healthcheck - uses lightweight /api/healthz endpoint
+# This endpoint is unauthenticated and only confirms the server is responding
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD curl -f http://localhost:3003/api/healthz || exit 1
 
 # Backend serves the frontend in production
 WORKDIR /app/backend
