@@ -172,67 +172,43 @@ async function initializeDatabase(connection: any): Promise<void> {
     });
     logInfo(`   After removing comments: ${sqlWithoutComments.length} bytes`);
     
-    // Execute entire SQL file at once using mysql2's built-in support
-    // This properly handles triggers, stored procedures, and complex statements
+    // SECURITY: Execute SQL statements individually (not as batch) since multipleStatements is disabled
+    // This prevents SQL injection batch attacks while still allowing safe initialization
+    // Split carefully on top-level semicolons (preserves triggers/procedures)
     logInfo('Executing database initialization SQL');
-    logInfo(`   Executing SQL file as single batch...`);
+    logInfo(`   Executing SQL statements individually (multipleStatements disabled for security)...`);
     
-    try {
-      // mysql2 natively handles multiple statements when separated by semicolons
-      // This is safer than manual splitting which can break triggers/procedures
-      await connection.query(sqlWithoutComments);
-      logInfo('Database initialization SQL executed successfully');
-      logInfo('   ✅ All SQL statements executed successfully');
-    } catch (error: any) {
-      logError('Failed to execute database initialization SQL', error, {
-        errorCode: error.code,
-        sqlState: error.sqlState
-      });
-      logError(`   ✗ Failed to execute SQL:`, error.message);
-      logError(`   Error code:`, error.code);
-      logError(`   SQL State:`, error.sqlState);
-      
-      // If multipleStatements not enabled, try statement-by-statement as fallback
-      if (error.code === 'ER_PARSE_ERROR' && error.message.includes('syntax')) {
-        logInfo('Attempting statement-by-statement execution as fallback');
-        logInfo('   Attempting statement-by-statement execution as fallback...');
-        
-        // Split carefully, only on top-level semicolons (not in triggers/procedures)
-        const statements = sqlWithoutComments
-          .split(';')
-          .map(stmt => stmt.trim())
-          .filter(stmt => stmt.length > 0);
-        
-        logDebug('Executing SQL statements individually', { statementCount: statements.length });
-        logInfo(`   Executing ${statements.length} statements individually...`);
-        
-        for (let i = 0; i < statements.length; i++) {
-          const statement = statements[i];
-          try {
-            await connection.query(statement);
-            logDebug(`SQL statement executed successfully`, { 
-              statementIndex: i + 1, 
-              totalStatements: statements.length 
-            });
-            logInfo(`   ✓ Statement ${i + 1}/${statements.length} executed`);
-          } catch (stmtError: any) {
-            logError('SQL statement execution failed', stmtError, {
-              statementIndex: i + 1,
-              totalStatements: statements.length,
-              statement: statement.substring(0, 100)
-            });
-            logError(`   ✗ Failed on statement ${i + 1}:`, stmtError.message);
-            logError(`   Statement: ${statement.substring(0, 100)}...`);
-            throw stmtError;
-          }
-        }
-        
-        logInfo('All SQL statements executed successfully via fallback method');
-        logInfo('   ✅ All statements executed successfully via fallback method');
-      } else {
-        throw error;
+    const statements = sqlWithoutComments
+      .split(';')
+      .map(stmt => stmt.trim())
+      .filter(stmt => stmt.length > 0);
+    
+    logDebug('Executing SQL statements individually', { statementCount: statements.length });
+    logInfo(`   Executing ${statements.length} statements individually...`);
+    
+    for (let i = 0; i < statements.length; i++) {
+      const statement = statements[i];
+      try {
+        await connection.query(statement);
+        logDebug(`SQL statement executed successfully`, { 
+          statementIndex: i + 1, 
+          totalStatements: statements.length 
+        });
+        logInfo(`   ✓ Statement ${i + 1}/${statements.length} executed`);
+      } catch (stmtError: any) {
+        logError('SQL statement execution failed', stmtError, {
+          statementIndex: i + 1,
+          totalStatements: statements.length,
+          statement: statement.substring(0, 100)
+        });
+        logError(`   ✗ Failed on statement ${i + 1}:`, stmtError.message);
+        logError(`   Statement: ${statement.substring(0, 100)}...`);
+        throw stmtError;
       }
     }
+    
+    logInfo('Database initialization SQL executed successfully');
+    logInfo('   ✅ All SQL statements executed successfully');
   } catch (error: any) {
     logError('Failed to initialize database', error);
     logError('   ❌ Failed to initialize database:', error.message);

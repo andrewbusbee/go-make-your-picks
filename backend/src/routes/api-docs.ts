@@ -5,14 +5,19 @@ import { Router, Request, Response } from 'express';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from '../config/swagger';
 import logger from '../utils/logger';
+import { authenticateAdmin } from '../middleware/auth';
 
 const router = Router();
+const isProduction = process.env.NODE_ENV === 'production';
 
 /**
  * API Documentation using Swagger/OpenAPI
  * 
  * Interactive API documentation is available at /api/docs
  * Raw OpenAPI JSON spec is available at /api/docs/json
+ * 
+ * SECURITY: In production, these endpoints require admin authentication.
+ * In development, they are publicly accessible for easier API exploration.
  * 
  * To document new endpoints:
  * 1. Add JSDoc-style @openapi comments above your route handler in route files, OR
@@ -62,11 +67,14 @@ const swaggerUiOptions = {
   customfavIcon: '/favicon.ico',
 };
 
-router.use('/', swaggerUi.serve);
-router.get('/', swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+// Apply admin authentication in production only
+const middleware = isProduction ? [authenticateAdmin] : [];
+
+router.use('/', ...middleware, swaggerUi.serve);
+router.get('/', ...middleware, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
 // Serve raw OpenAPI JSON spec at /api/docs/json
-router.get('/json', (req: Request, res: Response) => {
+router.get('/json', ...middleware, (req: Request, res: Response) => {
   try {
     res.setHeader('Content-Type', 'application/json');
     res.json(swaggerSpec);

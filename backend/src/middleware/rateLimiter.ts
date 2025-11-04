@@ -1,7 +1,13 @@
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { 
   ADMIN_MAGIC_LINK_RATE_LIMIT_WINDOW_MS, 
-  ADMIN_MAGIC_LINK_RATE_LIMIT_MAX 
+  ADMIN_MAGIC_LINK_RATE_LIMIT_MAX,
+  RATE_LIMIT_AUTH_WINDOW_MS,
+  RATE_LIMIT_AUTH_MAX,
+  RATE_LIMIT_WRITE_WINDOW_MS,
+  RATE_LIMIT_WRITE_MAX,
+  RATE_LIMIT_READ_WINDOW_MS,
+  RATE_LIMIT_READ_MAX,
 } from '../config/constants';
 import { logError } from '../utils/logger';
 
@@ -88,3 +94,39 @@ export const resetAdminMagicLinkLimit = async (email: string) => {
     logError('Failed to reset rate limit', error, { email });
   }
 };
+
+// Tiered Rate Limiters by Endpoint Type
+// These provide different limits for auth, write, and read operations
+
+// Auth rate limiter - strict limits for authentication endpoints
+// Used for login, magic link exchange, password reset, etc.
+export const authLimiter = rateLimit({
+  windowMs: RATE_LIMIT_AUTH_WINDOW_MS,
+  max: RATE_LIMIT_AUTH_MAX,
+  message: { error: 'Too many authentication requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+});
+
+// Write rate limiter - moderate limits for write operations
+// Used for picks submission, admin changes, updates, etc.
+export const writeLimiter = rateLimit({
+  windowMs: RATE_LIMIT_WRITE_WINDOW_MS,
+  max: RATE_LIMIT_WRITE_MAX,
+  message: { error: 'Too many write requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+});
+
+// Read rate limiter - relaxed limits for read-only operations
+// Used for leaderboards, public data, health checks, etc.
+export const readLimiter = rateLimit({
+  windowMs: RATE_LIMIT_READ_WINDOW_MS,
+  max: RATE_LIMIT_READ_MAX,
+  message: { error: 'Too many read requests. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false,
+});

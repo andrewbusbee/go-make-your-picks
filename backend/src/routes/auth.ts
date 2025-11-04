@@ -307,7 +307,7 @@ router.post('/verify-magic-link', validateRequest(verifyMagicLinkValidators), as
     );
 
     // Generate JWT token (use centralized utility)
-    const jwtToken = generateAdminToken(admin.id, admin.email, admin.is_main_admin);
+    const jwtToken = generateToken(admin.id, admin.email, admin.is_main_admin);
 
     logger.info('Magic link authentication successful', { 
       adminId: admin.id, 

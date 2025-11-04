@@ -31,43 +31,67 @@ export class FixScoringRulesPlaceConstraint implements Migration {
         return;
       }
 
-      // Check if constraint already exists with correct definition
-      const [constraintInfo] = await db.query(
-        `SELECT CHECK_CLAUSE 
-         FROM INFORMATION_SCHEMA.CHECK_CONSTRAINTS 
-         WHERE TABLE_SCHEMA = DATABASE() 
-         AND TABLE_NAME = 'scoring_rules_v2' 
-         AND CONSTRAINT_NAME = 'check_place_range_scoring'`
-      ) as any;
-
-      if (constraintInfo.length > 0) {
-        const checkClause = constraintInfo[0].CHECK_CLAUSE;
-        // Check if it already allows place >= 0
-        if (checkClause && checkClause.includes('place >= 0')) {
-          logger.info('Constraint already allows place >= 0, skipping');
-          return;
+      // Check if constraint exists by trying to query it via SHOW CREATE TABLE
+      // This is more reliable across MariaDB versions than INFORMATION_SCHEMA
+      let constraintExists = false;
+      let constraintAllowsPlace0 = false;
+      
+      try {
+        const [createTableResult] = await db.query(
+          `SHOW CREATE TABLE scoring_rules_v2`
+        ) as any;
+        
+        if (createTableResult.length > 0) {
+          const createTableSQL = createTableResult[0]['Create Table'] || '';
+          
+          // Check if constraint exists
+          if (createTableSQL.includes('check_place_range_scoring')) {
+            constraintExists = true;
+            
+            // Check if it already allows place >= 0
+            if (createTableSQL.includes('place >= 0')) {
+              constraintAllowsPlace0 = true;
+              logger.info('Constraint already allows place >= 0, skipping');
+              return;
+            }
+          }
         }
+      } catch (error: any) {
+        // If we can't check, proceed with dropping and adding
+        logger.warn('Could not check existing constraint, proceeding with update', { error: error.message });
       }
 
       // Drop the old constraint if it exists
-      try {
-        await db.query(`ALTER TABLE scoring_rules_v2 DROP CONSTRAINT check_place_range_scoring`);
-        logger.info('Dropped old check_place_range_scoring constraint');
-      } catch (error: any) {
-        // Constraint might not exist or might have a different name
-        if (error.code === 'ER_CONSTRAINT_NOT_FOUND' || error.code === 'ER_CHECK_CONSTRAINT_NOT_FOUND') {
-          logger.info('Old constraint not found, may have already been updated or never existed');
-        } else {
-          logger.warn('Error dropping old constraint (may not exist)', { error: error.message });
+      if (constraintExists) {
+        try {
+          await db.query(`ALTER TABLE scoring_rules_v2 DROP CONSTRAINT check_place_range_scoring`);
+          logger.info('Dropped old check_place_range_scoring constraint');
+        } catch (error: any) {
+          // Constraint might not exist or might have a different name
+          if (error.code === 'ER_CONSTRAINT_NOT_FOUND' || error.code === 'ER_CHECK_CONSTRAINT_NOT_FOUND' || error.code === 'ER_CANT_DROP_FIELD_OR_KEY') {
+            logger.info('Old constraint not found, may have already been updated or never existed');
+          } else {
+            logger.warn('Error dropping old constraint (may not exist)', { error: error.message });
+            // Continue anyway - try to add the new constraint
+          }
         }
       }
 
       // Add new constraint that allows place = 0
-      await db.query(`
-        ALTER TABLE scoring_rules_v2
-        ADD CONSTRAINT check_place_range_scoring CHECK (place >= 0 AND place <= 10)
-      `);
-      logger.info('Added updated check_place_range_scoring constraint (allows place = 0)');
+      try {
+        await db.query(`
+          ALTER TABLE scoring_rules_v2
+          ADD CONSTRAINT check_place_range_scoring CHECK (place >= 0 AND place <= 10)
+        `);
+        logger.info('Added updated check_place_range_scoring constraint (allows place = 0)');
+      } catch (error: any) {
+        // If constraint already exists, that's fine (idempotency)
+        if (error.code === 'ER_DUP_CONSTRAINT_NAME' || error.code === 'ER_DUP_KEYNAME' || error.message.includes('Duplicate constraint')) {
+          logger.info('Constraint already exists, skipping');
+        } else {
+          throw error;
+        }
+      }
     } catch (error: any) {
       // If constraint already exists with correct definition, that's fine
       if (error.code === 'ER_DUP_CONSTRAINT_NAME' || error.code === 'ER_DUP_KEYNAME') {

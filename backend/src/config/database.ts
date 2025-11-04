@@ -17,7 +17,11 @@ const pool = mysql.createPool({
   enableKeepAlive: true, // Prevent connection drops
   keepAliveInitialDelay: 0, // Start keep-alive immediately
   timezone: '+00:00',
-  multipleStatements: true // Required for MariaDB to execute multiple SQL statements
+  // SECURITY: multipleStatements MUST be disabled in production to prevent SQL injection batch attacks
+  // If SQL injection exists anywhere, this would enable attackers to execute multiple statements
+  // (e.g., '; DROP TABLE users; --'). Only needed for init.sql execution during database setup.
+  // The init.sql execution in dbHealthCheck.ts uses statement-by-statement execution as fallback.
+  multipleStatements: false
 });
 
 export default pool;

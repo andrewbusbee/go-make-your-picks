@@ -48,6 +48,31 @@ export const ACTIVATION_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 export const ACTIVATION_RATE_LIMIT_MAX = 10;
 export const TEST_EMAIL_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 export const TEST_EMAIL_RATE_LIMIT_MAX = 5;
+
+// Tiered Rate Limiting (configurable via env vars)
+// Auth endpoints: strict limits to prevent brute force
+export const RATE_LIMIT_AUTH_WINDOW_MS = parseInt(
+  process.env.RATE_LIMIT_AUTH_WINDOW_MS || String(15 * 60 * 1000) // 15 minutes default
+);
+export const RATE_LIMIT_AUTH_MAX = parseInt(
+  process.env.RATE_LIMIT_AUTH_MAX || '20' // 20 requests per window
+);
+
+// Write endpoints: moderate limits to prevent abuse
+export const RATE_LIMIT_WRITE_WINDOW_MS = parseInt(
+  process.env.RATE_LIMIT_WRITE_WINDOW_MS || String(60 * 1000) // 1 minute default
+);
+export const RATE_LIMIT_WRITE_MAX = parseInt(
+  process.env.RATE_LIMIT_WRITE_MAX || '60' // 60 requests per minute
+);
+
+// Read endpoints: relaxed limits for normal usage
+export const RATE_LIMIT_READ_WINDOW_MS = parseInt(
+  process.env.RATE_LIMIT_READ_WINDOW_MS || String(60 * 1000) // 1 minute default
+);
+export const RATE_LIMIT_READ_MAX = parseInt(
+  process.env.RATE_LIMIT_READ_MAX || '100' // 100 requests per minute
+);
 export const PICK_SUBMISSION_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 export const PICK_SUBMISSION_RATE_LIMIT_MAX = 100;
 export const PUBLIC_RATE_LIMIT_WINDOW_MS = 1 * 60 * 1000; // 1 minute

@@ -125,6 +125,9 @@ const level = () => {
   return env === 'development' ? 'debug' : 'info';
 };
 
+// Determine if JSON logging is enabled
+const useJsonFormat = process.env.LOG_JSON === 'true';
+
 // Custom format for console output (human-readable)
 const consoleFormat = printf(({ level, message, timestamp, stack, ...metadata }) => {
   let msg = `${timestamp} [${level}] : ${message}`;
@@ -142,21 +145,51 @@ const consoleFormat = printf(({ level, message, timestamp, stack, ...metadata })
   return msg;
 });
 
-// File logging is disabled - no file format needed
+// JSON format for structured logging (used when LOG_JSON=true or centralized logging enabled)
+const jsonFormat = combine(
+  timestamp(),
+  errors({ stack: true }),
+  winston.format.json()
+);
 
 // Create transports
 const transports: winston.transport[] = [];
 
 // Console transport (always enabled)
+// Use JSON format if LOG_JSON=true, otherwise use human-readable format
 transports.push(
   new winston.transports.Console({
-    format: combine(
-      colorize({ all: true }),
-      timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-      consoleFormat
-    ),
+    format: useJsonFormat
+      ? jsonFormat
+      : combine(
+          colorize({ all: true }),
+          timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+          consoleFormat
+        ),
   })
 );
+
+// Optional centralized logging transport (HTTP endpoint)
+// Only enabled when LOG_DESTINATION is set to an HTTP URL
+if (process.env.LOG_DESTINATION && process.env.LOG_DESTINATION.startsWith('http')) {
+  try {
+    // For HTTP logging, we'll use a custom transport that sends logs via HTTP POST
+    // This is a simple implementation - in production, consider using winston-http or similar
+    const logUrl = new URL(process.env.LOG_DESTINATION);
+    const httpTransport = new winston.transports.Http({
+      host: logUrl.hostname,
+      port: logUrl.port ? parseInt(logUrl.port, 10) : (logUrl.protocol === 'https:' ? 443 : 80),
+      path: logUrl.pathname || '/logs',
+      ssl: logUrl.protocol === 'https:',
+      format: jsonFormat,
+    });
+    transports.push(httpTransport);
+    // Note: Logger not yet created, so we'll log this after logger initialization
+  } catch (error) {
+    console.error('Failed to configure HTTP logging transport:', error);
+    // Continue without centralized logging if configuration fails
+  }
+}
 
 // File logging is DISABLED - logs only go to console
 // This ensures logs are captured by Docker/container logging systems
@@ -170,20 +203,45 @@ const baseLogger = winston.createLogger({
   exitOnError: false,
 });
 
-// Extend logger with fatal method
+// Extend logger with fatal and security/alert methods
 const logger = Object.assign(baseLogger, {
-  fatal: baseLogger.error
-}) as winston.Logger & { fatal: LeveledLogMethod };
+  fatal: baseLogger.error,
+  // Security/alert method: logs at error level with special metadata for security events
+  security: (message: string, metadata?: any) => {
+    baseLogger.error(`[SECURITY] ${message}`, {
+      ...metadata,
+      securityEvent: true,
+      severity: 'high',
+    });
+  },
+  alert: (message: string, metadata?: any) => {
+    baseLogger.error(`[ALERT] ${message}`, {
+      ...metadata,
+      alertEvent: true,
+      severity: 'high',
+    });
+  },
+}) as winston.Logger & { 
+  fatal: LeveledLogMethod;
+  security: (message: string, metadata?: any) => void;
+  alert: (message: string, metadata?: any) => void;
+};
 
 // Log the selected log level on startup
 const selectedLevel = level();
 const envLogLevel = process.env.LOG_LEVEL?.toUpperCase() || 'default';
+const hasCentralizedLogging = !!process.env.LOG_DESTINATION;
 logger.info(`🔧 Logger initialized with level: ${selectedLevel.toUpperCase()}`, {
   selectedLevel: selectedLevel.toUpperCase(),
   envLogLevel,
   availableLevels: ['FATAL', 'ERROR', 'WARN', 'INFO', 'HTTP', 'DEBUG', 'SILENT'],
-  environment: process.env.NODE_ENV || 'development'
+  environment: process.env.NODE_ENV || 'development',
+  jsonFormat: useJsonFormat,
+  centralizedLogging: hasCentralizedLogging,
 });
+if (hasCentralizedLogging) {
+  logger.info('Centralized logging enabled', { destination: process.env.LOG_DESTINATION });
+}
 
 // Create a stream for Morgan HTTP logging
 export const stream = {
@@ -250,6 +308,27 @@ export const logEmailSent = (to: string, subject: string, success: boolean) => {
 
 export const logSchedulerEvent = (event: string, metadata?: any) => {
   logger.info(`Scheduler: ${event}`, metadata);
+};
+
+/**
+ * Security and alert logging functions
+ * Use these for high-severity security events that should be monitored closely
+ */
+
+/**
+ * Log a security event (e.g., repeated auth failures, account lockouts, suspicious activity)
+ * This logs at error level with special metadata for log aggregation systems
+ */
+export const logSecurityEvent = (message: string, metadata?: any) => {
+  logger.security(message, metadata);
+};
+
+/**
+ * Log an alert-level event (e.g., rate limit abuse, unexpected 5xx bursts)
+ * This logs at error level with special metadata for alerting systems
+ */
+export const logAlert = (message: string, metadata?: any) => {
+  logger.alert(message, metadata);
 };
 
 export default logger;

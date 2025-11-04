@@ -24,8 +24,8 @@ api.interceptors.request.use((config) => {
     hasPickToken: !!pickToken
   });
   
-  // Add admin token to admin and auth routes
-  if (adminToken && (config.url?.startsWith('/admin/') || config.url?.startsWith('/auth/'))) {
+  // Add admin token to admin, auth, and docs routes (docs require auth in production)
+  if (adminToken && (config.url?.startsWith('/admin/') || config.url?.startsWith('/auth/') || config.url?.startsWith('/docs/'))) {
     config.headers.Authorization = `Bearer ${adminToken}`;
     return config;
   }
