@@ -14,6 +14,9 @@ import {
   EMAIL_RETRY_MAX_TIMEOUT 
 } from '../config/constants';
 
+// Default "from" email address (used as fallback if SMTP_FROM env var is not set)
+const DEFAULT_SMTP_FROM = 'noreply@example.com';
+
 async function getSettings() {
   const settings = await SettingsService.getAllSettings();
   return {
@@ -274,7 +277,7 @@ export const sendMagicLink = async (
   const settings = await getSettings();
   const currentCommissioner = await getCurrentCommissioner();
   const fromName = settings.app_title;
-  const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
+  const fromEmail = process.env.SMTP_FROM || DEFAULT_SMTP_FROM;
   
   // Check if email is shared by multiple players
   const emailIsShared = await isEmailShared(email);
@@ -380,7 +383,7 @@ export const sendLockedNotification = async (
   const settings = await getSettings();
   const currentCommissioner = await getCurrentCommissioner();
   const fromName = settings.app_title;
-  const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
+  const fromEmail = process.env.SMTP_FROM || DEFAULT_SMTP_FROM;
   
   // Format names for greeting
   const isShared = names.length > 1;
@@ -459,7 +462,7 @@ export const sendSportCompletionEmail = async (
   const pointsSettings = await SettingsService.getPointsSettings();
   const textSettings = await SettingsService.getTextSettings();
   const fromName = settings.app_title;
-  const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
+  const fromEmail = process.env.SMTP_FROM || DEFAULT_SMTP_FROM;
   
   // Format final results with medals and points
   const formatResults = (results: Array<{place: number, team: string}>) => {
@@ -623,7 +626,7 @@ export const sendSeasonEndingEmail = async (
   const settings = await getSettings();
   const currentCommissioner = await getCurrentCommissioner();
   const fromName = settings.app_title;
-  const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
+  const fromEmail = process.env.SMTP_FROM || DEFAULT_SMTP_FROM;
   
   // Format final standings with medals and user highlighting
   const formatStandings = (standings: Array<{ place: number; name: string; points: number; isCurrentUser: boolean }>, isSharedEmail: boolean = false) => {
@@ -780,7 +783,7 @@ export const sendPasswordResetEmail = async (
   // They are not affected by the email notifications toggle
   const settings = await getSettings();
   const fromName = settings.app_title;
-  const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
+  const fromEmail = process.env.SMTP_FROM || DEFAULT_SMTP_FROM;
   
   const bodyHtml = `
     <h2>Password Reset Request</h2>
@@ -840,7 +843,7 @@ export const sendAdminMagicLink = async (
   // They are not affected by the email notifications toggle
   const settings = await getSettings();
   const fromName = settings.app_title;
-  const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
+  const fromEmail = process.env.SMTP_FROM || DEFAULT_SMTP_FROM;
   
   const bodyHtml = `
     <h2>Admin Login Request</h2>
@@ -1036,7 +1039,7 @@ export const sendAdminReminderSummary = async (
       seasonName
     });
     const mailOptions = {
-      from: `"${settings.app_title}" <${process.env.SMTP_FROM || 'noreply@example.com'}>`,
+      from: `"${settings.app_title}" <${process.env.SMTP_FROM || DEFAULT_SMTP_FROM}>`,
       to: recipientEmail,
       subject,
       html,
@@ -1142,7 +1145,7 @@ export const sendBulkMessage = async (emails: Array<{ to: string; name: string; 
   const settings = await getSettings();
   const currentCommissioner = await getCurrentCommissioner();
   const fromName = settings.app_title;
-  const fromEmail = process.env.SMTP_FROM || 'noreply@gomakeyourpicks.com';
+  const fromEmail = process.env.SMTP_FROM || DEFAULT_SMTP_FROM;
 
   logger.info('Starting bulk message send', { emailCount: emails.length });
 

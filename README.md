@@ -100,13 +100,13 @@ services:
     restart: always
     networks:
       - go-make-your-picks-network
+    volumes:
+      - mariadb-data:/var/lib/mysql
     environment:
       MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}
       MARIADB_DATABASE: ${MARIADB_DATABASE:-gomakeyourpicks}
       MARIADB_USER: ${MARIADB_USER:-gomakeyourpicksuser}
       MARIADB_PASSWORD: ${MARIADB_PASSWORD}
-    volumes:
-      - mariadb-data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
       timeout: 20s
@@ -116,35 +116,38 @@ services:
     image: ghcr.io/andrewbusbee/go-make-your-picks:latest
     container_name: go-make-your-picks
     restart: always
+    depends_on:
+      mariadb:
+        condition: service_healthy
     networks:
       - go-make-your-picks-network
     ports:
       - "3003:3003"
     environment:
+      # Database Configuration
       MARIADB_HOST: mariadb
       MARIADB_PORT: 3306
       MARIADB_DATABASE: ${MARIADB_DATABASE:-gomakeyourpicks}
       MARIADB_USER: ${MARIADB_USER:-gomakeyourpicksuser}
       MARIADB_PASSWORD: ${MARIADB_PASSWORD}
+      
+      # Application Configuration
+      APP_URL: ${APP_URL:-http://localhost:3003}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-false}
+      
+      # Security Configuration
       # ⚠️ CRITICAL SECURITY: Generate a strong JWT secret!
       # Run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
       JWT_SECRET: ${JWT_SECRET}
-      # Log Level Configuration
-      # Available levels: DEBUG, INFO, WARN, ERROR, FATAL, SILENT
-      # Production default: INFO (shows info, warn, error, fatal)
-      # Development: DEBUG (shows all logs)
-      # Set LOG_LEVEL in .env file or override in docker-compose.override.yml
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      
+      # SMTP Configuration
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      APP_URL: ${APP_URL:-http://localhost:3003}
-      ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-false}
-    depends_on:
-      mariadb:
-        condition: service_healthy
+      SMTP_FROM: ${SMTP_FROM:-noreply@example.com}
 
 networks:
   go-make-your-picks-network:
@@ -153,36 +156,51 @@ networks:
 
 volumes:
   mariadb-data:
-
 ```
 
 ## ⚙️ Environment Variables
 
+### Environment Variable Syntax
+
+In `docker-compose.yml`, you'll see environment variables written like `${VARIABLE_NAME:-default_value}`. This syntax means:
+- **`${VARIABLE_NAME}`** - Uses the value from your `.env` file or environment if set
+- **`:-default_value`** - If the variable is not set or is empty, use `default_value` instead
+- **Example**: `${LOG_LEVEL:-INFO}` means "use LOG_LEVEL from .env if set, otherwise use INFO"
+
+Variables without a default (like `${JWT_SECRET}`) are **required** and must be set in your `.env` file or environment.
+
 ### Required Configuration
 
-| Variable | Description | Example |
+Some of these variables have default values but it is **highly recommended that they be changed** for your deployment:
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `JWT_SECRET` | Secret key for admin authentication (minimum 32 characters) | none | `generate-a-strong-random-string` |
+| `MARIADB_PASSWORD` | Database password for the application user | none | `your-secure-password` |
+| `MARIADB_ROOT_PASSWORD` | Database root password (for MariaDB service) | none | `your-root-password` |
+| `SMTP_HOST` | Email server hostname | none | `smtp.gmail.com` |
+| `SMTP_USER` | Email account username | none | `your-email@gmail.com` |
+| `SMTP_PASSWORD` | Email account password/app password | none | `your-app-password` |
+| `SMTP_FROM` | Sender email address (fallback used if not set) | `noreply@example.com` | `noreply@yourdomain.com` |
+| `APP_URL` | Your application's public URL | none | `http://localhost:3003` |
+| `MARIADB_PASSWORD` | Database password | none | `your-secure-password` |
+| `APP_URL` | Your application's public URL | `http://localhost:3003` | `https://yourdomain.com` |
+| `LOG_LEVEL` | Logging verbosity level | `INFO` | `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`, `SILENT` |
+| `MARIADB_DATABASE` | Database name | `gomakeyourpicks` | `gomakeyourpicks` |
+| `MARIADB_USER` | Database username | `gomakeyourpicksuser` | `gomakeyourpicksuser` |
+| `MARIADB_HOST` | Database host (usually `mariadb` in Docker) | `mariadb` | `mariadb` |
+| `MARIADB_PORT` | Database port (usually `3306` in Docker) | `3306` | `3306` |
+| `SMTP_PORT` | Email server port | `587` | `587` or `465` |
+| `SMTP_SECURE` | Use SSL/TLS encryption | `false` | `true` or `false` |
+| `ENABLE_DEV_TOOLS` | Enable creation of seed data for testing | `false` | `true` or `false` |
+
+
+### These should not change unless you know what you are doing as it can break things easily
+
+| Variable | Description | Default |
 |----------|-------------|---------|
-| `SMTP_HOST` | Email server hostname | `smtp.gmail.com` |
-| `SMTP_PORT` | Email server port | `587` |
-| `SMTP_SECURE` | Use SSL/TLS encryption | `false` |
-| `SMTP_USER` | Email account username | `your-email@gmail.com` |
-| `SMTP_PASSWORD` | Email account password/app password | `your-app-password` |
-| `SMTP_FROM` | Sender email address | `noreply@yourfamily.com` |
-| `APP_URL` | Your application's public URL | `http://localhost:3003` |
-| `JWT_SECRET` | Secret key for admin authentication | `generate-a-strong-random-string` |
-| `MARIADB_DATABASE` | Database name | `gomakeyourpicks` |
-| `MARIADB_USER` | Database username | `gomakeyourpicksuser` |
-| `MARIADB_PASSWORD` | Database password | `your-secure-password` |
 | `MARIADB_HOST` | Database host | `mariadb` |
 | `MARIADB_PORT` | Database port | `3306` |
-
-### Optional Configuration
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `ENABLE_DEV_TOOLS` | Enable creation of seed data for testing | `false` |
-
-
 ### Email Provider Examples
 
 **Gmail:**
