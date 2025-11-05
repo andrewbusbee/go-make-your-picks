@@ -67,12 +67,27 @@ printEnvironmentSummary();
 logger.info('Running startup validation checks');
 runStartupValidation();
 
+// 🔒 SECURITY: Fail hard if dev tools are enabled in production
+// This prevents accidental exposure of development seed routes and admin tools
+if (process.env.NODE_ENV === 'production' && process.env.ENABLE_DEV_TOOLS === 'true') {
+  logger.error('═══════════════════════════════════════════════');
+  logger.error('❌ FATAL: ENABLE_DEV_TOOLS cannot be true in production.');
+  logger.error('═══════════════════════════════════════════════');
+  logger.error('');
+  logger.error('This would expose developer seed routes and admin tools that should');
+  logger.error('only be available in development environments.');
+  logger.error('');
+  logger.error('To fix this:');
+  logger.error('  1. Set ENABLE_DEV_TOOLS=false in your .env file or environment');
+  logger.error('  2. Restart the application');
+  logger.error('');
+  logger.error('The application cannot start in production with dev tools enabled.');
+  logger.error('═══════════════════════════════════════════════');
+  process.exit(1);
+}
+
 // Central enableDevTools flag - only enable dev routes when explicitly set to 'true'
 const enableDevTools = process.env.ENABLE_DEV_TOOLS === 'true';
-
-if (IS_PRODUCTION && enableDevTools) {
-  logger.warn('⚠️ ENABLE_DEV_TOOLS is TRUE in production. Dev seed/admin tools are enabled!');
-}
 
 const app = express();
 const PORT = parseInt(process.env.PORT || String(DEFAULT_PORT));
