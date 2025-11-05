@@ -49,20 +49,24 @@ export default function PickPage() {
     loadSettings();
     loadCommissioner();
     
-    // Exchange magic link token for JWT if token is present in URL
+    // If token is present in URL, exchange it for JWT
     // Always exchange when a new token is in URL (even if we have an existing JWT)
     // This ensures we use the correct round if user clicks a new magic link
     if (token) {
       // Store token in state before URL cleanup
       setMagicToken(token);
       exchangeTokenForJWT(token);
-    } else if (magicToken) {
-      // If we already have a stored token but no new token in URL, just load data
-      loadPickData();
     } else {
-      // No token at all - show error
-      setError('Invalid or expired link');
-      setLoading(false);
+      // No token in URL - check if we have a JWT token
+      // If yes, use it to load pick data (for refresh scenarios)
+      const pickToken = localStorage.getItem('pickToken');
+      if (pickToken) {
+        loadPickDataWithJWT();
+      } else {
+        // No token at all - show error
+        setError('Invalid or expired link');
+        setLoading(false);
+      }
     }
   }, [token]);
   
@@ -109,11 +113,118 @@ export default function PickPage() {
     }
   };
 
+  const loadPickDataWithJWT = async () => {
+    try {
+      // Use JWT token to load pick data (no magic token needed)
+      const res = await api.get('/picks/current');
+      setPickData(res.data);
+      
+      // Check if round data exists before accessing properties
+      if (!res.data || !res.data.round) {
+        throw new Error('Invalid response from server');
+      }
+      
+      const pickType = res.data.round.pickType || 'single';
+      
+      if (res.data.isSharedEmail) {
+        // Handle shared email scenario
+        const newUserPicks: {[userId: number]: {championPick: string, writeInPicks: string[]}} = {};
+        
+        res.data.users.forEach((user: any) => {
+          if (user.currentPick && user.currentPick.pickItems) {
+            const items = user.currentPick.pickItems;
+            
+            if (pickType === 'single') {
+              // Find the team ID from the pick value
+              const pickValue = items.length > 0 ? items[0].pickValue : '';
+              const team = res.data.teams?.find((t: any) => t.name === pickValue || (typeof t === 'string' && t === pickValue));
+              const teamId = team?.id || (typeof team === 'string' ? null : team);
+              
+              newUserPicks[user.id] = {
+                championPick: teamId || pickValue, // Use ID if available, fallback to name
+                writeInPicks: []
+              };
+            } else if (pickType === 'multiple') {
+              const numPicks = res.data.round.numWriteInPicks || 1;
+              const picks = new Array(numPicks).fill('');
+              items.forEach((item: any) => {
+                if (item.pickNumber - 1 < numPicks) {
+                  picks[item.pickNumber - 1] = item.pickValue;
+                }
+              });
+              
+              newUserPicks[user.id] = {
+                championPick: '',
+                writeInPicks: picks
+              };
+            }
+          } else {
+            // No pick yet - initialize empty
+            if (pickType === 'single') {
+              newUserPicks[user.id] = {
+                championPick: '',
+                writeInPicks: []
+              };
+            } else {
+              const numPicks = res.data.round.numWriteInPicks || 1;
+              newUserPicks[user.id] = {
+                championPick: '',
+                writeInPicks: new Array(numPicks).fill('')
+              };
+            }
+          }
+        });
+        
+        setUserPicks(newUserPicks);
+      } else {
+        // Single user scenario
+        if (res.data.currentPick && res.data.currentPick.pickItems) {
+          const items = res.data.currentPick.pickItems;
+          
+          if (pickType === 'single') {
+            // Find the team ID from the pick value
+            const pickValue = items.length > 0 ? items[0].pickValue : '';
+            const team = res.data.teams?.find((t: any) => t.name === pickValue || (typeof t === 'string' && t === pickValue));
+            const teamId = team?.id || (typeof team === 'string' ? null : team);
+            
+            setChampionPick(teamId || pickValue); // Use ID if available, fallback to name
+          } else if (pickType === 'multiple') {
+            const numPicks = res.data.round.numWriteInPicks || 1;
+            const picks = new Array(numPicks).fill('');
+            items.forEach((item: any) => {
+              if (item.pickNumber - 1 < numPicks) {
+                picks[item.pickNumber - 1] = item.pickValue;
+              }
+            });
+            setWriteInPicks(picks);
+          }
+        }
+      }
+      
+      setLoading(false);
+    } catch (err: any) {
+      logger.error('Error loading pick data with JWT:', err);
+      if (err.response?.status === 401 || err.response?.status === 410) {
+        // JWT expired or round locked - clear token and show error
+        localStorage.removeItem('pickToken');
+        setError(err.response?.data?.error || 'Session expired or round locked. Please use a fresh magic link.');
+      } else {
+        setError(err.response?.data?.error || 'Failed to load pick data');
+      }
+      setLoading(false);
+    }
+  };
+
   const loadPickData = async () => {
     try {
       // Use token from state (stored before URL cleanup) or URL params
       const tokenToUse = magicToken || token;
       if (!tokenToUse) {
+        // If no token available, try using JWT instead
+        const pickToken = localStorage.getItem('pickToken');
+        if (pickToken) {
+          return loadPickDataWithJWT();
+        }
         // If no token available, show error
         setError('Invalid or expired link');
         setLoading(false);

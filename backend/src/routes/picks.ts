@@ -9,7 +9,7 @@ import { pickSubmissionLimiter, magicLinkValidationLimiter } from '../middleware
 import { validateRequest } from '../middleware/validator';
 import { submitPickValidators, submitPickWithTokenValidators } from '../validators/picksValidators';
 import { body } from 'express-validator';
-import logger, { maskMagicToken } from '../utils/logger';
+import logger, { maskMagicToken, redactEmail } from '../utils/logger';
 import { PicksService } from '../services/picksService';
 import { withTransaction } from '../utils/transactionWrapper';
 import { generatePickToken } from '../utils/jwtToken';
@@ -406,6 +406,208 @@ router.post('/exchange/:token', magicLinkValidationLimiter, async (req, res) => 
     });
   } catch (error) {
     logger.error('Exchange magic link error', { error, tokenMasked: maskMagicToken(token) });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Get current pick data using JWT (no magic token needed)
+// This allows the page to refresh and still load pick data
+router.get('/current', authenticatePick, async (req: PickAuthRequest, res) => {
+  const roundId = req.roundId!;
+  const seasonId = req.seasonId!;
+  const isSharedEmail = req.pickAuth!.isSharedEmail || false;
+  const email = req.email;
+  const userId = req.userId;
+
+  try {
+    // Get round details
+    const [rounds] = await db.query<RowDataPacket[]>(
+      `SELECT r.*, s.name as season_name
+       FROM rounds_v2 r
+       JOIN seasons_v2 s ON r.season_id = s.id
+       WHERE r.id = ?`,
+      [roundId]
+    );
+
+    if (rounds.length === 0) {
+      return res.status(404).json({ error: 'Round not found' });
+    }
+
+    const round = rounds[0];
+
+    // Check if round is locked
+    const now = moment.tz(round.timezone);
+    const lockTime = moment.utc(round.lock_time).tz(round.timezone);
+
+    if (round.status === 'locked' || round.status === 'completed' || now.isAfter(lockTime)) {
+      return res.status(410).json({ 
+        error: 'This round is now locked',
+        locked: true
+      });
+    }
+
+    // Get available teams
+    const [teams] = await db.query<RowDataPacket[]>(
+      `SELECT t.id, t.name
+       FROM round_teams_v2 rt
+       JOIN teams_v2 t ON rt.team_id = t.id
+       WHERE rt.round_id = ?
+       ORDER BY t.name`,
+      [roundId]
+    );
+    
+    logger.debug('Current endpoint - teams for round', {
+      roundId,
+      teamCount: teams.length,
+      teamIds: teams.map(t => t.id),
+      teamNames: teams.map(t => t.name)
+    });
+
+    if (isSharedEmail && email) {
+      // Shared email scenario - get all users with this email
+      const [users] = await db.query<RowDataPacket[]>(
+        `SELECT u.id, u.name, u.email
+         FROM users u
+         JOIN season_participants_v2 sp ON u.id = sp.user_id
+         WHERE u.email = ? AND sp.season_id = ? AND u.is_active = TRUE
+         ORDER BY u.name ASC`,
+        [email, seasonId]
+      );
+
+      if (users.length === 0) {
+        return res.status(404).json({ error: 'No active users found for this email' });
+      }
+
+      // Get current picks for all users
+      const userIds = users.map(u => u.id);
+      const [picks] = await db.query<RowDataPacket[]>(
+        'SELECT * FROM picks_v2 WHERE user_id IN (?) AND round_id = ?',
+        [userIds, roundId]
+      );
+
+      const pickIds = picks.map(p => p.id);
+      let pickItems: RowDataPacket[] = [];
+      if (pickIds.length > 0) {
+        [pickItems] = await db.query<RowDataPacket[]>(
+          `SELECT pi.pick_id, pi.pick_number, t.name as pick_value
+           FROM pick_items_v2 pi
+           JOIN teams_v2 t ON pi.team_id = t.id
+           WHERE pi.pick_id IN (?)
+           ORDER BY pi.pick_id, pi.pick_number`,
+          [pickIds]
+        );
+      }
+
+      const userPicks = users.map(user => {
+        const userPick = picks.find(p => p.user_id === user.id);
+        let currentPick = null;
+        
+        if (userPick) {
+          const items = pickItems.filter(item => item.pick_id === userPick.id);
+          currentPick = {
+            id: userPick.id,
+            pickItems: items.map(item => ({
+              pickNumber: item.pick_number,
+              pickValue: item.pick_value
+            }))
+          };
+        }
+
+        return {
+          id: user.id,
+          name: user.name,
+          currentPick
+        };
+      });
+
+      return res.json({
+        valid: true,
+        isSharedEmail: true,
+        email: email,
+        users: userPicks,
+        round: {
+          id: round.id,
+          sportName: round.sport_name,
+          pickType: round.pick_type || 'single',
+          numWriteInPicks: round.num_write_in_picks,
+          lockTime: round.lock_time,
+          timezone: round.timezone,
+          status: round.status,
+          seasonName: round.season_name,
+          email_message: round.email_message
+        },
+        teams: teams.map(t => ({ id: t.id, name: t.name }))
+      });
+    } else {
+      // Single user scenario
+      if (!userId) {
+        return res.status(400).json({ error: 'User ID missing from token' });
+      }
+
+      // Get user details
+      const [users] = await db.query<RowDataPacket[]>(
+        `SELECT u.id, u.name, u.email
+         FROM users u
+         WHERE u.id = ? AND u.is_active = TRUE`,
+        [userId]
+      );
+
+      if (users.length === 0) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const user = users[0];
+
+      // Get user's current pick
+      const [picks] = await db.query<RowDataPacket[]>(
+        'SELECT * FROM picks_v2 WHERE user_id = ? AND round_id = ?',
+        [userId, roundId]
+      );
+
+      let currentPick = null;
+      if (picks.length > 0) {
+        const [pickItems] = await db.query<RowDataPacket[]>(
+          `SELECT pi.pick_number, t.name as pick_value
+           FROM pick_items_v2 pi
+           JOIN teams_v2 t ON pi.team_id = t.id
+           WHERE pi.pick_id = ?
+           ORDER BY pi.pick_number`,
+          [picks[0].id]
+        );
+        
+        currentPick = {
+          id: picks[0].id,
+          pickItems: pickItems.map(item => ({
+            pickNumber: item.pick_number,
+            pickValue: item.pick_value
+          }))
+        };
+      }
+
+      return res.json({
+        valid: true,
+        isSharedEmail: false,
+        user: {
+          id: user.id,
+          name: user.name
+        },
+        round: {
+          id: round.id,
+          sportName: round.sport_name,
+          pickType: round.pick_type || 'single',
+          numWriteInPicks: round.num_write_in_picks,
+          lockTime: round.lock_time,
+          timezone: round.timezone,
+          status: round.status,
+          seasonName: round.season_name,
+          email_message: round.email_message
+        },
+        teams: teams.map(t => ({ id: t.id, name: t.name })),
+        currentPick
+      });
+    }
+  } catch (error) {
+    logger.error('Get current pick error', { error, roundId, userId, email: email ? redactEmail(email) : 'N/A' });
     res.status(500).json({ error: 'Server error' });
   }
 });
