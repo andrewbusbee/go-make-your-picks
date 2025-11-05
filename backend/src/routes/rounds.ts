@@ -263,12 +263,16 @@ router.get('/season/:seasonId', async (req, res) => {
     );
     
     // Optimize: Get all picks for all active rounds in this season (single query) from picks_v2
+    // Only count picks that have pick_items_v2 records (actual picks, not empty picks_v2 records)
     const activeRoundIds = rounds.filter(r => r.status === 'active').map(r => r.id);
     let picksMap = new Map<number, Set<number>>(); // roundId -> Set of userIds who picked
     
     if (activeRoundIds.length > 0) {
       const [allPicks] = await db.query<RowDataPacket[]>(
-        'SELECT round_id, user_id FROM picks_v2 WHERE round_id IN (?)',
+        `SELECT DISTINCT p.round_id, p.user_id 
+         FROM picks_v2 p
+         INNER JOIN pick_items_v2 pi ON p.id = pi.pick_id
+         WHERE p.round_id IN (?)`,
         [activeRoundIds]
       );
       
@@ -801,11 +805,11 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
     // Each successful validation exchanges the magic link for a fresh JWT (8h expiry)
     const expiresAt = round.lock_time;
     const magicLinksData: Array<{ email: string; users: any[]; token: string; magicLink: string }> = [];
-    const userMagicLinkValues: Array<[number, number, string, Date]> = [];
-    const emailMagicLinkValues: Array<[string, number, string, Date]> = [];
+    const userMagicLinkValues: Array<[number, number, string, string, Date]> = [];
+    const emailMagicLinkValues: Array<[string, number, string, string, Date]> = [];
 
     // Generate email-based magic links for shared emails
-    // SECURITY: Store hashed token in DB, send plain token in email
+    // SECURITY: Store both hashed token (for validation) and plain token (for email URLs) in DB
     for (const { email, users } of sharedEmails) {
       const plainToken = generateMagicLinkToken();
       const tokenHash = hashMagicLinkToken(plainToken);
@@ -815,12 +819,12 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
         token: plainToken, // Plain token for email
         magicLink: `${APP_URL}/pick/${plainToken}`
       });
-      emailMagicLinkValues.push([email, roundId, tokenHash, expiresAt]); // Store hash in DB
+      emailMagicLinkValues.push([email, roundId, tokenHash, plainToken, expiresAt]); // Store hash and plain token in DB
       logger.debug('Created email magic link', { email: redactEmail(email), roundId, userCount: users.length });
     }
 
     // Generate user-based magic links for single-user emails
-    // SECURITY: Store hashed token in DB, send plain token in email
+    // SECURITY: Store both hashed token (for validation) and plain token (for email URLs) in DB
     for (const { user } of singleUserEmails) {
       const plainToken = generateMagicLinkToken();
       const tokenHash = hashMagicLinkToken(plainToken);
@@ -830,14 +834,14 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
         token: plainToken, // Plain token for email
         magicLink: `${APP_URL}/pick/${plainToken}`
       });
-      userMagicLinkValues.push([user.id, roundId, tokenHash, expiresAt]); // Store hash in DB
+      userMagicLinkValues.push([user.id, roundId, tokenHash, plainToken, expiresAt]); // Store hash and plain token in DB
       logger.debug('Created user magic link', { userId: user.id, roundId, email: redactEmail(user.email) });
     }
 
     // Create email-based magic links for shared emails
     if (emailMagicLinkValues.length > 0) {
       await db.query(
-        'INSERT INTO email_magic_links (email, round_id, token, expires_at) VALUES ?',
+        'INSERT INTO email_magic_links (email, round_id, token, plain_token, expires_at) VALUES ?',
         [emailMagicLinkValues]
       );
       logger.info('Inserted email magic links', { 
@@ -850,7 +854,7 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
     // Create user-based magic links for single users
     if (userMagicLinkValues.length > 0) {
       await db.query(
-        'INSERT INTO magic_links (user_id, round_id, token, expires_at) VALUES ?',
+        'INSERT INTO magic_links (user_id, round_id, token, plain_token, expires_at) VALUES ?',
         [userMagicLinkValues]
       );
       logger.info('Inserted user magic links', { 

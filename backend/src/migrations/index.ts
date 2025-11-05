@@ -21,6 +21,7 @@ import { DropOriginalPickFromPicksV2 } from './20250123000005_drop_original_pick
 import { CreateSeedDataMetadata } from './20250123000006_create_seed_data_metadata';
 import { RemoveTeamsV2UniqueConstraint } from './20250123000007_remove_teams_v2_unique_constraint';
 import { RestoreOriginalPickInPicksV2 } from './20250123000008_restore_original_pick';
+import { ExtendMagicLinkStorage } from './20250123000009_extend_magic_link_storage';
 
 /**
  * All migrations in order of execution
@@ -42,6 +43,7 @@ export const allMigrations: Migration[] = [
   new CreateSeedDataMetadata(),
   new RemoveTeamsV2UniqueConstraint(),
   new RestoreOriginalPickInPicksV2(),
+  new ExtendMagicLinkStorage(),
   // Add new migrations here as needed
 ];
 

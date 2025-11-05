@@ -299,15 +299,19 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
     // Get users who are in this season but haven't made picks yet, excluding deactivated players
     // Use LEFT JOIN on magic_links to include users who don't have magic links yet
     // Updated to use season_participants_v2, picks_v2, pick_items_v2 + teams_v2
+    // Important: Only count users as having picks if they have pick_items_v2 records
+    // (picks_v2 record alone doesn't count if it has no pick_items_v2)
     logger.debug(`🔍 Querying users without picks for round ${round.id}...`);
     const [usersWithoutPicks] = await db.query<RowDataPacket[]>(
-      `SELECT DISTINCT u.id, u.email, u.name, ml.token
+      `SELECT DISTINCT u.id, u.email, u.name, ml.plain_token as token
        FROM users u
        JOIN season_participants_v2 sp ON u.id = sp.user_id
        LEFT JOIN magic_links ml ON u.id = ml.user_id AND ml.round_id = ?
        LEFT JOIN picks_v2 p ON u.id = p.user_id AND p.round_id = ?
        LEFT JOIN pick_items_v2 pi ON p.id = pi.pick_id
-       WHERE sp.season_id = ? AND (p.id IS NULL OR pi.team_id IS NULL) AND u.is_active = TRUE`,
+       WHERE sp.season_id = ? 
+         AND (p.id IS NULL OR pi.id IS NULL) 
+         AND u.is_active = TRUE`,
       [round.id, round.id, round.season_id]
     );
 
@@ -318,11 +322,12 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       return; // Everyone has picked
     }
 
-    // Identify users who need magic links created
+    // For reminder emails, reuse existing magic links if they exist
+    // If a user doesn't have a magic link yet, create one
     const usersNeedingLinks = usersWithoutPicks.filter(user => !user.token);
     
     if (usersNeedingLinks.length > 0) {
-      logger.info(`Creating magic links for ${usersNeedingLinks.length} new participant(s)`, {
+      logger.info(`Creating magic links for ${usersNeedingLinks.length} participant(s) who don't have one yet`, {
         roundId: round.id,
         userIds: usersNeedingLinks.map(u => u.id)
       });
@@ -336,24 +341,26 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
       
       const expiresAt = roundDetails[0].lock_time;
 
-      // Create magic links for users who don't have them
+      // Create magic links for users who don't have them yet
       // Magic links are multi-use: same link can be used multiple times (mobile, desktop, etc.)
       // until the round locks. Each validation issues a fresh JWT (8h expiry).
-      // SECURITY: Store hashed token in DB, send plain token in email
+      // SECURITY: Store both hashed token (for validation) and plain token (for email URLs) in DB
       const magicLinkValues = usersNeedingLinks.map(user => {
         const plainToken = generateMagicLinkToken();
         const tokenHash = hashMagicLinkToken(plainToken);
         // Store the plain token on the user object so we can use it below for email
         user.token = plainToken;
-        return [user.id, round.id, tokenHash, expiresAt]; // Store hash in DB
+        return [user.id, round.id, tokenHash, plainToken, expiresAt]; // Store hash and plain token in DB
       });
 
-      await db.query(
-        'INSERT INTO magic_links (user_id, round_id, token, expires_at) VALUES ?',
-        [magicLinkValues]
-      );
+      if (magicLinkValues.length > 0) {
+        await db.query(
+          'INSERT INTO magic_links (user_id, round_id, token, plain_token, expires_at) VALUES ?',
+          [magicLinkValues]
+        );
 
-      logger.info(`Created ${magicLinkValues.length} magic link(s)`, { roundId: round.id });
+        logger.info(`Created ${magicLinkValues.length} magic link(s) for users without links`, { roundId: round.id });
+      }
     }
 
     const APP_URL = process.env.APP_URL || 'http://localhost:3003';
@@ -386,13 +393,13 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
 
         // Check if this is a shared email (has email-based magic link)
         const [emailLinks] = await db.query<RowDataPacket[]>(
-          'SELECT token FROM email_magic_links WHERE email = ? AND round_id = ?',
+          'SELECT plain_token FROM email_magic_links WHERE email = ? AND round_id = ?',
           [email, round.id]
         );
 
-        if (emailLinks.length > 0) {
+        if (emailLinks.length > 0 && emailLinks[0].plain_token) {
           // Shared email - use email-based magic link
-          magicLink = `${APP_URL}/pick/${emailLinks[0].token}`;
+          magicLink = `${APP_URL}/pick/${emailLinks[0].plain_token}`;
           displayName = emailUsers.length > 1 
             ? emailUsers.map((u, index) => {
                 if (index === 0) return u.name;
@@ -442,13 +449,15 @@ export const sendReminderIfNotSent = async (round: any, reminderType: 'first' | 
     try {
       logger.debug(`📊 Preparing admin summary for round ${round.id}...`);
       
-      // Get all participants in this season from season_participants_v2 + picks_v2
+      // Get all participants in this season from season_participants_v2 + picks_v2 + pick_items_v2
+      // Only count users as having picked if they have pick_items_v2 records (actual picks, not empty picks_v2)
       const [allParticipants] = await db.query<RowDataPacket[]>(
         `SELECT DISTINCT u.id, u.name,
-         CASE WHEN p.id IS NOT NULL THEN 1 ELSE 0 END as hasPicked
+         CASE WHEN pi.id IS NOT NULL THEN 1 ELSE 0 END as hasPicked
          FROM users u
          JOIN season_participants_v2 sp ON u.id = sp.user_id
          LEFT JOIN picks_v2 p ON u.id = p.user_id AND p.round_id = ?
+         LEFT JOIN pick_items_v2 pi ON p.id = pi.pick_id
          WHERE sp.season_id = ? AND u.is_active = TRUE`,
         [round.id, round.season_id]
       );
@@ -618,13 +627,13 @@ export const manualSendGenericReminder = async (roundId: number) => {
     // Use LEFT JOIN on magic_links to include users who don't have magic links yet
     // Updated to use season_participants_v2, picks_v2, pick_items_v2
     const [usersWithoutPicks] = await db.query<RowDataPacket[]>(
-      `SELECT DISTINCT u.id, u.email, u.name, ml.token
+      `SELECT DISTINCT u.id, u.email, u.name, ml.plain_token as token
        FROM users u
        JOIN season_participants_v2 sp ON u.id = sp.user_id
        LEFT JOIN magic_links ml ON u.id = ml.user_id AND ml.round_id = ?
        LEFT JOIN picks_v2 p ON u.id = p.user_id AND p.round_id = ?
        LEFT JOIN pick_items_v2 pi ON p.id = pi.pick_id
-       WHERE sp.season_id = ? AND (p.id IS NULL OR pi.team_id IS NULL) AND u.is_active = TRUE`,
+       WHERE sp.season_id = ? AND (p.id IS NULL OR pi.id IS NULL) AND u.is_active = TRUE`,
       [round.id, round.id, round.season_id]
     );
 
@@ -632,11 +641,12 @@ export const manualSendGenericReminder = async (roundId: number) => {
       return { sent: 0, message: 'All players have already made their picks!' };
     }
 
-    // Identify users who need magic links created
+    // For manual reminder emails, reuse existing magic links if they exist
+    // If a user doesn't have a magic link yet, create one
     const usersNeedingLinks = usersWithoutPicks.filter(user => !user.token);
     
     if (usersNeedingLinks.length > 0) {
-      logger.info(`Creating magic links for ${usersNeedingLinks.length} new participant(s)`, {
+      logger.info(`Creating magic links for ${usersNeedingLinks.length} participant(s) who don't have one yet (manual reminder)`, {
         roundId: round.id,
         userIds: usersNeedingLinks.map(u => u.id)
       });
@@ -650,24 +660,26 @@ export const manualSendGenericReminder = async (roundId: number) => {
       
       const expiresAt = roundDetails[0].lock_time;
 
-      // Create magic links for users who don't have them
+      // Create magic links for users who don't have them yet
       // Magic links are multi-use: same link can be used multiple times (mobile, desktop, etc.)
       // until the round locks. Each validation issues a fresh JWT (8h expiry).
-      // SECURITY: Store hashed token in DB, send plain token in email
+      // SECURITY: Store both hashed token (for validation) and plain token (for email URLs) in DB
       const magicLinkValues = usersNeedingLinks.map(user => {
         const plainToken = generateMagicLinkToken();
         const tokenHash = hashMagicLinkToken(plainToken);
         // Store the plain token on the user object so we can use it below for email
         user.token = plainToken;
-        return [user.id, round.id, tokenHash, expiresAt]; // Store hash in DB
+        return [user.id, round.id, tokenHash, plainToken, expiresAt]; // Store hash and plain token in DB
       });
 
-      await db.query(
-        'INSERT INTO magic_links (user_id, round_id, token, expires_at) VALUES ?',
-        [magicLinkValues]
-      );
+      if (magicLinkValues.length > 0) {
+        await db.query(
+          'INSERT INTO magic_links (user_id, round_id, token, plain_token, expires_at) VALUES ?',
+          [magicLinkValues]
+        );
 
-      logger.info(`Created ${magicLinkValues.length} magic link(s)`, { roundId: round.id });
+        logger.info(`Created ${magicLinkValues.length} magic link(s) for users without links (manual reminder)`, { roundId: round.id });
+      }
     }
 
     const APP_URL = process.env.APP_URL || 'http://localhost:3003';
@@ -695,13 +707,15 @@ export const manualSendGenericReminder = async (roundId: number) => {
 
     // Send admin reminder summary for manual reminders too
     try {
-      // Get all participants in this season from season_participants_v2 + picks_v2
+      // Get all participants in this season from season_participants_v2 + picks_v2 + pick_items_v2
+      // Only count users as having picked if they have pick_items_v2 records (actual picks, not empty picks_v2)
       const [allParticipants] = await db.query<RowDataPacket[]>(
         `SELECT DISTINCT u.id, u.name,
-         CASE WHEN p.id IS NOT NULL THEN 1 ELSE 0 END as hasPicked
+         CASE WHEN pi.id IS NOT NULL THEN 1 ELSE 0 END as hasPicked
          FROM users u
          JOIN season_participants_v2 sp ON u.id = sp.user_id
          LEFT JOIN picks_v2 p ON u.id = p.user_id AND p.round_id = ?
+         LEFT JOIN pick_items_v2 pi ON p.id = pi.pick_id
          WHERE sp.season_id = ? AND u.is_active = TRUE`,
         [round.id, round.season_id]
       );
