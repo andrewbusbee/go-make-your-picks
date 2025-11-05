@@ -10,7 +10,8 @@ import {
   textMediumClasses,
   mb4Classes,
   overflowXAutoClasses,
-  overflowYAutoClasses
+  overflowYAutoClasses,
+  buttonSecondaryClasses
 } from '../styles/commonClasses';
 import { useState, useRef, useEffect, memo } from 'react';
 
@@ -40,22 +41,45 @@ const COLORS = [
 ];
 
 // Custom component for horizontal legend at the top
-function HorizontalLegend({ data }: { data: GraphData[] }) {
+function HorizontalLegend({ 
+  data, 
+  highlightedUserId, 
+  onUserClick,
+  originalData
+}: { 
+  data: GraphData[];
+  highlightedUserId: number | null;
+  onUserClick: (userId: number | null) => void;
+  originalData: GraphData[];
+}) {
   if (!data || data.length === 0) return null;
 
   return (
     <div className={`${flexWrapGapClasses} justify-center ${mb4Classes} px-2`}>
-      {data.map((user, index) => {
-        const color = COLORS[index % COLORS.length];
+      {data.map((user) => {
+        // Find original index in originalData to preserve color mapping
+        const originalIndex = originalData.findIndex(u => u.userId === user.userId);
+        const color = COLORS[originalIndex % COLORS.length];
+        const isHighlighted = highlightedUserId === user.userId;
+        // Only show grey if a player is highlighted AND this is not the highlighted player
+        const displayColor = (highlightedUserId !== null && !isHighlighted) ? '#9ca3af' : color;
+        
         return (
-          <div key={user.userId} className={flexItemsGap1Classes}>
+          <div 
+            key={user.userId} 
+            className={`${flexItemsGap1Classes} cursor-pointer hover:opacity-80 transition-opacity`}
+            onClick={() => onUserClick(isHighlighted ? null : user.userId)}
+            style={{ 
+              opacity: highlightedUserId === null || isHighlighted ? 1 : 0.5 
+            }}
+          >
             <div 
               className="w-3 h-3 rounded-full flex-shrink-0"
-              style={{ backgroundColor: color }}
+              style={{ backgroundColor: displayColor }}
             />
             <span 
               className={`${textSmallClasses} ${textMediumClasses} whitespace-nowrap`}
-              style={{ color }}
+              style={{ color: displayColor, fontWeight: isHighlighted ? 600 : 400 }}
             >
               {user.userName}
             </span>
@@ -193,6 +217,8 @@ function CustomXAxisTick({ x, y, payload }: any) {
 
 const CumulativeGraph = memo(function CumulativeGraph({ data }: CumulativeGraphProps) {
   const [isMobile, setIsMobile] = useState(false);
+  const [showTop5, setShowTop5] = useState(false);
+  const [highlightedUserId, setHighlightedUserId] = useState<number | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Detect mobile screen size
@@ -249,16 +275,33 @@ const CumulativeGraph = memo(function CumulativeGraph({ data }: CumulativeGraphP
     return user;
   });
 
+  // Calculate top 5 players by final score (last point in their points array)
+  const getTop5Users = (users: GraphData[]): GraphData[] => {
+    return [...users]
+      .map(user => {
+        const finalScore = user.points && user.points.length > 0 
+          ? user.points[user.points.length - 1].points 
+          : 0;
+        return { ...user, finalScore };
+      })
+      .sort((a, b) => b.finalScore - a.finalScore)
+      .slice(0, 5)
+      .map(({ finalScore, ...user }) => user); // Remove finalScore from returned objects
+  };
+
+  // Filter data based on showTop5
+  const displayData = showTop5 ? getTop5Users(normalizedData) : normalizedData;
+
   // Transform data for recharts - with error handling
   let chartData: any[] = [];
   try {
-    if (normalizedData.length > 0 && normalizedData[0].points && normalizedData[0].points.length > 0) {
-      chartData = normalizedData[0].points.map((_, index) => {
+    if (displayData.length > 0 && displayData[0].points && displayData[0].points.length > 0) {
+      chartData = displayData[0].points.map((_, index) => {
         const point: any = {
-          round: normalizedData[0].points[index].roundName,
+          round: displayData[0].points[index].roundName,
         };
         
-        normalizedData.forEach(user => {
+        displayData.forEach(user => {
           if (user.points && user.points[index]) {
             point[user.userName] = user.points[index].points || 0;
           } else {
@@ -295,13 +338,46 @@ const CumulativeGraph = memo(function CumulativeGraph({ data }: CumulativeGraphP
     ? { top: 20, right: 20, bottom: 20, left: 60 } 
     : { top: 20, right: 20, bottom: 30, left: 60 };
 
+  // Handle user click in legend
+  const handleUserClick = (userId: number | null) => {
+    setHighlightedUserId(userId);
+  };
+
+  // Handle reset colors
+  const handleResetColors = () => {
+    setHighlightedUserId(null);
+  };
+
   return (
     <div className={`${cardClasses} shadow-lg`}>
-      <h2 className={`${subheadingClasses} mb-4`}>Cumulative Points</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className={`${subheadingClasses}`}>Cumulative Points</h2>
+        <div className="flex gap-2">
+          {highlightedUserId !== null && (
+            <button
+              onClick={handleResetColors}
+              className={`${buttonSecondaryClasses} text-sm px-3 py-1.5`}
+            >
+              Reset colors
+            </button>
+          )}
+          <button
+            onClick={() => setShowTop5(!showTop5)}
+            className={`${buttonSecondaryClasses} text-sm px-3 py-1.5`}
+          >
+            {showTop5 ? 'Show all' : 'Show Top 5'}
+          </button>
+        </div>
+      </div>
       
       {/* Horizontal legend below the heading - hidden on mobile */}
       <div className="hidden sm:block">
-        <HorizontalLegend data={normalizedData} />
+        <HorizontalLegend 
+          data={displayData} 
+          highlightedUserId={highlightedUserId}
+          onUserClick={handleUserClick}
+          originalData={normalizedData}
+        />
       </div>
       
       <div className="relative">
@@ -331,17 +407,37 @@ const CumulativeGraph = memo(function CumulativeGraph({ data }: CumulativeGraphP
               stroke="#888"
             />
             <Tooltip content={<CustomTooltip />} />
-            {normalizedData.map((user, index) => (
-              <Line
-                key={user.userId}
-                type="monotone"
-                dataKey={user.userName}
-                stroke={COLORS[index % COLORS.length]}
-                strokeWidth={2}
-                dot={{ r: 4 }}
-                activeDot={{ r: 6 }}
-              />
-            ))}
+            {(() => {
+              // Sort displayData so highlighted user is rendered last (appears on top)
+              const sortedData = [...displayData].sort((a, b) => {
+                const aHighlighted = highlightedUserId === a.userId;
+                const bHighlighted = highlightedUserId === b.userId;
+                if (aHighlighted && !bHighlighted) return 1; // a comes after b
+                if (!aHighlighted && bHighlighted) return -1; // a comes before b
+                return 0; // maintain original order for non-highlighted
+              });
+
+              return sortedData.map((user) => {
+                // Find original index in normalizedData to preserve color mapping
+                const originalIndex = normalizedData.findIndex(u => u.userId === user.userId);
+                const isHighlighted = highlightedUserId === user.userId;
+                const shouldShowGrey = highlightedUserId !== null && !isHighlighted;
+                const lineColor = shouldShowGrey ? '#9ca3af' : COLORS[originalIndex % COLORS.length];
+                const lineWidth = isHighlighted ? 4 : 2; // Thicker line when highlighted
+                
+                return (
+                  <Line
+                    key={user.userId}
+                    type="monotone"
+                    dataKey={user.userName}
+                    stroke={lineColor}
+                    strokeWidth={lineWidth}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                );
+              });
+            })()}
           </LineChart>
           </ResponsiveContainer>
           </div>
