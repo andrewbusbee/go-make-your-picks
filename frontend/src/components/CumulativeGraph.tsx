@@ -362,7 +362,10 @@ const CumulativeGraph = memo(function CumulativeGraph({ data }: CumulativeGraphP
             </button>
           )}
           <button
-            onClick={() => setShowTop5(!showTop5)}
+            onClick={() => {
+              setHighlightedUserId(null); // Reset colors when toggling view
+              setShowTop5(!showTop5);
+            }}
             className={`${buttonSecondaryClasses} text-sm px-3 py-1.5`}
           >
             {showTop5 ? 'Show all' : 'Show Top 5'}
