@@ -105,7 +105,7 @@ router.post('/validate', magicLinkValidationLimiter, validateRequest([
       const link = validationResult.data;
       
       // Validate magic link is still active
-      const now = moment.tz(link.timezone);
+      const now = moment().tz(link.timezone);
       const lockTime = moment.utc(link.lock_time).tz(link.timezone);
       const expiresAt = moment.utc(link.expires_at).tz(link.timezone);
 
@@ -211,7 +211,7 @@ router.post('/validate', magicLinkValidationLimiter, validateRequest([
       // Handle user-based magic link
       const link = validationResult.data;
       
-      const now = moment.tz(link.timezone);
+      const now = moment().tz(link.timezone);
       const lockTime = moment.utc(link.lock_time).tz(link.timezone);
 
       if (now.isAfter(lockTime)) {
@@ -325,7 +325,7 @@ router.post('/exchange/:token', magicLinkValidationLimiter, async (req, res) => 
       
       // Validate magic link is still active
       // Check both round lock time and magic link expires_at (use stricter of the two)
-      const now = moment.tz(link.timezone);
+      const now = moment().tz(link.timezone);
       const lockTime = moment.utc(link.lock_time).tz(link.timezone);
       const expiresAt = moment.utc(link.expires_at).tz(link.timezone);
       
@@ -410,8 +410,8 @@ router.post('/exchange/:token', magicLinkValidationLimiter, async (req, res) => 
   }
 });
 
-// Get current pick data using JWT (no magic token needed)
-// This allows the page to refresh and still load pick data
+// Get current pick data using magic link token
+// Token can be provided in Authorization header or query parameter
 router.get('/current', authenticatePick, async (req: PickAuthRequest, res) => {
   const roundId = req.roundId!;
   const seasonId = req.seasonId!;
@@ -436,7 +436,7 @@ router.get('/current', authenticatePick, async (req: PickAuthRequest, res) => {
     const round = rounds[0];
 
     // Check if round is locked
-    const now = moment.tz(round.timezone);
+    const now = moment().tz(round.timezone);
     const lockTime = moment.utc(round.lock_time).tz(round.timezone);
 
     if (round.status === 'locked' || round.status === 'completed' || now.isAfter(lockTime)) {
@@ -644,7 +644,7 @@ router.post('/submit', authenticatePick, pickSubmissionLimiter, validateRequest(
       const pickType = round.pick_type || 'single';
       
       // Get current time in the round's timezone
-      const now = moment.tz(round.timezone);
+      const now = moment().tz(round.timezone);
       
       // Parse lock time from database (stored as UTC) and convert to round's timezone
       const lockTime = moment.utc(round.lock_time).tz(round.timezone);
@@ -771,7 +771,7 @@ router.post('/:token', pickSubmissionLimiter, validateRequest(submitPickWithToke
         
         // Validate magic link is still active
         // Check both round lock time and magic link expires_at (use stricter of the two)
-        const now = moment.tz(link.timezone);
+        const now = moment().tz(link.timezone);
         const lockTime = moment.utc(link.lock_time).tz(link.timezone);
         const expiresAt = moment.utc(link.expires_at).tz(link.timezone);
 
@@ -829,7 +829,7 @@ router.post('/:token', pickSubmissionLimiter, validateRequest(submitPickWithToke
       const pickType = link.pick_type || 'single';
       
       // Get current time in the round's timezone
-      const now = moment.tz(link.timezone);
+      const now = moment().tz(link.timezone);
       const lockTime = moment.utc(link.lock_time).tz(link.timezone);
 
       // Check if expired

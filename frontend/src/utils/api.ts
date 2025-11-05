@@ -30,7 +30,7 @@ api.interceptors.request.use((config) => {
     return config;
   }
   
-  // Add pick token to pick routes (submit and current endpoints)
+  // Add pick token (magic link token) to pick routes (submit and current endpoints)
   if (pickToken && (config.url?.startsWith('/picks/submit') || config.url?.startsWith('/picks/current'))) {
     config.headers.Authorization = `Bearer ${pickToken}`;
     return config;
