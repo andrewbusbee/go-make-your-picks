@@ -42,7 +42,7 @@ export const authenticateAdmin = async (req: AuthRequest, res: Response, next: N
     // 🔒 SECURITY FIX: Verify admin still exists in database
     // This prevents old tokens from deleted admins from accessing the system
     const [admins] = await db.query<RowDataPacket[]>(
-      'SELECT id, email, is_main_admin FROM admins WHERE id = ? AND email = ?',
+      'SELECT id, email, is_main_admin, must_change_password FROM admins WHERE id = ? AND email = ?',
       [decoded.adminId, decoded.email]
     );
 
@@ -51,6 +51,26 @@ export const authenticateAdmin = async (req: AuthRequest, res: Response, next: N
     }
 
     const admin = admins[0];
+    
+    // 🔒 SECURITY FIX: Enforce password change requirement
+    // Block API access if password must be changed (except for password change endpoints)
+    // This prevents bypassing frontend password change requirement via direct API calls
+    if (admin.must_change_password) {
+      // Allow access to password change endpoints only
+      // Use originalUrl to get full path including /api prefix
+      const originalUrl = req.originalUrl || req.url;
+      const isPasswordChangeEndpoint = 
+        originalUrl.includes('/auth/initial-setup') || 
+        originalUrl.includes('/auth/change-password') ||
+        originalUrl === '/api/auth/me' || originalUrl.startsWith('/api/auth/me?'); // Allow /auth/me to check status
+      
+      if (!isPasswordChangeEndpoint) {
+        return res.status(403).json({ 
+          error: 'Password change required before accessing this resource',
+          mustChangePassword: true 
+        });
+      }
+    }
     
     // Update request with verified admin data
     req.adminId = admin.id;

@@ -367,6 +367,11 @@ router.post('/initial-setup', authenticateAdmin, validateRequest(initialSetupVal
       return res.status(403).json({ error: 'Only main admin can use initial setup' });
     }
 
+    // 🔒 SECURITY: Block default admin email address
+    if (newEmail.toLowerCase() === 'admin@example.com') {
+      return res.status(400).json({ error: 'This email address is reserved and cannot be used' });
+    }
+
     // Check if new email already exists
     const [existingEmails] = await db.query<RowDataPacket[]>(
       'SELECT id FROM admins WHERE email = ? AND id != ?',
@@ -375,6 +380,15 @@ router.post('/initial-setup', authenticateAdmin, validateRequest(initialSetupVal
 
     if (existingEmails.length > 0) {
       return res.status(400).json({ error: 'Email already exists' });
+    }
+
+    // 🔒 SECURITY: Validate password strength (including weak password check)
+    const passwordValidation = validatePasswordBasic(newPassword);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ 
+        error: 'Password validation failed',
+        details: passwordValidation.errors 
+      });
     }
 
     const newPasswordHash = await bcrypt.hash(newPassword, PASSWORD_SALT_ROUNDS);
@@ -425,6 +439,15 @@ router.post('/change-password', authenticateAdmin, validateRequest(changePasswor
       return res.status(401).json({ error: 'Current password is incorrect' });
     }
 
+    // 🔒 SECURITY: Validate password strength (including weak password check)
+    const passwordValidation = validatePasswordBasic(newPassword);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ 
+        error: 'Password validation failed',
+        details: passwordValidation.errors 
+      });
+    }
+
     const newPasswordHash = await bcrypt.hash(newPassword, PASSWORD_SALT_ROUNDS);
     await db.query(
       'UPDATE admins SET password_hash = ?, must_change_password = FALSE WHERE id = ?',
@@ -454,6 +477,11 @@ router.post('/change-email', authenticateAdmin, validateRequest(changeEmailValid
     }
 
     const admin = admins[0];
+
+    // 🔒 SECURITY: Block default admin email address
+    if (newEmail.toLowerCase() === 'admin@example.com') {
+      return res.status(400).json({ error: 'This email address is reserved and cannot be used' });
+    }
 
     // Check if new email is different from current email
     if (admin.email === newEmail) {
@@ -593,6 +621,15 @@ router.post('/reset-password', passwordResetLimiter, validateRequest(resetPasswo
       return res.status(400).json({ error: 'Reset token has expired. Please request a new one.' });
     }
 
+    // 🔒 SECURITY: Validate password strength (including weak password check)
+    const passwordValidation = validatePasswordBasic(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ 
+        error: 'Password validation failed',
+        details: passwordValidation.errors 
+      });
+    }
+
     // Hash the new password
     const newPasswordHash = await bcrypt.hash(password, PASSWORD_SALT_ROUNDS);
 
@@ -611,6 +648,8 @@ router.post('/reset-password', passwordResetLimiter, validateRequest(resetPasswo
 });
 
 // Get current admin info
+// Note: This endpoint is allowed even when must_change_password = true
+// so the frontend can check the password change requirement status
 router.get('/me', authenticateAdmin, async (req: AuthRequest, res: Response) => {
   try {
     // 🔒 ADDITIONAL SECURITY: Double-check admin exists (redundant but explicit)
@@ -624,6 +663,8 @@ router.get('/me', authenticateAdmin, async (req: AuthRequest, res: Response) => 
       return res.status(404).json({ error: 'Admin account no longer exists' });
     }
 
+    // Return admin data including must_change_password flag
+    // Frontend uses this to determine if password change dialog should be shown
     res.json(admins[0]);
   } catch (error) {
     logger.error('Get admin error', { error, adminId: req.adminId });
