@@ -30,6 +30,7 @@ function App() {
         <Route path="/admin/reset-password" element={<ResetPassword />} />
         <Route path="/admin/*" element={<AdminDashboard />} />
         <Route path="/pick/:token" element={<PickPage />} />
+        <Route path="/pick" element={<PickPage />} />
       </Routes>
     </Router>
   );

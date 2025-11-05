@@ -53,6 +53,7 @@ export default function PickPage() {
     // Always exchange when a new token is in URL (even if we have an existing JWT)
     // This ensures we use the correct round if user clicks a new magic link
     if (token) {
+      logger.debug('Token found in URL, exchanging for JWT', { hasToken: !!token });
       // Store token in state before URL cleanup
       setMagicToken(token);
       exchangeTokenForJWT(token);
@@ -60,10 +61,12 @@ export default function PickPage() {
       // No token in URL - check if we have a JWT token
       // If yes, use it to load pick data (for refresh scenarios)
       const pickToken = localStorage.getItem('pickToken');
+      logger.debug('No token in URL, checking localStorage', { hasPickToken: !!pickToken });
       if (pickToken) {
         loadPickDataWithJWT();
       } else {
         // No token at all - show error
+        logger.warn('No token in URL and no JWT in localStorage');
         setError('Invalid or expired link');
         setLoading(false);
       }
@@ -115,8 +118,14 @@ export default function PickPage() {
 
   const loadPickDataWithJWT = async () => {
     try {
+      logger.debug('Loading pick data with JWT');
       // Use JWT token to load pick data (no magic token needed)
       const res = await api.get('/picks/current');
+      logger.debug('Received pick data from /picks/current', { 
+        hasData: !!res.data, 
+        hasRound: !!res.data?.round,
+        roundId: res.data?.round?.id 
+      });
       setPickData(res.data);
       
       // Check if round data exists before accessing properties
