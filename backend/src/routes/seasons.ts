@@ -56,17 +56,39 @@ router.get('/', async (req, res) => {
         // Batch calculate all leaderboards in parallel
         const leaderboardPromises = activeSeasons.map(season =>
           ScoringService.calculateLeaderboard(season.id)
-            .then(leaderboard => ({
-              seasonId: season.id,
-              leaderboard: leaderboard.leaderboard
-                .sort((a: any, b: any) => b.totalPoints - a.totalPoints)
-                .map((entry: any, index: number) => ({
-                  rank: index + 1,
+            .then(leaderboard => {
+              const sorted = leaderboard.leaderboard
+                .sort((a: any, b: any) => b.totalPoints - a.totalPoints);
+              
+              // Calculate ranks with proper tie handling
+              let currentRank = 1;
+              let previousPoints: number | null = null;
+              
+              const rankedLeaderboard = sorted.map((entry: any, index: number) => {
+                // If points are different from previous entry, update rank to current position
+                if (previousPoints !== null && entry.totalPoints !== previousPoints) {
+                  currentRank = index + 1;
+                } else if (previousPoints === null) {
+                  // First entry always gets rank 1
+                  currentRank = 1;
+                }
+                // If points match previous entry, keep the same rank (already set)
+                
+                previousPoints = entry.totalPoints;
+                
+                return {
+                  rank: currentRank,
                   userId: entry.userId,
                   name: entry.userName,
                   totalPoints: entry.totalPoints
-                }))
-            }))
+                };
+              });
+              
+              return {
+                seasonId: season.id,
+                leaderboard: rankedLeaderboard
+              };
+            })
             .catch(error => {
               logger.error('Error calculating leaderboard for season', { seasonId: season.id, error });
               return { seasonId: season.id, leaderboard: null };
