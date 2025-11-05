@@ -61,6 +61,12 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-noreply@example.com}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/api/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
 
 networks:
   go-make-your-picks-network:
