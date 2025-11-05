@@ -9,6 +9,12 @@ const api = axios.create({
   timeoutErrorMessage: 'Request timeout - please try again',
 });
 
+// Helper function to detect if a token is a JWT (legacy format)
+const isJWT = (token: string): boolean => {
+  // JWTs start with "eyJ" (base64 encoded JSON) and contain dots (3 parts: header.payload.signature)
+  return token.startsWith('eyJ') || (token.includes('.') && token.split('.').length === 3);
+};
+
 // Request interceptor - Token management for both admin and pick JWTs
 api.interceptors.request.use((config) => {
   // Check for admin token first
@@ -32,6 +38,16 @@ api.interceptors.request.use((config) => {
   
   // Add pick token (magic link token) to pick routes (submit and current endpoints)
   if (pickToken && (config.url?.startsWith('/picks/submit') || config.url?.startsWith('/picks/current'))) {
+    // Detect and reject old JWTs
+    if (isJWT(pickToken)) {
+      logger.warn('Old JWT detected in pickToken during API request, clearing', {
+        url: config.url,
+        tokenLength: pickToken.length
+      });
+      localStorage.removeItem('pickToken');
+      // Don't add the JWT to the request - let it fail naturally
+      return config;
+    }
     config.headers.Authorization = `Bearer ${pickToken}`;
     return config;
   }

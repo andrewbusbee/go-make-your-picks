@@ -49,10 +49,9 @@ export const authenticatePick = async (req: PickAuthRequest, res: Response, next
     const tokenHash = hashMagicLinkToken(token);
     
     // First try email-based magic links
+    // Only query what we need for authentication - don't join with rounds_v2
     const [emailLinks] = await db.query<RowDataPacket[]>(
-      `SELECT eml.*, r.season_id, r.lock_time, r.timezone, r.status, r.pick_type
-       FROM email_magic_links eml
-       JOIN rounds_v2 r ON eml.round_id = r.id
+      `SELECT eml.* FROM email_magic_links eml
        WHERE eml.token = ?
        AND eml.expires_at > NOW()`,
       [tokenHash]
@@ -61,27 +60,37 @@ export const authenticatePick = async (req: PickAuthRequest, res: Response, next
     if (emailLinks.length > 0) {
       const link = emailLinks[0];
       
-      // Validate magic link is still active
-      const now = moment().tz(link.timezone);
-      const lockTime = moment.utc(link.lock_time).tz(link.timezone);
-      const expiresAt = moment.utc(link.expires_at).tz(link.timezone);
+      // Validate magic link hasn't expired (check expires_at only)
+      // Don't check round lock status here - let the endpoint handle that
+      const now = moment();
+      const expiresAt = moment.utc(link.expires_at);
       
-      if (link.status === 'locked' || link.status === 'completed' || now.isAfter(lockTime) || now.isAfter(expiresAt)) {
+      if (now.isAfter(expiresAt)) {
         return res.status(410).json({ 
-          error: 'This magic link has expired or the round is now locked',
-          locked: true
+          error: 'This magic link has expired',
+          locked: false
         });
+      }
+
+      // Get season_id from round_id (we need it for the request)
+      const [rounds] = await db.query<RowDataPacket[]>(
+        'SELECT season_id FROM rounds_v2 WHERE id = ?',
+        [link.round_id]
+      );
+      
+      if (rounds.length === 0) {
+        return res.status(404).json({ error: 'Round not found' });
       }
 
       // Attach auth data to request
       req.pickAuth = {
         email: link.email,
         roundId: link.round_id,
-        seasonId: link.season_id,
+        seasonId: rounds[0].season_id,
         isSharedEmail: true
       };
       req.roundId = link.round_id;
-      req.seasonId = link.season_id;
+      req.seasonId = rounds[0].season_id;
       req.email = link.email;
       req.isSharedEmail = true;
       
@@ -90,10 +99,9 @@ export const authenticatePick = async (req: PickAuthRequest, res: Response, next
     }
 
     // Fallback to user-based magic links
+    // Only query what we need for authentication - don't join with rounds_v2
     const [links] = await db.query<RowDataPacket[]>(
-      `SELECT ml.*, r.season_id, r.lock_time, r.timezone, r.status, r.pick_type
-       FROM magic_links ml
-       JOIN rounds_v2 r ON ml.round_id = r.id
+      `SELECT ml.* FROM magic_links ml
        WHERE ml.token = ?
        AND ml.expires_at > NOW()`,
       [tokenHash]
@@ -105,27 +113,37 @@ export const authenticatePick = async (req: PickAuthRequest, res: Response, next
 
     const link = links[0];
     
-    // Validate magic link is still active
-    const now = moment().tz(link.timezone);
-    const lockTime = moment.utc(link.lock_time).tz(link.timezone);
-    const expiresAt = moment.utc(link.expires_at).tz(link.timezone);
+    // Validate magic link hasn't expired (check expires_at only)
+    // Don't check round lock status here - let the endpoint handle that
+    const now = moment();
+    const expiresAt = moment.utc(link.expires_at);
     
-    if (link.status === 'locked' || link.status === 'completed' || now.isAfter(lockTime) || now.isAfter(expiresAt)) {
+    if (now.isAfter(expiresAt)) {
       return res.status(410).json({ 
-        error: 'This magic link has expired or the round is now locked',
-        locked: true
+        error: 'This magic link has expired',
+        locked: false
       });
+    }
+
+    // Get season_id from round_id (we need it for the request)
+    const [rounds] = await db.query<RowDataPacket[]>(
+      'SELECT season_id FROM rounds_v2 WHERE id = ?',
+      [link.round_id]
+    );
+    
+    if (rounds.length === 0) {
+      return res.status(404).json({ error: 'Round not found' });
     }
 
     // Attach auth data to request
     req.pickAuth = {
       userId: link.user_id,
       roundId: link.round_id,
-      seasonId: link.season_id,
+      seasonId: rounds[0].season_id,
       isSharedEmail: false
     };
     req.roundId = link.round_id;
-    req.seasonId = link.season_id;
+    req.seasonId = rounds[0].season_id;
     req.userId = link.user_id;
     req.isSharedEmail = false;
     

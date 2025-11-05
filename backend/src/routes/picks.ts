@@ -12,7 +12,6 @@ import { body } from 'express-validator';
 import logger, { maskMagicToken, redactEmail } from '../utils/logger';
 import { PicksService } from '../services/picksService';
 import { withTransaction } from '../utils/transactionWrapper';
-import { generatePickToken } from '../utils/jwtToken';
 import { authenticatePick, PickAuthRequest } from '../middleware/pickAuth';
 import { hashMagicLinkToken, verifyMagicLinkToken } from '../utils/magicLinkToken';
 
@@ -82,7 +81,7 @@ async function validateMagicLinkToken(token: string): Promise<{
  * Request body: { "token": "<magicLinkToken>" }
  * 
  * Magic links are multi-use until the round locks. This endpoint validates the token 
- * and returns round/user information without issuing a JWT. Use /exchange to get a JWT access token.
+ * and returns round/user information.
  * 
  * The magic link remains valid until the round's lock_time or the magic link's expires_at.
  */
@@ -292,124 +291,6 @@ router.post('/validate', magicLinkValidationLimiter, validateRequest([
   }
 });
 
-/**
- * Exchange magic link token for JWT access token
- * 
- * Magic links are multi-use: the same link can be used multiple times (mobile, desktop, etc.)
- * until the round locks. Each successful exchange issues a fresh JWT access token (default: 8h expiry).
- * 
- * The magic link remains valid until:
- * - The round's lock_time is reached, OR
- * - The magic link's expires_at is reached (whichever comes first)
- * 
- * This endpoint is idempotent: repeated calls with the same valid token will succeed and issue new JWTs.
- */
-router.post('/exchange/:token', magicLinkValidationLimiter, async (req, res) => {
-  const { token } = req.params;
-
-  try {
-    // First try email-based magic links
-    // SECURITY: Hash the incoming token and compare to stored hash
-    const exchangeEmailTokenHash = hashMagicLinkToken(token);
-    const [emailLinks] = await db.query<RowDataPacket[]>(
-      `SELECT eml.*, r.season_id, r.lock_time, r.timezone, r.status
-       FROM email_magic_links eml
-       JOIN rounds_v2 r ON eml.round_id = r.id
-       WHERE eml.token = ?
-       AND eml.expires_at > NOW()`,
-      [exchangeEmailTokenHash] // Only hashed tokens allowed (legacy plaintext support removed)
-    );
-
-    if (emailLinks.length > 0) {
-      const link = emailLinks[0];
-      
-      // Validate magic link is still active
-      // Check both round lock time and magic link expires_at (use stricter of the two)
-      const now = moment().tz(link.timezone);
-      const lockTime = moment.utc(link.lock_time).tz(link.timezone);
-      const expiresAt = moment.utc(link.expires_at).tz(link.timezone);
-      
-      // Magic link is invalid if round is locked/completed OR if expires_at has passed
-      if (link.status === 'locked' || link.status === 'completed' || now.isAfter(lockTime) || now.isAfter(expiresAt)) {
-        return res.status(410).json({ 
-          error: 'This magic link has expired or the round is now locked',
-          locked: true
-        });
-      }
-
-      // Magic link is valid - issue a fresh JWT (8h expiry by default)
-      // This does NOT invalidate the magic link - it can be used again
-      const jwtToken = generatePickToken(link.round_id, link.season_id, undefined, link.email);
-      
-      logger.info('Magic link exchanged for JWT (email-based)', {
-        roundId: link.round_id,
-        emailRedacted: link.email ? link.email.substring(0, 3) + '****' : 'N/A',
-        tokenMasked: maskMagicToken(token)
-      });
-
-      return res.json({
-        token: jwtToken,
-        roundId: link.round_id,
-        seasonId: link.season_id,
-        isSharedEmail: true
-      });
-    }
-
-    // Fallback to user-based magic links
-    // SECURITY: Hash the incoming token and compare to stored hash
-    const exchangeUserTokenHash = hashMagicLinkToken(token);
-    const [links] = await db.query<RowDataPacket[]>(
-      `SELECT ml.*, r.season_id, r.lock_time, r.timezone, r.status
-       FROM magic_links ml
-       JOIN rounds_v2 r ON ml.round_id = r.id
-       WHERE ml.token = ?
-       AND ml.expires_at > NOW()`,
-      [exchangeUserTokenHash] // Only hashed tokens allowed (legacy plaintext support removed)
-    );
-
-    if (links.length === 0) {
-      return res.status(404).json({ error: 'Invalid magic link' });
-    }
-
-    const link = links[0];
-    
-    // Validate magic link is still active
-    // Check both round lock time and magic link expires_at (use stricter of the two)
-    const now = moment.tz(link.timezone);
-    const lockTime = moment.utc(link.lock_time).tz(link.timezone);
-    const expiresAt = moment.utc(link.expires_at).tz(link.timezone);
-    
-    // Magic link is invalid if round is locked/completed OR if expires_at has passed
-    if (link.status === 'locked' || link.status === 'completed' || now.isAfter(lockTime) || now.isAfter(expiresAt)) {
-      return res.status(410).json({ 
-        error: 'This magic link has expired or the round is now locked',
-        locked: true
-      });
-    }
-
-    // Magic link is valid - issue a fresh JWT (8h expiry by default)
-    // This does NOT invalidate the magic link - it can be used again
-    const jwtToken = generatePickToken(link.round_id, link.season_id, link.user_id);
-    
-    logger.info('Magic link exchanged for JWT (user-based)', {
-      roundId: link.round_id,
-      userId: link.user_id,
-      tokenMasked: maskMagicToken(token)
-    });
-
-    return res.json({
-      token: jwtToken,
-      roundId: link.round_id,
-      seasonId: link.season_id,
-      userId: link.user_id,
-      isSharedEmail: false
-    });
-  } catch (error) {
-    logger.error('Exchange magic link error', { error, tokenMasked: maskMagicToken(token) });
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
 // Get current pick data using magic link token
 // Token can be provided in Authorization header or query parameter
 router.get('/current', authenticatePick, async (req: PickAuthRequest, res) => {
@@ -435,16 +316,16 @@ router.get('/current', authenticatePick, async (req: PickAuthRequest, res) => {
 
     const round = rounds[0];
 
-    // Check if round is locked
-    const now = moment().tz(round.timezone);
-    const lockTime = moment.utc(round.lock_time).tz(round.timezone);
-
-    if (round.status === 'locked' || round.status === 'completed' || now.isAfter(lockTime)) {
-      return res.status(410).json({ 
-        error: 'This round is now locked',
-        locked: true
-      });
-    }
+    // Check if round is locked - but don't return error, return data with locked flag
+    // Always return data, even if locked, so frontend can show womp womp page
+    // Only check status field - time-based locking is handled by auto-lock scheduler
+    const isLocked = round.status === 'locked' || round.status === 'completed';
+    
+    logger.debug('Round lock check', {
+      roundId: round.id,
+      status: round.status,
+      isLocked
+    });
 
     // Get available teams
     const [teams] = await db.query<RowDataPacket[]>(
@@ -504,13 +385,17 @@ router.get('/current', authenticatePick, async (req: PickAuthRequest, res) => {
         
         if (userPick) {
           const items = pickItems.filter(item => item.pick_id === userPick.id);
-          currentPick = {
-            id: userPick.id,
-            pickItems: items.map(item => ({
-              pickNumber: item.pick_number,
-              pickValue: item.pick_value
-            }))
-          };
+          // Only set currentPick if there are actual pick items
+          // (admin may have cleared the pick, leaving a picks_v2 record but no pick_items_v2)
+          if (items.length > 0) {
+            currentPick = {
+              id: userPick.id,
+              pickItems: items.map(item => ({
+                pickNumber: item.pick_number,
+                pickValue: item.pick_value
+              }))
+            };
+          }
         }
 
         return {
@@ -536,7 +421,8 @@ router.get('/current', authenticatePick, async (req: PickAuthRequest, res) => {
           seasonName: round.season_name,
           email_message: round.email_message
         },
-        teams: teams.map(t => ({ id: t.id, name: t.name }))
+        teams: teams.map(t => ({ id: t.id, name: t.name })),
+        locked: isLocked
       });
     } else {
       // Single user scenario
@@ -575,13 +461,17 @@ router.get('/current', authenticatePick, async (req: PickAuthRequest, res) => {
           [picks[0].id]
         );
         
-        currentPick = {
-          id: picks[0].id,
-          pickItems: pickItems.map(item => ({
-            pickNumber: item.pick_number,
-            pickValue: item.pick_value
-          }))
-        };
+        // Only set currentPick if there are actual pick items
+        // (admin may have cleared the pick, leaving a picks_v2 record but no pick_items_v2)
+        if (pickItems.length > 0) {
+          currentPick = {
+            id: picks[0].id,
+            pickItems: pickItems.map(item => ({
+              pickNumber: item.pick_number,
+              pickValue: item.pick_value
+            }))
+          };
+        }
       }
 
       return res.json({
@@ -603,7 +493,8 @@ router.get('/current', authenticatePick, async (req: PickAuthRequest, res) => {
           email_message: round.email_message
         },
         teams: teams.map(t => ({ id: t.id, name: t.name })),
-        currentPick
+        currentPick,
+        locked: isLocked
       });
     }
   } catch (error) {

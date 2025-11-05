@@ -45,14 +45,28 @@ export default function PickPage() {
     description: appTagline
   });
 
+  // Helper function to detect if a token is a JWT (legacy format)
+  const isJWT = (token: string): boolean => {
+    // JWTs start with "eyJ" (base64 encoded JSON) and contain dots (3 parts: header.payload.signature)
+    return token.startsWith('eyJ') || (token.includes('.') && token.split('.').length === 3);
+  };
+
   useEffect(() => {
     loadSettings();
     loadCommissioner();
     
-    // Use magic link token directly - no JWT exchange needed
+    // Always prioritize URL token over localStorage
     if (token) {
       logger.debug('Token found in URL, storing for direct use', { hasToken: !!token });
-      // Store token in state and localStorage
+      // Detect and clear old JWT if present
+      if (isJWT(token)) {
+        logger.warn('JWT detected in URL token - this should not happen, clearing');
+        localStorage.removeItem('pickToken');
+        setError('Invalid link format. Please use a fresh magic link.');
+        setLoading(false);
+        return;
+      }
+      // Store magic link token in state and localStorage
       setMagicToken(token);
       localStorage.setItem('pickToken', token);
       // Load pick data with token
@@ -61,7 +75,17 @@ export default function PickPage() {
       // No token in URL - check if we have a stored token
       const storedToken = localStorage.getItem('pickToken');
       logger.debug('No token in URL, checking localStorage', { hasPickToken: !!storedToken });
+      
       if (storedToken) {
+        // Detect and clear old JWT from localStorage
+        if (isJWT(storedToken)) {
+          logger.warn('Old JWT detected in localStorage pickToken, clearing', { tokenLength: storedToken.length });
+          localStorage.removeItem('pickToken');
+          setError('Your session has expired. Please use a fresh magic link.');
+          setLoading(false);
+          return;
+        }
+        // Valid magic link token - use it
         setMagicToken(storedToken);
         loadPickData();
       } else {
@@ -96,9 +120,19 @@ export default function PickPage() {
 
   const loadPickData = async () => {
     try {
-      const currentToken = magicToken || localStorage.getItem('pickToken');
+      // Always prioritize URL token over localStorage
+      const currentToken = token || magicToken || localStorage.getItem('pickToken');
       if (!currentToken) {
         setError('No token available');
+        setLoading(false);
+        return;
+      }
+
+      // Double-check for JWT before making request
+      if (isJWT(currentToken)) {
+        logger.warn('JWT detected in loadPickData, clearing and showing error');
+        localStorage.removeItem('pickToken');
+        setError('Your session has expired. Please use a fresh magic link.');
         setLoading(false);
         return;
       }
@@ -202,10 +236,14 @@ export default function PickPage() {
       setLoading(false);
     } catch (err: any) {
       logger.error('Error loading pick data:', err);
-      if (err.response?.status === 401 || err.response?.status === 410) {
-        // Token expired or round locked - clear token and show error
+      if (err.response?.status === 401) {
+        // Token expired - clear token and show error
         localStorage.removeItem('pickToken');
-        setError(err.response?.data?.error || 'Link expired or round locked. Please use a fresh magic link.');
+        setError(err.response?.data?.error || 'Link expired. Please use a fresh magic link.');
+      } else if (err.response?.status === 410 && err.response?.data?.locked === false) {
+        // Magic link expired (not round locked)
+        localStorage.removeItem('pickToken');
+        setError(err.response?.data?.error || 'This magic link has expired. Please use a fresh magic link.');
       } else {
         setError(err.response?.data?.error || 'Failed to load pick data');
       }
@@ -341,12 +379,17 @@ export default function PickPage() {
   const isPicksLocked = () => {
     if (!pickData?.round) return false;
     
-    // Check if round is manually locked
-    if (pickData?.round?.status === 'locked') {
+    // First check the locked flag from API (most reliable)
+    if (pickData.locked === true) {
       return true;
     }
     
-    // Check if past scheduled lock time
+    // Fallback: Check if round is manually locked
+    if (pickData?.round?.status === 'locked' || pickData?.round?.status === 'completed') {
+      return true;
+    }
+    
+    // Fallback: Check if past scheduled lock time
     if (pickData?.round?.lockTime) {
       const lockTime = new Date(pickData.round.lockTime);
       const now = new Date();
@@ -491,12 +534,17 @@ export default function PickPage() {
                   }!
                 </span>
               </h2>
-              <p className="text-lg text-gray-700 dark:text-gray-300 mb-4">
+              <p className="text-lg text-gray-700 dark:text-gray-300 mb-2">
                 {pickData.isSharedEmail 
                   ? `Make your picks for ${pickData?.round?.sportName || 'this round'} below:`
-                  : `It's time to make Your Pick${pickType === 'multiple' && 's'} for ${pickData?.round?.sportName || 'this round'}`
+                  : `It's time to make Your Pick${pickType === 'multiple' ? 's' : ''} for ${pickData?.round?.sportName || 'this round'}`
                 }
               </p>
+              {!pickData.isSharedEmail && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Status: {pickData.currentPick ? '✅ Submitted' : 'Not submitted'}
+                </p>
+              )}
 
               {/* Commissioner Message */}
               {pickData?.round?.email_message && !success && (
