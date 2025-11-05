@@ -2,6 +2,8 @@ import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
 import { 
   ADMIN_MAGIC_LINK_RATE_LIMIT_WINDOW_MS, 
   ADMIN_MAGIC_LINK_RATE_LIMIT_MAX,
+  LOGIN_RATE_LIMIT_WINDOW_MS,
+  LOGIN_RATE_LIMIT_MAX,
   RATE_LIMIT_AUTH_WINDOW_MS,
   RATE_LIMIT_AUTH_MAX,
   RATE_LIMIT_WRITE_WINDOW_MS,
@@ -13,8 +15,8 @@ import { logError } from '../utils/logger';
 
 // Login rate limiter - prevent brute force attacks
 export const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 attempts per window (matches account lockout threshold)
+  windowMs: LOGIN_RATE_LIMIT_WINDOW_MS,
+  max: LOGIN_RATE_LIMIT_MAX, // 10 attempts per window (matches account lockout threshold)
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -111,22 +113,24 @@ export const authLimiter = rateLimit({
 
 // Write rate limiter - moderate limits for write operations
 // Used for picks submission, admin changes, updates, etc.
+// Skip successful requests to allow legitimate admin operations without hitting limits
 export const writeLimiter = rateLimit({
   windowMs: RATE_LIMIT_WRITE_WINDOW_MS,
   max: RATE_LIMIT_WRITE_MAX,
   message: { error: 'Too many write requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: false,
+  skipSuccessfulRequests: true, // Don't count successful requests (legitimate operations)
 });
 
 // Read rate limiter - relaxed limits for read-only operations
 // Used for leaderboards, public data, health checks, etc.
+// Skip successful requests to allow legitimate usage without hitting limits
 export const readLimiter = rateLimit({
   windowMs: RATE_LIMIT_READ_WINDOW_MS,
   max: RATE_LIMIT_READ_MAX,
   message: { error: 'Too many read requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: false,
+  skipSuccessfulRequests: true, // Don't count successful requests (legitimate usage)
 });

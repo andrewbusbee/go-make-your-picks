@@ -41,7 +41,7 @@ export const MAX_NUM_PICKS = 10;
 
 // Rate Limiting
 export const LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-export const LOGIN_RATE_LIMIT_MAX = 5;
+export const LOGIN_RATE_LIMIT_MAX = 10; // 10 attempts per 15 minutes (increased from 5 to align with industry standard)
 export const ADMIN_MAGIC_LINK_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 export const ADMIN_MAGIC_LINK_RATE_LIMIT_MAX = 3;
 export const PASSWORD_RESET_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
@@ -61,19 +61,22 @@ export const RATE_LIMIT_AUTH_MAX = parseInt(
 );
 
 // Write endpoints: moderate limits to prevent abuse
+// Higher limit for admin operations (participants, rounds, users, etc.)
+// With skipSuccessfulRequests: true, only failed requests count, so legitimate operations won't accumulate
 export const RATE_LIMIT_WRITE_WINDOW_MS = parseInt(
   process.env.RATE_LIMIT_WRITE_WINDOW_MS || String(60 * 1000) // 1 minute default
 );
 export const RATE_LIMIT_WRITE_MAX = parseInt(
-  process.env.RATE_LIMIT_WRITE_MAX || '60' // 60 requests per minute
+  process.env.RATE_LIMIT_WRITE_MAX || '500' // 500 requests per minute (only failed requests count, increased from 350)
 );
 
 // Read endpoints: relaxed limits for normal usage
+// Higher limit for read operations (leaderboards, public data, etc.)
 export const RATE_LIMIT_READ_WINDOW_MS = parseInt(
   process.env.RATE_LIMIT_READ_WINDOW_MS || String(60 * 1000) // 1 minute default
 );
 export const RATE_LIMIT_READ_MAX = parseInt(
-  process.env.RATE_LIMIT_READ_MAX || '100' // 100 requests per minute
+  process.env.RATE_LIMIT_READ_MAX || '300' // 300 requests per minute (increased from 100)
 );
 export const PICK_SUBMISSION_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 export const PICK_SUBMISSION_RATE_LIMIT_MAX = 100;
