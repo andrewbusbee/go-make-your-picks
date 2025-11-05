@@ -113,6 +113,8 @@ A modern, player-friendly sports prediction platform that brings people together
    - Frontend: http://localhost:3003
    - Admin Panel: http://localhost:3003/admin/login
    - API Docs: http://localhost:3003/api/docs
+     - **In production mode:** Requires admin authentication
+     - **In development mode:** Publicly accessible
 
 ### First-Time Setup
 
