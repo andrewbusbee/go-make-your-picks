@@ -11,7 +11,7 @@ export const createUserValidators = [
     .isLength({ min: 1, max: 100 }).withMessage('Name must be between 1 and 100 characters'),
   
   body('email')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isEmail().withMessage('Invalid email format'),
 ];
@@ -26,7 +26,7 @@ export const updateUserValidators = [
     .isLength({ min: 1, max: 100 }).withMessage('Name must be between 1 and 100 characters'),
   
   body('email')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isEmail().withMessage('Invalid email format'),
 ];

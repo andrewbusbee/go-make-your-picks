@@ -116,6 +116,15 @@ export default function UsersManagement() {
       return;
     }
 
+    // Basic industry-standard email format check (local@domain.tld)
+    if (!noEmail && email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        setError('Please enter a valid email address');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
@@ -330,8 +339,25 @@ export default function UsersManagement() {
                 </label>
                 <input
                   type="email"
+                  name="Email"
+                  autoComplete="email"
+                  inputMode="email"
+                  pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onInvalid={(e) => {
+                    const el = e.target as HTMLInputElement;
+                    if (el.validity.valueMissing) {
+                      el.setCustomValidity('Email is required unless "User does not have an email address" is checked');
+                    } else if (el.validity.typeMismatch || el.validity.patternMismatch) {
+                      el.setCustomValidity('Please enter a valid email address (e.g., name@example.com)');
+                    } else {
+                      el.setCustomValidity('');
+                    }
+                  }}
+                  onInput={(e) => {
+                    (e.target as HTMLInputElement).setCustomValidity('');
+                  }}
                   disabled={noEmail}
                   className={inputDisabledClasses}
                   required={!noEmail}

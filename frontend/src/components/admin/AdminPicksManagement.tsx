@@ -390,7 +390,7 @@ export default function AdminPicksManagement() {
                       <div className={adminEditContainerClasses}>
                         <div className={adminEditPickChangeClasses}>
                           <span className={adminEditCheckmarkClasses}>✅ </span>
-                          {'(Original Not Tracked)'} → {pickData.pick.pickItems && pickData.pick.pickItems.length > 0 
+                          {pickData.pick.original_pick || '(Original Not Tracked)'} → {pickData.pick.pickItems && pickData.pick.pickItems.length > 0 
                             ? pickData.pick.pickItems.map((item: any) => item.pickValue).join(', ')
                             : '(No Pick)'}
                         </div>

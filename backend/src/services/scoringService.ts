@@ -196,6 +196,7 @@ export class ScoringService {
             const items = pickItemsMap.get(pick.id) || [];
             userPicks[round.id] = {
               ...pick,
+              original_pick: pick.original_pick || null,
               pickItems: items.map(item => ({
                 pickNumber: item.pick_number,
                 pickValue: item.pick_value
