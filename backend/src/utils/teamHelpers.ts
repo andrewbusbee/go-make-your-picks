@@ -7,14 +7,14 @@ import { PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import logger from './logger';
 
 /**
- * Gets or creates a team by name in teams_v2
- * Returns the team_id
+ * Creates a new team in teams_v2 (always creates, never reuses)
+ * Used for round-specific teams to ensure isolation per round
  * 
  * @param connection - Database connection
- * @param teamName - Team name (case-insensitive lookup, but stored as provided)
+ * @param teamName - Team name
  * @returns Team ID
  */
-export async function getOrCreateTeam(
+export async function createTeam(
   connection: PoolConnection,
   teamName: string
 ): Promise<number> {
@@ -22,42 +22,40 @@ export async function getOrCreateTeam(
     throw new Error('Team name cannot be empty');
   }
 
-  // Trim and normalize team name
+  // Trim team name
   const normalizedName = teamName.trim();
 
-  // Try to find existing team (case-insensitive)
-  const [existing] = await connection.query<RowDataPacket[]>(
-    'SELECT id FROM teams_v2 WHERE LOWER(name) = LOWER(?)',
-    [normalizedName]
-  );
-
-  if (existing.length > 0) {
-    return existing[0].id;
-  }
-
-  // Team doesn't exist, create it
-  // Use INSERT IGNORE to handle race conditions (multiple concurrent requests)
+  // Always create a new team (no lookup, no reuse)
+  // This ensures teams are isolated per round
   const [result] = await connection.query<ResultSetHeader>(
-    'INSERT IGNORE INTO teams_v2 (name) VALUES (?)',
+    'INSERT INTO teams_v2 (name) VALUES (?)',
     [normalizedName]
   );
 
-  if (result.insertId) {
-    return result.insertId;
+  if (!result.insertId) {
+    throw new Error(`Failed to create team: ${normalizedName}`);
   }
 
-  // If insertId is 0, it means another request created it between our check and insert
-  // Fetch it now
-  const [created] = await connection.query<RowDataPacket[]>(
-    'SELECT id FROM teams_v2 WHERE LOWER(name) = LOWER(?)',
-    [normalizedName]
-  );
+  return result.insertId;
+}
 
-  if (created.length > 0) {
-    return created[0].id;
-  }
-
-  throw new Error(`Failed to create or find team: ${normalizedName}`);
+/**
+ * Gets or creates a team by name in teams_v2
+ * NOTE: This function now ALWAYS creates (for backward compatibility with write-in picks)
+ * For round-specific teams, use createTeam() instead
+ * 
+ * @param connection - Database connection
+ * @param teamName - Team name
+ * @returns Team ID
+ * @deprecated Use createTeam() for new code. This function is kept for backward compatibility.
+ */
+export async function getOrCreateTeam(
+  connection: PoolConnection,
+  teamName: string
+): Promise<number> {
+  // For write-in picks and backward compatibility, always create new teams
+  // This ensures teams are isolated per round
+  return createTeam(connection, teamName);
 }
 
 /**

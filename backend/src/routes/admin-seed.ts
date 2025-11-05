@@ -6,7 +6,7 @@ import { SettingsService } from '../services/settingsService';
 import { withTransaction } from '../utils/transactionWrapper';
 import { QueryCacheService } from '../services/queryCacheService';
 import { logError, logInfo, logWarn, logDebug } from '../utils/logger';
-import { getOrCreateTeam } from '../utils/teamHelpers';
+import { createTeam } from '../utils/teamHelpers';
 
 const router = express.Router();
 
@@ -220,7 +220,7 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
       completedRoundIds.push(roundId);
 
       // Store winner in round_results_v2 (using teams_v2)
-      const winnerTeamId = await getOrCreateTeam(connection, sport.winner);
+      const winnerTeamId = await createTeam(connection, sport.winner);
       await connection.query(
         'INSERT INTO round_results_v2 (round_id, place, team_id) VALUES (?, 1, ?)',
         [roundId, winnerTeamId]
@@ -252,7 +252,8 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
         // Get unique teams from choices
         const uniqueTeams = [...new Set(choices)];
         for (const team of uniqueTeams) {
-          const teamId = await getOrCreateTeam(connection, team);
+          // Always create new teams per round (round isolation)
+          const teamId = await createTeam(connection, team);
           teamIds.push(teamId);
         }
         if (teamIds.length > 0) {
@@ -310,7 +311,7 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
           throw new Error(`No pick value available for user ${userIndex} in sport ${sport.name}.`);
         }
         
-        const teamId = await getOrCreateTeam(connection, pickValue);
+        const teamId = await createTeam(connection, pickValue);
         await connection.query(
           'INSERT INTO pick_items_v2 (pick_id, pick_number, team_id) VALUES (?, ?, ?)',
           [pickId, 1, teamId]
@@ -372,7 +373,7 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
         throw new Error(`No pick value available for user ${i} in March Madness.`);
       }
       
-      const teamId = await getOrCreateTeam(connection, pickValue);
+      const teamId = await createTeam(connection, pickValue);
       await connection.query(
         'INSERT INTO pick_items_v2 (pick_id, pick_number, team_id) VALUES (?, ?, ?)',
         [pickId, 1, teamId]
@@ -392,7 +393,7 @@ router.post('/seed-test-data', authenticateAdmin, requireMainAdmin, async (req: 
 
       // Random write-in pick from Wimbledon players
       const randomPlayer = wimbledonPlayers[Math.floor(Math.random() * wimbledonPlayers.length)];
-      const teamId = await getOrCreateTeam(connection, randomPlayer);
+      const teamId = await createTeam(connection, randomPlayer);
       await connection.query(
         'INSERT INTO pick_items_v2 (pick_id, pick_number, team_id) VALUES (?, ?, ?)',
         [pickId, 1, teamId]

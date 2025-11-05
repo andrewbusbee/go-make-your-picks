@@ -111,8 +111,14 @@ export default function PickPage() {
         return;
       }
       
-      const res = await api.get(`/picks/validate/${tokenToUse}`);
+      // Use POST instead of GET to avoid token exposure in URL/logs
+      const res = await api.post('/picks/validate', { token: tokenToUse });
       setPickData(res.data);
+      
+      // Check if round data exists before accessing properties
+      if (!res.data || !res.data.round) {
+        throw new Error('Invalid response from server');
+      }
       
       const pickType = res.data.round.pickType || 'single';
       
@@ -240,6 +246,12 @@ export default function PickPage() {
     setSuccess('');
     setSubmitting(true);
 
+    if (!pickData?.round) {
+      setError('Invalid response from server');
+      setSubmitting(false);
+      return;
+    }
+
     const pickType = pickData.round.pickType || 'single';
 
     try {
@@ -287,8 +299,13 @@ export default function PickPage() {
             setSubmitting(false);
             return;
           }
-          // Submit as-is: if it's a number (ID), submit as number; if string (name), submit as string
-          picksToSubmit = [championPick];
+          // Ensure proper type: if it's a numeric string, convert to number; otherwise keep as-is
+          let pickValue: string | number = championPick;
+          if (typeof championPick === 'string' && !isNaN(parseInt(championPick, 10))) {
+            // It's a numeric string - convert to number for team ID
+            pickValue = parseInt(championPick, 10);
+          }
+          picksToSubmit = [pickValue];
         } else if (pickType === 'multiple') {
           // Multiple pick type - submit write-in picks (always strings)
           picksToSubmit = writeInPicks.filter(p => p && p.trim().length > 0);
@@ -322,12 +339,12 @@ export default function PickPage() {
     if (!pickData?.round) return false;
     
     // Check if round is manually locked
-    if (pickData.round.status === 'locked') {
+    if (pickData?.round?.status === 'locked') {
       return true;
     }
     
     // Check if past scheduled lock time
-    if (pickData.round.lockTime) {
+    if (pickData?.round?.lockTime) {
       const lockTime = new Date(pickData.round.lockTime);
       const now = new Date();
       return now > lockTime;
@@ -390,7 +407,7 @@ export default function PickPage() {
 
               <div className="mb-8">
                 <p className="text-lg text-gray-700 dark:text-gray-300 mb-4">
-                  ⏰ Picks for <span className="font-bold text-blue-600 dark:text-blue-400">{pickData.round.sportName}</span> have been LOCKED since the deadline for submitting picks has passed.
+                  ⏰ Picks for <span className="font-bold text-blue-600 dark:text-blue-400">{pickData?.round?.sportName || 'this round'}</span> have been LOCKED since the deadline for submitting picks has passed.
                 </p>
               </div>
 
@@ -473,19 +490,19 @@ export default function PickPage() {
               </h2>
               <p className="text-lg text-gray-700 dark:text-gray-300 mb-4">
                 {pickData.isSharedEmail 
-                  ? `Make your picks for ${pickData.round.sportName} below:`
-                  : `It's time to make Your Pick${pickType === 'multiple' && 's'} for ${pickData.round.sportName}`
+                  ? `Make your picks for ${pickData?.round?.sportName || 'this round'} below:`
+                  : `It's time to make Your Pick${pickType === 'multiple' && 's'} for ${pickData?.round?.sportName || 'this round'}`
                 }
               </p>
 
               {/* Commissioner Message */}
-              {pickData.round.email_message && !success && (
+              {pickData?.round?.email_message && !success && (
                 <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500 rounded-r-md">
                   <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
                     Message from the Commissioner:
                   </p>
                   <p className="text-sm text-blue-700 dark:text-blue-300 whitespace-pre-wrap">
-                    {formatMessage(pickData.round.email_message)}
+                    {formatMessage(pickData?.round?.email_message || '')}
                   </p>
                 </div>
               )}
@@ -556,7 +573,7 @@ export default function PickPage() {
                     {pickType === 'multiple' && (
                       <div className={`${alertInfoClasses} mb-4`}>
                         <p className={alertInfoTextClasses}>
-                          <strong>Instructions:</strong> {pickData.round.sportName} requires a manual pick. Please enter your picks below.
+                          <strong>Instructions:</strong> {pickData?.round?.sportName || 'This round'} requires a manual pick. Please enter your picks below.
                         </p>
                       </div>
                     )}
@@ -583,10 +600,22 @@ export default function PickPage() {
                               <select
                                 value={userPicks[user.id]?.championPick || ''}
                                 onChange={(e) => {
-                                  // Convert string value to number if it's an ID, otherwise keep as string
+                                  // HTML form elements always return strings, so we need to convert
+                                  // Convert string value to number if it's a numeric ID, otherwise keep as string (for team names)
                                   const value = e.target.value;
-                                  const numValue = value ? parseInt(value, 10) : '';
-                                  handleUserPickChange(user.id, 'single', isNaN(numValue as number) ? value : numValue);
+                                  if (!value) {
+                                    handleUserPickChange(user.id, 'single', '');
+                                    return;
+                                  }
+                                  // Try to parse as number (team ID)
+                                  const numValue = parseInt(value, 10);
+                                  if (!isNaN(numValue) && numValue > 0) {
+                                    // It's a valid team ID - send as number
+                                    handleUserPickChange(user.id, 'single', numValue);
+                                  } else {
+                                    // It's a team name (string) - send as string
+                                    handleUserPickChange(user.id, 'single', value);
+                                  }
                                 }}
                                 className={`${selectClasses} py-3`}
                               >
@@ -649,14 +678,38 @@ export default function PickPage() {
                       {pickData.teams && pickData.teams.length > 0 ? (
                         <select
                           value={championPick}
-                          onChange={(e) => setChampionPick(e.target.value)}
+                          onChange={(e) => {
+                            // HTML form elements always return strings, so we need to convert
+                            // Convert string value to number if it's a numeric ID, otherwise keep as string (for team names)
+                            const value = e.target.value;
+                            if (!value) {
+                              setChampionPick('');
+                              return;
+                            }
+                            // Try to parse as number (team ID)
+                            const numValue = parseInt(value, 10);
+                            if (!isNaN(numValue) && numValue > 0) {
+                              // It's a valid team ID - store as number
+                              setChampionPick(numValue);
+                            } else {
+                              // It's a team name (string) - keep as string
+                              setChampionPick(value);
+                            }
+                          }}
                           className={`${selectClasses} py-3`}
                           required
                         >
                           <option value="">Select a team/player...</option>
-                          {pickData.teams.map((team: string) => (
-                            <option key={team} value={team}>{team}</option>
-                          ))}
+                          {pickData.teams.map((team: any) => {
+                            // Handle both old format (string) and new format ({id, name})
+                            const teamId = typeof team === 'object' ? team.id : null;
+                            const teamName = typeof team === 'object' ? team.name : team;
+                            return (
+                              <option key={teamId || teamName} value={teamId || teamName}>
+                                {teamName}
+                              </option>
+                            );
+                          })}
                         </select>
                       ) : (
                         <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-md p-4 text-center">
@@ -669,7 +722,7 @@ export default function PickPage() {
                     <div className="space-y-4">
                       <div className={`${alertInfoClasses} mb-4`}>
                         <p className={alertInfoTextClasses}>
-                            <strong>Instructions:</strong> {pickData.round.sportName} requires a manual pick.  Please enter your picks below and click submit.
+                            <strong>Instructions:</strong> {pickData?.round?.sportName || 'This round'} requires a manual pick.  Please enter your picks below and click submit.
                         </p>
                       </div>
                       
@@ -714,11 +767,11 @@ export default function PickPage() {
             {/* Lock Time Warning */}
             <div className={`${alertWarningClasses} mb-6 mt-4`}>
               <p className={alertWarningTextClasses}>
-                <strong>Lock Time:</strong> {new Date(pickData.round.lockTime).toLocaleString('en-US', {
-                  timeZone: pickData.round.timezone,
+                <strong>Lock Time:</strong> {pickData?.round?.lockTime ? new Date(pickData.round.lockTime).toLocaleString('en-US', {
+                  timeZone: pickData?.round?.timezone || 'UTC',
                   dateStyle: 'full',
                   timeStyle: 'short'
-                })} {pickData.round.timezone}
+                }) + ' ' + (pickData?.round?.timezone || 'UTC') : 'Not available'}
               </p>
               <p className={`${alertWarningTextClasses} text-xs mt-1`}>
                 You can return to this page and update your pick{pickType === 'multiple' && 's'} anytime before this deadline.

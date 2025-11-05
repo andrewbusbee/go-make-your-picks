@@ -17,7 +17,7 @@ import { SettingsService } from '../services/settingsService';
 import logger, { redactEmail } from '../utils/logger';
 import { withTransaction } from '../utils/transactionWrapper';
 import { sanitizePlainText, sanitizePlainTextArray } from '../utils/textSanitizer';
-import { getOrCreateTeam } from '../utils/teamHelpers';
+import { getOrCreateTeam, createTeam } from '../utils/teamHelpers';
 import { generateMagicLinkToken, hashMagicLinkToken } from '../utils/magicLinkToken';
 
 const router = express.Router();
@@ -512,8 +512,8 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
 
               teamIds.push(team.id);
             } else {
-              // Create new team
-              const teamId = await getOrCreateTeam(connection, sanitizedName);
+              // Create new team (always create, never reuse for round isolation)
+              const teamId = await createTeam(connection, sanitizedName);
               teamIds.push(teamId);
             }
           }
@@ -521,31 +521,86 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
           // Legacy format: array of strings
           const cleanedTeams = sanitizePlainTextArray(teams as string[]);
           
-          // Get or create teams in teams_v2, then insert into round_teams_v2
+          // Create new teams in teams_v2 (always create, never reuse for round isolation)
           for (const team of cleanedTeams) {
             if (team.length > 100) {
               throw new Error('Team names must be 100 characters or less');
             }
-            const teamId = await getOrCreateTeam(connection, team);
+            const teamId = await createTeam(connection, team);
             teamIds.push(teamId);
           }
         }
         
         if (teamIds.length > 0) {
-          const teamValues = teamIds.map(teamId => [roundId, teamId]);
+          // Remove duplicates (in case frontend sent duplicate teams)
+          const uniqueTeamIds = [...new Set(teamIds)];
+          
+          if (uniqueTeamIds.length !== teamIds.length) {
+            logger.warn('Duplicate teams detected in round creation', {
+              roundId,
+              originalCount: teamIds.length,
+              uniqueCount: uniqueTeamIds.length,
+              teamIds
+            });
+          }
+          
+          const teamValues = uniqueTeamIds.map(teamId => [roundId, teamId]);
+          
+          // Use INSERT IGNORE to handle potential race conditions or duplicates
           await connection.query(
-            'INSERT INTO round_teams_v2 (round_id, team_id) VALUES ?',
+            'INSERT IGNORE INTO round_teams_v2 (round_id, team_id) VALUES ?',
             [teamValues]
           );
+          
+          // Verify all teams were properly linked
+          const [linkedTeams] = await connection.query<RowDataPacket[]>(
+            'SELECT team_id FROM round_teams_v2 WHERE round_id = ?',
+            [roundId]
+          );
+          
+          const linkedTeamIds = linkedTeams.map(t => t.team_id);
+          const missingTeams = uniqueTeamIds.filter(id => !linkedTeamIds.includes(id));
+          
+          if (missingTeams.length > 0) {
+            logger.error('Failed to link all teams to round', {
+              roundId,
+              expectedTeamIds: uniqueTeamIds,
+              linkedTeamIds,
+              missingTeamIds: missingTeams
+            });
+            throw new Error(`Failed to link ${missingTeams.length} team(s) to round. Please try again.`);
+          }
+          
+          logger.info('Teams successfully linked to round', {
+            roundId,
+            teamCount: uniqueTeamIds.length,
+            teamIds: uniqueTeamIds
+          });
         }
       }
 
       return roundId;
     });
 
+    // Return the created round with teams for frontend verification
+    const [roundData] = await db.query<RowDataPacket[]>(
+      `SELECT r.*, 
+       (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', t.id, 'name', t.name))
+        FROM round_teams_v2 rt
+        JOIN teams_v2 t ON rt.team_id = t.id
+        WHERE rt.round_id = r.id) as teams
+       FROM rounds_v2 r
+       WHERE r.id = ?`,
+      [roundId]
+    );
+    
+    const round = roundData[0] || { id: roundId };
+    const teams = round.teams ? (typeof round.teams === 'string' ? JSON.parse(round.teams) : round.teams) : [];
+    
     res.status(201).json({
       message: 'Round created successfully',
-      id: roundId
+      id: roundId,
+      teams: teams // Include teams so frontend can verify they match
     });
   } catch (error: any) {
     logger.error('Create round error', { error, seasonId, sportName });
@@ -1350,32 +1405,43 @@ router.post('/:id/teams', authenticateAdmin, async (req: AuthRequest, res: Respo
 
       const teamIds: number[] = [];
 
-      // Process each team: update existing or create new
+      // Process each team: update existing (if it belongs to this round) or create new
       for (const team of sanitizedTeams) {
         if (team.id) {
-          // Team has ID - check if it exists and update name if changed
-          const [existing] = await connection.query<RowDataPacket[]>(
-            'SELECT id, name FROM teams_v2 WHERE id = ?',
-            [team.id]
+          // Team has ID - verify it belongs to this round before updating
+          const [roundTeam] = await connection.query<RowDataPacket[]>(
+            'SELECT rt.team_id, t.name FROM round_teams_v2 rt JOIN teams_v2 t ON rt.team_id = t.id WHERE rt.round_id = ? AND rt.team_id = ?',
+            [roundId, team.id]
           );
 
-          if (existing.length === 0) {
-            throw new Error(`Team with ID ${team.id} not found`);
+          if (roundTeam.length === 0) {
+            // Team ID exists but doesn't belong to this round - create new team instead
+            logger.warn('Team ID does not belong to this round, creating new team', {
+              teamId: team.id,
+              roundId,
+              teamName: team.name
+            });
+            const newTeamId = await createTeam(connection, team.name);
+            teamIds.push(newTeamId);
+          } else {
+            // Team belongs to this round - update name if changed
+            if (roundTeam[0].name !== team.name) {
+              await connection.query(
+                'UPDATE teams_v2 SET name = ? WHERE id = ?',
+                [team.name, team.id]
+              );
+              logger.info('Updated team name', { 
+                teamId: team.id, 
+                roundId,
+                oldName: roundTeam[0].name, 
+                newName: team.name 
+              });
+            }
+            teamIds.push(team.id);
           }
-
-          // Update team name if it changed
-          if (existing[0].name !== team.name) {
-            await connection.query(
-              'UPDATE teams_v2 SET name = ? WHERE id = ?',
-              [team.name, team.id]
-            );
-            logger.info('Updated team name', { teamId: team.id, oldName: existing[0].name, newName: team.name });
-          }
-
-          teamIds.push(team.id);
         } else {
-          // New team - create it
-          const teamId = await getOrCreateTeam(connection, team.name);
+          // New team - create it (always create, never reuse for round isolation)
+          const teamId = await createTeam(connection, team.name);
           teamIds.push(teamId);
         }
       }
@@ -1388,11 +1454,50 @@ router.post('/:id/teams', authenticateAdmin, async (req: AuthRequest, res: Respo
 
       // Insert new relationships
       if (teamIds.length > 0) {
-        const teamValues = teamIds.map(teamId => [roundId, teamId]);
+        // Remove duplicates (in case frontend sent duplicate teams)
+        const uniqueTeamIds = [...new Set(teamIds)];
+        
+        if (uniqueTeamIds.length !== teamIds.length) {
+          logger.warn('Duplicate teams detected in round update', {
+            roundId,
+            originalCount: teamIds.length,
+            uniqueCount: uniqueTeamIds.length,
+            teamIds
+          });
+        }
+        
+        const teamValues = uniqueTeamIds.map(teamId => [roundId, teamId]);
+        
+        // Use INSERT IGNORE to handle potential race conditions or duplicates
         await connection.query(
-          'INSERT INTO round_teams_v2 (round_id, team_id) VALUES ?',
+          'INSERT IGNORE INTO round_teams_v2 (round_id, team_id) VALUES ?',
           [teamValues]
         );
+        
+        // Verify all teams were properly linked
+        const [linkedTeams] = await connection.query<RowDataPacket[]>(
+          'SELECT team_id FROM round_teams_v2 WHERE round_id = ?',
+          [roundId]
+        );
+        
+        const linkedTeamIds = linkedTeams.map(t => t.team_id);
+        const missingTeams = uniqueTeamIds.filter(id => !linkedTeamIds.includes(id));
+        
+        if (missingTeams.length > 0) {
+          logger.error('Failed to link all teams to round during update', {
+            roundId,
+            expectedTeamIds: uniqueTeamIds,
+            linkedTeamIds,
+            missingTeamIds: missingTeams
+          });
+          throw new Error(`Failed to link ${missingTeams.length} team(s) to round. Please try again.`);
+        }
+        
+        logger.info('Teams successfully updated for round', {
+          roundId,
+          teamCount: uniqueTeamIds.length,
+          teamIds: uniqueTeamIds
+        });
       }
     });
 

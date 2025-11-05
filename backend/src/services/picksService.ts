@@ -7,7 +7,7 @@
 import { PoolConnection, RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import logger from '../utils/logger';
 import { sanitizePlainTextArray } from '../utils/textSanitizer';
-import { getOrCreateTeam } from '../utils/teamHelpers';
+import { createTeam } from '../utils/teamHelpers';
 
 export interface SubmitPickOptions {
   userId: number;
@@ -82,19 +82,48 @@ export class PicksService {
       const validTeamIds = new Set(teams.map(t => t.id));
       const validTeamNames = new Set(teams.map(t => t.name.toLowerCase()));
       
+      // Debug logging
+      logger.debug('Validating picks against teams', {
+        roundId,
+        pickCount: picks.length,
+        picks,
+        validTeamIds: Array.from(validTeamIds),
+        validTeamNames: Array.from(validTeamNames),
+        teamCount: teams.length
+      });
+      
       for (const pick of picks) {
         // Check if pick is a number (ID) or string (name)
         if (typeof pick === 'number') {
           // ID-based validation: check if team_id exists in round_teams_v2
           if (!validTeamIds.has(pick)) {
+            logger.warn('Invalid team ID submitted', {
+              roundId,
+              teamId: pick,
+              validTeamIds: Array.from(validTeamIds),
+              pickType: typeof pick
+            });
             return {
               valid: false,
               error: `Invalid team ID: ${pick}. Please select from available teams.`
             };
           }
         } else if (typeof pick === 'string') {
+          // Handle string that might be a numeric ID
+          const numPick = parseInt(pick, 10);
+          if (!isNaN(numPick) && validTeamIds.has(numPick)) {
+            // It's a numeric string representing a valid team ID
+            continue;
+          }
+          
           // Name-based validation (for backward compatibility or write-ins)
           if (!validTeamNames.has(pick.toLowerCase())) {
+            logger.warn('Invalid team name submitted', {
+              roundId,
+              teamName: pick,
+              validTeamNames: Array.from(validTeamNames),
+              pickType: typeof pick
+            });
             return {
               valid: false,
               error: `Invalid pick: ${pick}. Please select from available teams.`
@@ -153,10 +182,10 @@ export class PicksService {
           // Already an ID, use it directly (already validated if validateTeams=true)
           teamIds.push(pick);
         } else if (typeof pick === 'string') {
-          // String: sanitize and get/create team
+          // String: sanitize and create new team (always create for write-in picks)
           const cleanedPick = sanitizePlainTextArray([pick])[0];
           if (cleanedPick && cleanedPick.trim().length > 0) {
-            const teamId = await getOrCreateTeam(connection, cleanedPick);
+            const teamId = await createTeam(connection, cleanedPick);
             teamIds.push(teamId);
           }
         }

@@ -19,6 +19,7 @@ import { UpdateMagicLinksFkToRoundsV2 } from './20250123000004_update_magic_link
 import { FixScoringRulesPlaceConstraint } from './20250123000005_fix_scoring_rules_place_constraint';
 import { DropOriginalPickFromPicksV2 } from './20250123000005_drop_original_pick';
 import { CreateSeedDataMetadata } from './20250123000006_create_seed_data_metadata';
+import { RemoveTeamsV2UniqueConstraint } from './20250123000007_remove_teams_v2_unique_constraint';
 
 /**
  * All migrations in order of execution
@@ -38,6 +39,7 @@ export const allMigrations: Migration[] = [
   new FixScoringRulesPlaceConstraint(),
   new DropOriginalPickFromPicksV2(),
   new CreateSeedDataMetadata(),
+  new RemoveTeamsV2UniqueConstraint(),
   // Add new migrations here as needed
 ];
 

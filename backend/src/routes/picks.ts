@@ -7,7 +7,7 @@ import { RowDataPacket, ResultSetHeader } from 'mysql2';
 import moment from 'moment-timezone';
 import { pickSubmissionLimiter, magicLinkValidationLimiter } from '../middleware/rateLimiter';
 import { validateRequest } from '../middleware/validator';
-import { submitPickValidators } from '../validators/picksValidators';
+import { submitPickValidators, submitPickWithTokenValidators } from '../validators/picksValidators';
 import { body } from 'express-validator';
 import logger, { maskMagicToken } from '../utils/logger';
 import { PicksService } from '../services/picksService';
@@ -139,6 +139,13 @@ router.post('/validate', magicLinkValidationLimiter, validateRequest([
          ORDER BY t.name`,
         [link.round_id]
       );
+      
+      logger.debug('Validate endpoint - teams for round', {
+        roundId: link.round_id,
+        teamCount: teams.length,
+        teamIds: teams.map(t => t.id),
+        teamNames: teams.map(t => t.name)
+      });
 
       // Get current picks for all users
       const userIds = users.map(u => u.id);
@@ -223,6 +230,13 @@ router.post('/validate', magicLinkValidationLimiter, validateRequest([
          ORDER BY t.name`,
         [link.round_id]
       );
+      
+      logger.debug('Validate endpoint - teams for round', {
+        roundId: link.round_id,
+        teamCount: teams.length,
+        teamIds: teams.map(t => t.id),
+        teamNames: teams.map(t => t.name)
+      });
 
       // Get user's current pick
       const [picks] = await db.query<RowDataPacket[]>(
@@ -488,6 +502,12 @@ router.post('/submit', authenticatePick, pickSubmissionLimiter, validateRequest(
       return res.status(403).json({ error: 'This round is now locked' });
     } else if (error.message.includes('User ID')) {
       return res.status(400).json({ error: error.message });
+    } else if (error.message.includes('Invalid team') || error.message.includes('Invalid pick')) {
+      // Team validation errors - safe to expose
+      return res.status(400).json({ error: error.message });
+    } else if (error.message.includes('Pick values must be')) {
+      // Validation errors - safe to expose
+      return res.status(400).json({ error: error.message });
     }
     
     // Generic error for all other cases
@@ -497,7 +517,7 @@ router.post('/submit', authenticatePick, pickSubmissionLimiter, validateRequest(
 
 // Legacy endpoint: Submit or update pick via magic link token (deprecated but kept for backward compatibility)
 // This endpoint will be removed in a future version - use POST /picks/submit with JWT instead
-router.post('/:token', pickSubmissionLimiter, validateRequest(submitPickValidators), async (req, res) => {
+router.post('/:token', pickSubmissionLimiter, validateRequest(submitPickWithTokenValidators), async (req, res) => {
   const { token } = req.params;
   const { picks, userId } = req.body;
 

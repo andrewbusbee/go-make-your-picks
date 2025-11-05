@@ -30,8 +30,7 @@ router.get('/', authenticateAdmin, async (req: Request, res: Response) => {
 router.post(
   '/',
   authenticateAdmin,
-  createHistoricalChampionValidators,
-  validateRequest,
+  validateRequest(createHistoricalChampionValidators),
   async (req: Request, res: Response) => {
     const { name, endYear } = req.body;
 
@@ -83,8 +82,7 @@ router.post(
 router.put(
   '/:id',
   authenticateAdmin,
-  updateHistoricalChampionValidators,
-  validateRequest,
+  validateRequest(updateHistoricalChampionValidators),
   async (req: Request, res: Response) => {
     const championId = parseInt(req.params.id);
     const { name, endYear } = req.body;
@@ -145,8 +143,7 @@ router.put(
 router.delete(
   '/:id',
   authenticateAdmin,
-  deleteHistoricalChampionValidators,
-  validateRequest,
+  validateRequest(deleteHistoricalChampionValidators),
   async (req: Request, res: Response) => {
     const championId = parseInt(req.params.id);
 

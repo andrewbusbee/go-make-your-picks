@@ -6,6 +6,7 @@ import cors from 'cors';
 import compression from 'compression';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import rateLimit from 'express-rate-limit';
 import authRoutes from './routes/auth';
 import adminsRoutes from './routes/admins';
@@ -212,9 +213,22 @@ if (enableDevTools) {
   logger.info('🔒 Dev seed routes disabled (ENABLE_DEV_TOOLS not set or false)');
 }
 
-// Serve frontend static files in production
-if (IS_PRODUCTION) {
-  const frontendPath = path.join(__dirname, '../../frontend/dist');
+// Serve frontend static files in production, or in development if dist folder exists
+// This allows Docker/local deployments to work in both modes
+const frontendPath = path.join(__dirname, '../../frontend/dist');
+const frontendExists = fs.existsSync(frontendPath);
+
+logger.info('Frontend serving configuration', {
+  isProduction: IS_PRODUCTION,
+  frontendPath,
+  frontendExists,
+  nodeEnv: NODE_ENV
+});
+
+if (IS_PRODUCTION || frontendExists) {
+  if (!frontendExists) {
+    logger.warn('Frontend dist folder not found, but serving in production mode', { frontendPath });
+  }
   
   // Serve static assets (JS, CSS, images, etc.) but NOT index.html
   app.use(express.static(frontendPath, { index: false }));
@@ -235,10 +249,33 @@ if (IS_PRODUCTION) {
       
       res.send(html);
     } catch (error) {
-      logger.error('Error rendering HTML', { error });
+      logger.error('Error rendering HTML', { error, frontendPath });
       // Fallback to static file on error
-      res.sendFile(path.join(frontendPath, 'index.html'));
+      const indexPath = path.join(frontendPath, 'index.html');
+      if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+      } else {
+        logger.error('Frontend index.html not found', { indexPath });
+        res.status(503).send('Frontend not available. Please build the frontend or start the dev server.');
+      }
     }
+  });
+} else if (IS_DEVELOPMENT) {
+  // In development without dist folder, provide helpful message
+  logger.warn('Frontend dist folder not found in development', { frontendPath });
+  app.get('/', (req, res) => {
+    res.status(503).send(`
+      <html>
+        <head><title>Frontend Not Available</title></head>
+        <body>
+          <h1>Frontend Development Server Required</h1>
+          <p>In development mode, the frontend should be served by the Vite dev server.</p>
+          <p>Please start the frontend dev server: <code>cd frontend && npm run dev</code></p>
+          <p>Or build the frontend: <code>cd frontend && npm run build</code></p>
+          <p>Expected path: ${frontendPath}</p>
+        </body>
+      </html>
+    `);
   });
 }
 
