@@ -935,7 +935,23 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
       
       // Helper to convert team ID or name to team ID
       const getTeamId = async (teamInput: string | number): Promise<number> => {
-        if (typeof teamInput === 'number') {
+        // Handle numeric strings (from HTML select elements which always return strings)
+        if (typeof teamInput === 'string') {
+          const numValue = parseInt(teamInput, 10);
+          if (!isNaN(numValue) && numValue > 0 && String(numValue) === teamInput.trim()) {
+            // It's a numeric string representing a team ID
+            const [teams] = await connection.query<RowDataPacket[]>(
+              'SELECT id FROM teams_v2 WHERE id = ?',
+              [numValue]
+            );
+            if (teams.length === 0) {
+              throw new Error(`Team with ID ${numValue} not found`);
+            }
+            return numValue;
+          }
+          // String name, get or create team
+          return await getOrCreateTeam(connection, teamInput);
+        } else if (typeof teamInput === 'number') {
           // Already an ID, validate it exists
           const [teams] = await connection.query<RowDataPacket[]>(
             'SELECT id FROM teams_v2 WHERE id = ?',
@@ -946,8 +962,7 @@ router.post('/:id/complete', authenticateAdmin, validateRequest(completeRoundVal
           }
           return teamInput;
         } else {
-          // String name, get or create team
-          return await getOrCreateTeam(connection, teamInput);
+          throw new Error('Invalid team input: must be a number (team ID) or string (team name)');
         }
       };
       
@@ -1899,13 +1914,32 @@ router.get('/:id/complete-teams', authenticateAdmin, async (req: AuthRequest, re
     const selectionMethod = settings.completeRoundSelectionMethod || 'player_picks';
 
     // Get all available teams for this round from round_teams_v2 + teams_v2
+    // Also include write-in teams from pick_items_v2 that aren't in round_teams_v2
     const [allTeams] = await db.query<RowDataPacket[]>(
-      `SELECT t.id, t.name as name
-       FROM round_teams_v2 rt
-       JOIN teams_v2 t ON rt.team_id = t.id
-       WHERE rt.round_id = ?
-       ORDER BY t.name`,
-      [roundId]
+      `SELECT DISTINCT combined.id, combined.name
+       FROM (
+         -- Teams linked to the round (from round_teams_v2)
+         SELECT t.id, t.name
+         FROM round_teams_v2 rt
+         JOIN teams_v2 t ON rt.team_id = t.id
+         WHERE rt.round_id = ?
+         
+         UNION
+         
+         -- Write-in teams from picks (from pick_items_v2)
+         SELECT DISTINCT t.id, t.name
+         FROM picks_v2 p
+         JOIN pick_items_v2 pi ON p.id = pi.pick_id
+         JOIN teams_v2 t ON pi.team_id = t.id
+         WHERE p.round_id = ?
+           AND pi.team_id NOT IN (
+             SELECT rt.team_id 
+             FROM round_teams_v2 rt 
+             WHERE rt.round_id = ?
+           )
+       ) as combined
+       ORDER BY combined.name`,
+      [roundId, roundId, roundId]
     );
 
     // If using current approach, return all teams

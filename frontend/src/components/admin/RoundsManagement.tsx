@@ -508,7 +508,7 @@ export default function RoundsManagement() {
       
       // Populate existing data if round was previously completed
       // Use results from round_results_v2 (v2 schema)
-      // Store team IDs instead of names for consistency
+      // For dropdowns: use teamId (number), for text inputs: use teamName (string)
       const results = roundRes.data.results || [];
       const firstPlace = results.find((r: any) => r.place === 1);
       const secondPlace = results.find((r: any) => r.place === 2);
@@ -516,11 +516,15 @@ export default function RoundsManagement() {
       const fourthPlace = results.find((r: any) => r.place === 4);
       const fifthPlace = results.find((r: any) => r.place === 5);
       
-      setFirstPlaceTeam(firstPlace?.teamId || '');
-      setSecondPlaceTeam(secondPlace?.teamId || '');
-      setThirdPlaceTeam(thirdPlace?.teamId || '');
-      setFourthPlaceTeam(fourthPlace?.teamId || '');
-      setFifthPlaceTeam(fifthPlace?.teamId || '');
+      // Determine if using dropdowns (single pick type with teams) or text inputs (write-ins)
+      const useDropdown = roundRes.data.pick_type === 'single' && roundRes.data.teams?.length > 0;
+      
+      // Set team ID for dropdowns, team name for text inputs
+      setFirstPlaceTeam(firstPlace ? (useDropdown ? firstPlace.teamId : firstPlace.teamName) : '');
+      setSecondPlaceTeam(secondPlace ? (useDropdown ? secondPlace.teamId : secondPlace.teamName) : '');
+      setThirdPlaceTeam(thirdPlace ? (useDropdown ? thirdPlace.teamId : thirdPlace.teamName) : '');
+      setFourthPlaceTeam(fourthPlace ? (useDropdown ? fourthPlace.teamId : fourthPlace.teamName) : '');
+      setFifthPlaceTeam(fifthPlace ? (useDropdown ? fifthPlace.teamId : fifthPlace.teamName) : '');
       
       // Initialize manual scores state from existing scores (for multiple pick type)
       const initialScores: any = {};
