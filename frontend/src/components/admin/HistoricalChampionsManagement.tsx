@@ -233,13 +233,7 @@ export default function HistoricalChampionsManagement() {
                   <input
                     type="text"
                     value={name}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // Don't allow empty values
-                      if (value.trim() !== '') {
-                        setName(value);
-                      }
-                    }}
+                    onChange={(e) => setName(e.target.value)}
                     className={historicalChampionsInputClasses}
                     placeholder="Enter champion name"
                     required
