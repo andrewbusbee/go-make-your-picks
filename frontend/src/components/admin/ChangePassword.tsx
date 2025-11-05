@@ -20,7 +20,6 @@ interface ChangePasswordProps {
 }
 
 export default function ChangePassword({ onSuccess, onCancel }: ChangePasswordProps) {
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -48,7 +47,6 @@ export default function ChangePassword({ onSuccess, onCancel }: ChangePasswordPr
 
     try {
       await api.post('/auth/change-password', {
-        currentPassword,
         newPassword
       });
       
@@ -71,19 +69,6 @@ export default function ChangePassword({ onSuccess, onCancel }: ChangePasswordPr
       )}
 
       <form onSubmit={handleSubmit} className={formSectionClasses}>
-        <div>
-          <label className={labelClasses}>
-            Current Password
-          </label>
-          <PasswordInput
-            value={currentPassword}
-            onChange={setCurrentPassword}
-            className={inputClasses}
-            required
-            autoComplete="current-password"
-          />
-        </div>
-
         <div>
           <label className={labelClasses}>
             New Password

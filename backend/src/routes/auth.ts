@@ -412,8 +412,9 @@ router.post('/initial-setup', authenticateAdmin, validateRequest(initialSetupVal
 });
 
 // Change password (for main admin only - secondary admins are passwordless)
+// Note: Old password is not required - admin is already authenticated via JWT
 router.post('/change-password', authenticateAdmin, validateRequest(changePasswordValidators), async (req: AuthRequest, res: Response) => {
-  const { currentPassword, newPassword } = req.body;
+  const { newPassword } = req.body;
 
   try {
     const [admins] = await db.query<RowDataPacket[]>(
@@ -430,12 +431,6 @@ router.post('/change-password', authenticateAdmin, validateRequest(changePasswor
     // Only main admin can change password (secondary admins are passwordless)
     if (!admin.is_main_admin) {
       return res.status(403).json({ error: 'Secondary admins do not have passwords. You use magic links to log in.' });
-    }
-
-    const validPassword = await bcrypt.compare(currentPassword, admin.password_hash);
-
-    if (!validPassword) {
-      return res.status(401).json({ error: 'Current password is incorrect' });
     }
 
     // 🔒 SECURITY: Validate password strength (including weak password check)

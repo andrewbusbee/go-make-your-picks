@@ -52,21 +52,12 @@ export const initialSetupValidators = [
 ];
 
 export const changePasswordValidators = [
-  body('currentPassword')
-    .notEmpty().withMessage('Current password is required'),
-  
   body('newPassword')
     .notEmpty().withMessage('New password is required')
     .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
     .matches(/[A-Z]/).withMessage('Password must contain at least one uppercase letter')
     .matches(/[a-z]/).withMessage('Password must contain at least one lowercase letter')
-    .matches(/[0-9]/).withMessage('Password must contain at least one number')
-    .custom((value, { req }) => {
-      if (value === req.body.currentPassword) {
-        throw new Error('New password must be different from current password');
-      }
-      return true;
-    }),
+    .matches(/[0-9]/).withMessage('Password must contain at least one number'),
 ];
 
 export const forgotPasswordValidators = [
