@@ -24,6 +24,25 @@ export const cleanupOldLoginAttempts = async () => {
   }
 };
 
+// Cleanup expired admin magic links
+export const cleanupExpiredAdminMagicLinks = async () => {
+  try {
+    // Delete expired admin magic links (expires_at <= NOW())
+    const [result] = await db.query<ResultSetHeader>(
+      'DELETE FROM admin_magic_links WHERE expires_at <= NOW()'
+    );
+    
+    if (result.affectedRows > 0) {
+      logger.info(`Cleaned up ${result.affectedRows} expired admin magic link(s)`, { 
+        deleted: result.affectedRows 
+      });
+      logSchedulerEvent(`Cleaned up ${result.affectedRows} expired admin magic links`);
+    }
+  } catch (error) {
+    logger.error('Error cleaning up expired admin magic links', { error });
+  }
+};
+
 // Check for rounds needing reminders and auto-lock expired rounds
 export const checkAndSendReminders = async () => {
   try {
@@ -846,6 +865,7 @@ export const startReminderScheduler = () => {
       
       // Run cleanup (no timeout - let it complete naturally)
       await cleanupOldLoginAttempts();
+      await cleanupExpiredAdminMagicLinks();
       
       const duration = Date.now() - startTime;
       logSchedulerEvent(`Daily cleanup job completed in ${duration}ms`);

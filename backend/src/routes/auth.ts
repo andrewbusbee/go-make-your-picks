@@ -98,16 +98,23 @@ router.post('/send-magic-link', adminMagicLinkLimiter, validateRequest(requestLo
     const token = crypto.randomBytes(ADMIN_MAGIC_LINK_TOKEN_BYTES).toString('hex');
     const expiresAt = new Date(Date.now() + ADMIN_MAGIC_LINK_EXPIRY_MINUTES * 60 * 1000);
 
+    // SECURITY: Hash the token before storing (same as user magic links)
+    // The plain token is sent via email, and on validation we hash the incoming
+    // token and compare it to the stored hash. This prevents token exposure
+    // if the database is compromised.
+    const { hashMagicLinkToken } = await import('../utils/magicLinkToken');
+    const tokenHash = hashMagicLinkToken(token);
+
     // Delete any existing unused magic links for this admin
     await db.query(
       'DELETE FROM admin_magic_links WHERE admin_id = ? AND used_at IS NULL',
       [admin.id]
     );
 
-    // Store new magic link
+    // Store hashed token (not plain text)
     await db.query(
       'INSERT INTO admin_magic_links (admin_id, token, expires_at, ip_address) VALUES (?, ?, ?, ?)',
-      [admin.id, token, expiresAt, ipAddress]
+      [admin.id, tokenHash, expiresAt, ipAddress]
     );
 
     // Send magic link email
@@ -246,10 +253,15 @@ router.post('/verify-magic-link', validateRequest(verifyMagicLinkValidators), as
   const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
 
   try {
-    // Find magic link by token
+    // SECURITY: Hash the incoming token and compare to stored hash
+    // Also support legacy plain-text tokens for backward compatibility during migration
+    const { hashMagicLinkToken } = await import('../utils/magicLinkToken');
+    const tokenHash = hashMagicLinkToken(token);
+    
+    // Find magic link by hashed token (or plain text for legacy tokens)
     const [links] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM admin_magic_links WHERE token = ?',
-      [token]
+      'SELECT * FROM admin_magic_links WHERE token = ? OR token = ?',
+      [tokenHash, token] // Try hash first, then plain text for legacy tokens
     );
 
     if (links.length === 0) {

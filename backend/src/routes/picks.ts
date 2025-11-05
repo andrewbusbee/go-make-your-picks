@@ -8,6 +8,7 @@ import moment from 'moment-timezone';
 import { pickSubmissionLimiter, magicLinkValidationLimiter } from '../middleware/rateLimiter';
 import { validateRequest } from '../middleware/validator';
 import { submitPickValidators } from '../validators/picksValidators';
+import { body } from 'express-validator';
 import logger, { maskMagicToken } from '../utils/logger';
 import { PicksService } from '../services/picksService';
 import { withTransaction } from '../utils/transactionWrapper';
@@ -18,19 +19,58 @@ import { hashMagicLinkToken, verifyMagicLinkToken } from '../utils/magicLinkToke
 const router = express.Router();
 
 /**
- * TODO: Future Enhancement - POST-based magic link validation
- * 
- * Consider adding a POST /api/picks/validate endpoint that accepts the token
- * in the request body instead of the URL path. This would further reduce token
- * exposure in logs, browser history, and referrer headers. The GET endpoint
- * should be kept for backward compatibility during migration.
+ * Shared validation logic for magic link tokens
+ * Returns validation result for email-based or user-based magic links
  */
+async function validateMagicLinkToken(token: string): Promise<{
+  type: 'email' | 'user';
+  data: any;
+} | null> {
+  // First try email-based magic links
+  const validateEmailTokenHash = hashMagicLinkToken(token);
+  const [emailLinks] = await db.query<RowDataPacket[]>(
+    `SELECT eml.*, r.*, s.name as season_name
+     FROM email_magic_links eml
+     JOIN rounds_v2 r ON eml.round_id = r.id
+     JOIN seasons_v2 s ON r.season_id = s.id
+     WHERE (eml.token = ? OR eml.token = ?)`,
+    [validateEmailTokenHash, token] // Try hash first, then plain text for legacy tokens
+  );
+
+  if (emailLinks.length > 0) {
+    return { type: 'email', data: emailLinks[0] };
+  }
+
+  // Fallback to user-based magic links
+  const userTokenHash = hashMagicLinkToken(token);
+  const [links] = await db.query<RowDataPacket[]>(
+    `SELECT ml.*, u.name as user_name, u.email, r.*, s.name as season_name
+     FROM magic_links ml
+     JOIN users u ON ml.user_id = u.id
+     JOIN rounds_v2 r ON ml.round_id = r.id
+     JOIN seasons_v2 s ON r.season_id = s.id
+     WHERE (ml.token = ? OR ml.token = ?)`,
+    [userTokenHash, token] // Try hash first, then plain text for legacy tokens
+  );
+
+  if (links.length > 0) {
+    return { type: 'user', data: links[0] };
+  }
+
+  return null;
+}
 
 /**
+ * @deprecated: Legacy GET magic link validation; prefer POST /api/picks/validate
+ * 
+ * This endpoint is kept for backward compatibility but tokens in URL paths can be
+ * exposed in browser history, server logs, and referrer headers. Use the POST
+ * endpoint instead for better security.
+ * 
  * Validate magic link and get round info
  * 
  * Magic links are multi-use until the round locks. This endpoint validates the token and returns
- * round/user information without issuing a JWT. Use /exchange/:token to get a JWT access token.
+ * round/user information without issuing a JWT. Use /exchange to get a JWT access token.
  * 
  * The magic link remains valid until the round's lock_time or the magic link's expires_at.
  */
@@ -38,22 +78,15 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
   const { token } = req.params;
 
   try {
-    // First try email-based magic links
-    // SECURITY: Hash the incoming token and compare to stored hash
-    // Also support legacy plain-text tokens for backward compatibility during migration
-    const validateEmailTokenHash = hashMagicLinkToken(token);
-    const [emailLinks] = await db.query<RowDataPacket[]>(
-      `SELECT eml.*, r.*, s.name as season_name
-       FROM email_magic_links eml
-       JOIN rounds_v2 r ON eml.round_id = r.id
-       JOIN seasons_v2 s ON r.season_id = s.id
-       WHERE (eml.token = ? OR eml.token = ?)`,
-      [validateEmailTokenHash, token] // Try hash first, then plain text for legacy tokens
-    );
+    const validationResult = await validateMagicLinkToken(token);
+    
+    if (!validationResult) {
+      return res.status(404).json({ error: 'Invalid magic link' });
+    }
 
-    if (emailLinks.length > 0) {
+    if (validationResult.type === 'email') {
       // Handle email-based magic link (shared email scenario)
-      const link = emailLinks[0];
+      const link = validationResult.data;
       
       // Validate magic link is still active
       // Check both round lock time and magic link expires_at (use stricter of the two)
@@ -155,44 +188,26 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
         },
         teams: teams.map(t => ({ id: t.id, name: t.name }))
       });
-    }
+    } else {
+      // Handle user-based magic link
+      const link = validationResult.data;
+      
+      // Get current time in the round's timezone
+      const now = moment.tz(link.timezone);
+      
+      // Parse lock time from database (stored as UTC) and convert to round's timezone
+      const lockTime = moment.utc(link.lock_time).tz(link.timezone);
 
-    // Fallback to user-based magic links (legacy support)
-    // SECURITY: Hash the incoming token and compare to stored hash
-    // Also support legacy plain-text tokens for backward compatibility during migration
-    const userTokenHash = hashMagicLinkToken(token);
-    const [links] = await db.query<RowDataPacket[]>(
-      `SELECT ml.*, u.name as user_name, u.email, r.*, s.name as season_name
-       FROM magic_links ml
-       JOIN users u ON ml.user_id = u.id
-       JOIN rounds_v2 r ON ml.round_id = r.id
-       JOIN seasons_v2 s ON r.season_id = s.id
-       WHERE (ml.token = ? OR ml.token = ?)`,
-      [userTokenHash, token] // Try hash first, then plain text for legacy tokens
-    );
+      // Check if expired
+      if (now.isAfter(lockTime)) {
+        return res.status(403).json({ 
+          error: 'This round is now locked',
+          locked: true
+        });
+      }
 
-    if (links.length === 0) {
-      return res.status(404).json({ error: 'Invalid magic link' });
-    }
-
-    const link = links[0];
-    
-    // Get current time in the round's timezone
-    const now = moment.tz(link.timezone);
-    
-    // Parse lock time from database (stored as UTC) and convert to round's timezone
-    const lockTime = moment.utc(link.lock_time).tz(link.timezone);
-
-    // Check if expired
-    if (now.isAfter(lockTime)) {
-      return res.status(403).json({ 
-        error: 'This round is now locked',
-        locked: true
-      });
-    }
-
-    // Get available teams from round_teams_v2 + teams_v2 (with IDs for dropdown)
-    const [teams] = await db.query<RowDataPacket[]>(
+      // Get available teams from round_teams_v2 + teams_v2 (with IDs for dropdown)
+      const [teams] = await db.query<RowDataPacket[]>(
       `SELECT t.id, t.name
        FROM round_teams_v2 rt
        JOIN teams_v2 t ON rt.team_id = t.id
@@ -252,6 +267,211 @@ router.get('/validate/:token', magicLinkValidationLimiter, async (req, res) => {
     });
   } catch (error) {
     logger.error('Validate magic link error', { error, tokenMasked: maskMagicToken(token) });
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+/**
+ * POST /api/picks/validate - Validate magic link token (preferred method)
+ * 
+ * This endpoint accepts the token in the request body instead of the URL path,
+ * which reduces token exposure in logs, browser history, and referrer headers.
+ * 
+ * Request body: { "token": "<magicLinkToken>" }
+ * 
+ * Magic links are multi-use until the round locks. This endpoint validates the token 
+ * and returns round/user information without issuing a JWT. Use /exchange to get a JWT access token.
+ * 
+ * The magic link remains valid until the round's lock_time or the magic link's expires_at.
+ */
+router.post('/validate', magicLinkValidationLimiter, validateRequest([
+  body('token')
+    .notEmpty().withMessage('Token is required')
+    .isString().withMessage('Token must be a string')
+]), async (req, res) => {
+  const { token } = req.body;
+
+  try {
+    const validationResult = await validateMagicLinkToken(token);
+    
+    if (!validationResult) {
+      return res.status(404).json({ error: 'Invalid magic link' });
+    }
+
+    if (validationResult.type === 'email') {
+      // Handle email-based magic link (shared email scenario)
+      const link = validationResult.data;
+      
+      // Validate magic link is still active
+      const now = moment.tz(link.timezone);
+      const lockTime = moment.utc(link.lock_time).tz(link.timezone);
+      const expiresAt = moment.utc(link.expires_at).tz(link.timezone);
+
+      if (link.status === 'locked' || link.status === 'completed' || now.isAfter(lockTime) || now.isAfter(expiresAt)) {
+        return res.status(410).json({ 
+          error: 'This magic link has expired or the round is now locked',
+          locked: true
+        });
+      }
+
+      // Get all users with this email address
+      const [users] = await db.query<RowDataPacket[]>(
+        `SELECT u.id, u.name, u.email
+         FROM users u
+         JOIN season_participants_v2 sp ON u.id = sp.user_id
+         WHERE u.email = ? AND sp.season_id = ? AND u.is_active = TRUE
+         ORDER BY u.name ASC`,
+        [link.email, link.season_id]
+      );
+
+      if (users.length === 0) {
+        return res.status(404).json({ error: 'No active users found for this email' });
+      }
+
+      // Get available teams
+      const [teams] = await db.query<RowDataPacket[]>(
+        `SELECT t.id, t.name
+         FROM round_teams_v2 rt
+         JOIN teams_v2 t ON rt.team_id = t.id
+         WHERE rt.round_id = ?
+         ORDER BY t.name`,
+        [link.round_id]
+      );
+
+      // Get current picks for all users
+      const userIds = users.map(u => u.id);
+      const [picks] = await db.query<RowDataPacket[]>(
+        'SELECT * FROM picks_v2 WHERE user_id IN (?) AND round_id = ?',
+        [userIds, link.round_id]
+      );
+
+      const pickIds = picks.map(p => p.id);
+      let pickItems: RowDataPacket[] = [];
+      if (pickIds.length > 0) {
+        [pickItems] = await db.query<RowDataPacket[]>(
+          `SELECT pi.pick_id, pi.pick_number, t.name as pick_value
+           FROM pick_items_v2 pi
+           JOIN teams_v2 t ON pi.team_id = t.id
+           WHERE pi.pick_id IN (?)
+           ORDER BY pi.pick_id, pi.pick_number`,
+          [pickIds]
+        );
+      }
+
+      const userPicks = users.map(user => {
+        const userPick = picks.find(p => p.user_id === user.id);
+        let currentPick = null;
+        
+        if (userPick) {
+          const items = pickItems.filter(item => item.pick_id === userPick.id);
+          currentPick = {
+            id: userPick.id,
+            pickItems: items.map(item => ({
+              pickNumber: item.pick_number,
+              pickValue: item.pick_value
+            }))
+          };
+        }
+
+        return {
+          id: user.id,
+          name: user.name,
+          currentPick
+        };
+      });
+
+      return res.json({
+        valid: true,
+        isSharedEmail: true,
+        email: link.email,
+        users: userPicks,
+        round: {
+          id: link.round_id,
+          sportName: link.sport_name,
+          pickType: link.pick_type || 'single',
+          numWriteInPicks: link.num_write_in_picks,
+          lockTime: link.lock_time,
+          timezone: link.timezone,
+          status: link.status,
+          seasonName: link.season_name,
+          email_message: link.email_message
+        },
+        teams: teams.map(t => ({ id: t.id, name: t.name }))
+      });
+    } else {
+      // Handle user-based magic link
+      const link = validationResult.data;
+      
+      const now = moment.tz(link.timezone);
+      const lockTime = moment.utc(link.lock_time).tz(link.timezone);
+
+      if (now.isAfter(lockTime)) {
+        return res.status(403).json({ 
+          error: 'This round is now locked',
+          locked: true
+        });
+      }
+
+      // Get available teams
+      const [teams] = await db.query<RowDataPacket[]>(
+        `SELECT t.id, t.name
+         FROM round_teams_v2 rt
+         JOIN teams_v2 t ON rt.team_id = t.id
+         WHERE rt.round_id = ?
+         ORDER BY t.name`,
+        [link.round_id]
+      );
+
+      // Get user's current pick
+      const [picks] = await db.query<RowDataPacket[]>(
+        'SELECT * FROM picks_v2 WHERE user_id = ? AND round_id = ?',
+        [link.user_id, link.round_id]
+      );
+
+      let currentPick = null;
+      if (picks.length > 0) {
+        const [pickItems] = await db.query<RowDataPacket[]>(
+          `SELECT pi.pick_number, t.name as pick_value
+           FROM pick_items_v2 pi
+           JOIN teams_v2 t ON pi.team_id = t.id
+           WHERE pi.pick_id = ?
+           ORDER BY pi.pick_number`,
+          [picks[0].id]
+        );
+        
+        currentPick = {
+          id: picks[0].id,
+          pickItems: pickItems.map(item => ({
+            pickNumber: item.pick_number,
+            pickValue: item.pick_value
+          }))
+        };
+      }
+
+      return res.json({
+        valid: true,
+        isSharedEmail: false,
+        user: {
+          id: link.user_id,
+          name: link.user_name
+        },
+        round: {
+          id: link.round_id,
+          sportName: link.sport_name,
+          pickType: link.pick_type || 'single',
+          numWriteInPicks: link.num_write_in_picks,
+          lockTime: link.lock_time,
+          timezone: link.timezone,
+          status: link.status,
+          seasonName: link.season_name,
+          email_message: link.email_message
+        },
+        teams: teams.map(t => ({ id: t.id, name: t.name })),
+        currentPick
+      });
+    }
+  } catch (error) {
+    logger.error('Validate magic link error (POST)', { error, tokenMasked: maskMagicToken(token) });
     res.status(500).json({ error: 'Server error' });
   }
 });

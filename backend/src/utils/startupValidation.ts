@@ -63,12 +63,97 @@ export function validateJwtSecret(): void {
 }
 
 /**
+ * Validates database password environment variable
+ * Exits process if validation fails in production
+ */
+export function validateDatabasePassword(): void {
+  const dbPassword = process.env.MARIADB_PASSWORD;
+  
+  if (IS_PRODUCTION) {
+    if (!dbPassword || dbPassword.trim() === '') {
+      logger.error('FATAL: MARIADB_PASSWORD environment variable is not set!');
+      logger.error('This is a critical security requirement. The application cannot start without it in production.');
+      logger.error('Please set MARIADB_PASSWORD in your environment or .env file.');
+      process.exit(1);
+    }
+    
+    // Check for default/example passwords
+    const dangerousDefaults = [
+      'pickspass',
+      'password',
+      'root',
+      'admin',
+      'changeme',
+      '123456',
+      ''
+    ];
+    
+    if (dangerousDefaults.some(bad => dbPassword.toLowerCase() === bad.toLowerCase())) {
+      logger.error('FATAL: MARIADB_PASSWORD appears to be a default/example value!');
+      logger.error('Please set a strong, unique database password.');
+      logger.error('This is a critical security requirement for production.');
+      process.exit(1);
+    }
+    
+    logger.info('✅ MARIADB_PASSWORD validation passed', { 
+      environment: NODE_ENV
+    });
+  } else {
+    // In non-production, allow empty password but warn
+    if (!dbPassword || dbPassword.trim() === '') {
+      logger.warn('⚠️  WARNING: MARIADB_PASSWORD is not set');
+      logger.warn('Using default password for development (NOT for production)');
+    }
+  }
+}
+
+/**
+ * Validates CORS configuration
+ * Exits process if validation fails in production
+ */
+export function validateCorsConfiguration(): void {
+  if (IS_PRODUCTION) {
+    const allowedOriginsEnv = process.env.ALLOWED_ORIGINS;
+    const appUrl = process.env.APP_URL;
+    
+    // In production, we must have at least one explicit origin configured
+    if (!allowedOriginsEnv && !appUrl) {
+      logger.error('FATAL: CORS configuration is missing in production!');
+      logger.error('Either ALLOWED_ORIGINS or APP_URL must be set in production.');
+      logger.error('This is a critical security requirement to prevent CSRF attacks.');
+      logger.error('Please set ALLOWED_ORIGINS (comma-separated list) or APP_URL in your environment.');
+      process.exit(1);
+    }
+    
+    if (allowedOriginsEnv) {
+      const origins = allowedOriginsEnv
+        .split(',')
+        .map(origin => origin.trim())
+        .filter(origin => origin.length > 0);
+      
+      if (origins.length === 0) {
+        logger.error('FATAL: ALLOWED_ORIGINS is set but contains no valid origins!');
+        logger.error('Please provide at least one valid origin in ALLOWED_ORIGINS.');
+        process.exit(1);
+      }
+    }
+    
+    logger.info('✅ CORS configuration validation passed', { 
+      hasAllowedOrigins: !!allowedOriginsEnv,
+      hasAppUrl: !!appUrl
+    });
+  }
+}
+
+/**
  * Validates critical environment configuration on startup
  */
 export function runStartupValidation(): void {
   logger.info('Running startup validation checks...');
   
   validateJwtSecret();
+  validateDatabasePassword();
+  validateCorsConfiguration();
   
   // Add more startup checks here as needed
   

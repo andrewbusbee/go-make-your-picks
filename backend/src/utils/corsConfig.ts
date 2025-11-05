@@ -42,9 +42,11 @@ export function getAllowedOrigins(): string[] | ((origin: string | undefined, ca
       return [appUrl];
     }
     
-    // No origins configured - log warning but allow requests (for backward compatibility)
-    logger.warn('CORS: No ALLOWED_ORIGINS or APP_URL set in production - allowing all origins (not recommended)');
-    return ['*'];
+    // No origins configured - this should have been caught by startupValidation
+    // But fail-safe: throw error instead of allowing wildcard
+    logger.error('CORS: No ALLOWED_ORIGINS or APP_URL set in production!');
+    logger.error('This should have been caught by startup validation. Failing safe.');
+    throw new Error('CORS configuration is missing in production. This should have been caught by startup validation.');
   } else {
     // Development: Allow localhost variations for frontend dev server flexibility
     const defaultPort = parseInt(process.env.PORT || '3003');
