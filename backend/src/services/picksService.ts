@@ -92,6 +92,22 @@ export class PicksService {
         teamCount: teams.length
       });
       
+      // Additional validation: Check if submitted team IDs belong to this round
+      // This helps catch cases where frontend shows teams from one round but JWT is for another
+      const submittedTeamIds = picks.filter((p): p is number => typeof p === 'number');
+      if (submittedTeamIds.length > 0) {
+        const invalidTeamIds = submittedTeamIds.filter(id => !validTeamIds.has(id));
+        if (invalidTeamIds.length > 0) {
+          logger.warn('Team IDs submitted do not belong to this round', {
+            roundId,
+            submittedTeamIds,
+            invalidTeamIds,
+            validTeamIds: Array.from(validTeamIds),
+            possibleIssue: 'Frontend may be showing teams from a different round than the JWT token'
+          });
+        }
+      }
+      
       for (const pick of picks) {
         // Check if pick is a number (ID) or string (name)
         if (typeof pick === 'number') {

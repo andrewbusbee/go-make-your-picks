@@ -416,6 +416,14 @@ router.post('/submit', authenticatePick, pickSubmissionLimiter, validateRequest(
   const roundId = req.roundId!;
   const seasonId = req.seasonId!;
 
+  logger.debug('Pick submission received', {
+    roundId,
+    seasonId,
+    pickCount: picks?.length || 0,
+    picks: picks?.slice(0, 5), // Log first 5 picks to avoid huge logs
+    userId
+  });
+
   try {
     await withTransaction(async (connection) => {
       // Get round details
@@ -504,7 +512,11 @@ router.post('/submit', authenticatePick, pickSubmissionLimiter, validateRequest(
       return res.status(400).json({ error: error.message });
     } else if (error.message.includes('Invalid team') || error.message.includes('Invalid pick')) {
       // Team validation errors - safe to expose
-      return res.status(400).json({ error: error.message });
+      // Add helpful context if teams don't match the round
+      const errorMessage = error.message.includes('Invalid team ID') 
+        ? `${error.message} The teams you selected may be from a different round. Please refresh the page and use the correct magic link for this round.`
+        : error.message;
+      return res.status(400).json({ error: errorMessage });
     } else if (error.message.includes('Pick values must be')) {
       // Validation errors - safe to expose
       return res.status(400).json({ error: error.message });

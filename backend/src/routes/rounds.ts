@@ -595,12 +595,12 @@ router.post('/', authenticateAdmin, validateRequest(createRoundValidators), asyn
     );
     
     const round = roundData[0] || { id: roundId };
-    const teams = round.teams ? (typeof round.teams === 'string' ? JSON.parse(round.teams) : round.teams) : [];
+    const roundTeams = round.teams ? (typeof round.teams === 'string' ? JSON.parse(round.teams) : round.teams) : [];
     
     res.status(201).json({
       message: 'Round created successfully',
       id: roundId,
-      teams: teams // Include teams so frontend can verify they match
+      teams: roundTeams // Include teams so frontend can verify they match
     });
   } catch (error: any) {
     logger.error('Create round error', { error, seasonId, sportName });
@@ -720,6 +720,12 @@ router.put('/:id', authenticateAdmin, validateRequest(updateRoundValidators), as
 router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: AuthRequest, res: Response) => {
   const roundId = parseInt(req.params.id);
 
+  logger.info('Activating round', { 
+    roundId, 
+    urlRoundId: req.params.id,
+    adminId: req.adminId 
+  });
+
   try {
     // Get round details
     const [rounds] = await db.query<RowDataPacket[]>(
@@ -728,10 +734,18 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
     );
 
     if (rounds.length === 0) {
+      logger.warn('Round not found for activation', { roundId, urlRoundId: req.params.id });
       return res.status(404).json({ error: 'Round not found' });
     }
 
     const round = rounds[0];
+    
+    logger.debug('Round found for activation', {
+      roundId,
+      sportName: round.sport_name,
+      seasonId: round.season_id,
+      status: round.status
+    });
 
     // Update round status
     await db.query('UPDATE rounds_v2 SET status = ? WHERE id = ?', ['active', roundId]);
@@ -802,6 +816,7 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
         magicLink: `${APP_URL}/pick/${plainToken}`
       });
       emailMagicLinkValues.push([email, roundId, tokenHash, expiresAt]); // Store hash in DB
+      logger.debug('Created email magic link', { email: redactEmail(email), roundId, userCount: users.length });
     }
 
     // Generate user-based magic links for single-user emails
@@ -816,6 +831,7 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
         magicLink: `${APP_URL}/pick/${plainToken}`
       });
       userMagicLinkValues.push([user.id, roundId, tokenHash, expiresAt]); // Store hash in DB
+      logger.debug('Created user magic link', { userId: user.id, roundId, email: redactEmail(user.email) });
     }
 
     // Create email-based magic links for shared emails
@@ -824,6 +840,11 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
         'INSERT INTO email_magic_links (email, round_id, token, expires_at) VALUES ?',
         [emailMagicLinkValues]
       );
+      logger.info('Inserted email magic links', { 
+        roundId, 
+        count: emailMagicLinkValues.length,
+        roundIds: [...new Set(emailMagicLinkValues.map(v => v[1]))] // Verify all use same roundId
+      });
     }
 
     // Create user-based magic links for single users
@@ -832,6 +853,11 @@ router.post('/:id/activate', authenticateAdmin, activationLimiter, async (req: A
         'INSERT INTO magic_links (user_id, round_id, token, expires_at) VALUES ?',
         [userMagicLinkValues]
       );
+      logger.info('Inserted user magic links', { 
+        roundId, 
+        count: userMagicLinkValues.length,
+        roundIds: [...new Set(userMagicLinkValues.map(v => v[1]))] // Verify all use same roundId
+      });
     }
 
     // Send all emails in parallel (much faster than sequential)

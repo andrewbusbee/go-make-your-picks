@@ -49,24 +49,33 @@ export default function PickPage() {
     loadSettings();
     loadCommissioner();
     
-    // Exchange magic link token for JWT if token is present and we don't have a JWT yet
-    if (token && !localStorage.getItem('pickToken')) {
+    // Exchange magic link token for JWT if token is present in URL
+    // Always exchange when a new token is in URL (even if we have an existing JWT)
+    // This ensures we use the correct round if user clicks a new magic link
+    if (token) {
       // Store token in state before URL cleanup
       setMagicToken(token);
       exchangeTokenForJWT(token);
     } else if (magicToken) {
-      // If we already have a stored token, just load data
+      // If we already have a stored token but no new token in URL, just load data
       loadPickData();
+    } else {
+      // No token at all - show error
+      setError('Invalid or expired link');
+      setLoading(false);
     }
   }, [token]);
   
   const exchangeTokenForJWT = async (magicToken: string) => {
     try {
       const res = await api.post(`/picks/exchange/${magicToken}`);
-      const { token: jwtToken } = res.data;
+      const { token: jwtToken, roundId } = res.data;
       
-      // Store JWT token
+      // Always store the new JWT token (replaces any existing token)
+      // This ensures we use the correct round for the new magic link
       localStorage.setItem('pickToken', jwtToken);
+      
+      logger.info('Magic link exchanged for JWT', { roundId });
       
       // Load pick data BEFORE cleaning URL (needs token for validate endpoint)
       await loadPickData();
