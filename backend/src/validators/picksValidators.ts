@@ -73,11 +73,19 @@ export const adminCreatePickValidators = [
         return true;
       }
       
-      const invalidPicks = picks.filter((pick: any) => 
-        typeof pick !== 'string' || pick.trim().length === 0 || pick.length > 100
-      );
+      // Check that all picks are either strings or numbers (team IDs)
+      const invalidPicks = picks.filter((pick: any) => {
+        // Allow numbers (team IDs) or non-empty strings
+        if (typeof pick === 'number') {
+          return pick <= 0; // Reject invalid IDs
+        }
+        if (typeof pick === 'string') {
+          return pick.trim().length === 0 || pick.length > 100;
+        }
+        return true; // Reject other types
+      });
       if (invalidPicks.length > 0) {
-        throw new Error('Each pick must be a non-empty string with max 100 characters');
+        throw new Error('Each pick must be a valid team ID (number) or a non-empty string with max 100 characters');
       }
       return true;
     }),
