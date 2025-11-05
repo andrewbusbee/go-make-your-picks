@@ -34,7 +34,7 @@ router.get('/', async (req, res) => {
       app_title: 'Go Make Your Picks',
       app_tagline: 'Predict. Compete. Win.',
       footer_message: 'Built for Sports Fans',
-      points_first_place: 6,
+      points_first_place: 7,
       points_second_place: 5,
       points_third_place: 4,
       points_fourth_place: 3,

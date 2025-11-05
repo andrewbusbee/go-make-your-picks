@@ -62,7 +62,7 @@ export default function AppSettings() {
   const [footerMessage, setFooterMessage] = useState('');
   const [themeMode, setThemeMode] = useState<'dark_only' | 'light_only' | 'user_choice'>('user_choice');
   const [completeRoundSelectionMethod, setCompleteRoundSelectionMethod] = useState<'current' | 'player_picks'>('player_picks');
-  const [pointsFirstPlace, setPointsFirstPlace] = useState(6);
+  const [pointsFirstPlace, setPointsFirstPlace] = useState(7);
   const [pointsSecondPlace, setPointsSecondPlace] = useState(5);
   const [pointsThirdPlace, setPointsThirdPlace] = useState(4);
   const [pointsFourthPlace, setPointsFourthPlace] = useState(3);
@@ -74,7 +74,7 @@ export default function AppSettings() {
   const [originalFooterMessage, setOriginalFooterMessage] = useState('');
   const [originalThemeMode, setOriginalThemeMode] = useState<'dark_only' | 'light_only' | 'user_choice'>('user_choice');
   const [originalCompleteRoundSelectionMethod, setOriginalCompleteRoundSelectionMethod] = useState<'current' | 'player_picks'>('player_picks');
-  const [originalPointsFirstPlace, setOriginalPointsFirstPlace] = useState(6);
+  const [originalPointsFirstPlace, setOriginalPointsFirstPlace] = useState(7);
   const [originalPointsSecondPlace, setOriginalPointsSecondPlace] = useState(5);
   const [originalPointsThirdPlace, setOriginalPointsThirdPlace] = useState(4);
   const [originalPointsFourthPlace, setOriginalPointsFourthPlace] = useState(3);
@@ -103,7 +103,7 @@ export default function AppSettings() {
       setOriginalFooterMessage(res.data.footer_message || 'Built for Sports Fans');
       setThemeMode(res.data.theme_mode || 'user_choice');
       setCompleteRoundSelectionMethod(res.data.complete_round_selection_method || 'player_picks');
-      setPointsFirstPlace(parseInt(res.data.points_first_place) || 6);
+      setPointsFirstPlace(parseInt(res.data.points_first_place) || 7);
       setPointsSecondPlace(parseInt(res.data.points_second_place) || 5);
       setPointsThirdPlace(parseInt(res.data.points_third_place) || 4);
       setPointsFourthPlace(parseInt(res.data.points_fourth_place) || 3);
@@ -116,7 +116,7 @@ export default function AppSettings() {
       setOriginalFooterMessage(res.data.footer_message || 'Built for Sports Fans');
       setOriginalThemeMode(res.data.theme_mode || 'user_choice');
       setOriginalCompleteRoundSelectionMethod(res.data.complete_round_selection_method || 'player_picks');
-      setOriginalPointsFirstPlace(parseInt(res.data.points_first_place) || 6);
+      setOriginalPointsFirstPlace(parseInt(res.data.points_first_place) || 7);
       setOriginalPointsSecondPlace(parseInt(res.data.points_second_place) || 5);
       setOriginalPointsThirdPlace(parseInt(res.data.points_third_place) || 4);
       setOriginalPointsFourthPlace(parseInt(res.data.points_fourth_place) || 3);

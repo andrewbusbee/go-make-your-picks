@@ -277,7 +277,7 @@ CREATE TABLE IF NOT EXISTS season_winners (
     place INT NOT NULL,
     user_id INT NOT NULL,
     total_points INT NOT NULL,
-    points_first_place INT NOT NULL DEFAULT 6,
+    points_first_place INT NOT NULL DEFAULT 7,
     points_second_place INT NOT NULL DEFAULT 5,
     points_third_place INT NOT NULL DEFAULT 4,
     points_fourth_place INT NOT NULL DEFAULT 3,
@@ -313,7 +313,7 @@ ON DUPLICATE KEY UPDATE setting_key=setting_key;
 
 -- Insert default numeric settings
 INSERT INTO numeric_settings (setting_key, setting_value, min_value, max_value) VALUES 
-('points_first_place', 6, 0, 20),
+('points_first_place', 7, 0, 20),
 ('points_second_place', 5, 0, 20),
 ('points_third_place', 4, 0, 20),
 ('points_fourth_place', 3, 0, 20),

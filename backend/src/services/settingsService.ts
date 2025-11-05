@@ -96,7 +96,7 @@ export class SettingsService {
       );
 
       const settings: PointsSettings = {
-        pointsFirst: settingsRows.find(s => s.setting_key === 'points_first_place')?.setting_value || 6,
+        pointsFirst: settingsRows.find(s => s.setting_key === 'points_first_place')?.setting_value || 7,
         pointsSecond: settingsRows.find(s => s.setting_key === 'points_second_place')?.setting_value || 5,
         pointsThird: settingsRows.find(s => s.setting_key === 'points_third_place')?.setting_value || 4,
         pointsFourth: settingsRows.find(s => s.setting_key === 'points_fourth_place')?.setting_value || 3,
@@ -114,7 +114,7 @@ export class SettingsService {
       
       // Return defaults if query fails
       return {
-        pointsFirst: 6,
+        pointsFirst: 7,
         pointsSecond: 5,
         pointsThird: 4,
         pointsFourth: 3,
