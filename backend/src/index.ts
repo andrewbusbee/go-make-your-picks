@@ -89,6 +89,14 @@ if (process.env.NODE_ENV === 'production' && process.env.ENABLE_DEV_TOOLS === 't
 // Central enableDevTools flag - only enable dev routes when explicitly set to 'true'
 const enableDevTools = process.env.ENABLE_DEV_TOOLS === 'true';
 
+// 🔒 SECURITY: Additional runtime check to prevent dev seed routes in production
+// This provides defense in depth alongside the earlier startup validation
+if (enableDevTools && IS_PRODUCTION) {
+  logger.error('FATAL: Dev tools (seed routes) enabled in production. Set ENABLE_DEV_TOOLS=false.');
+  logger.error('Seed routes are a security risk and must not be accessible in production.');
+  process.exit(1);
+}
+
 const app = express();
 const PORT = parseInt(process.env.PORT || String(DEFAULT_PORT));
 

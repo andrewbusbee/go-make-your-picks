@@ -493,9 +493,11 @@ router.post('/clear-test-data', authenticateAdmin, requireMainAdmin, async (req:
         );
 
         // Delete users by ID (CASCADE will handle picks_v2, season_participants_v2)
+        // 🔒 SECURITY: Use parameterized query with proper placeholder construction
         if (userIds.length > 0) {
+          const placeholders = userIds.map(() => '?').join(',');
           const [userDeleteResult] = await connection.query<ResultSetHeader>(
-            `DELETE FROM users WHERE id IN (${userIds.map(() => '?').join(', ')})`,
+            `DELETE FROM users WHERE id IN (${placeholders})`,
             userIds
           );
           logInfo('Users deleted successfully', { count: userDeleteResult.affectedRows, expected: userIds.length });

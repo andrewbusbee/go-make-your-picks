@@ -23,6 +23,7 @@ import {
   resetPasswordValidators,
 } from '../validators/authValidators';
 import logger, { redactEmail, maskMagicToken } from '../utils/logger';
+import { hashMagicLinkToken } from '../utils/magicLinkToken';
 import { 
   PASSWORD_SALT_ROUNDS, 
   ADMIN_MAGIC_LINK_TOKEN_BYTES,
@@ -254,14 +255,12 @@ router.post('/verify-magic-link', validateRequest(verifyMagicLinkValidators), as
 
   try {
     // SECURITY: Hash the incoming token and compare to stored hash
-    // Also support legacy plain-text tokens for backward compatibility during migration
-    const { hashMagicLinkToken } = await import('../utils/magicLinkToken');
     const tokenHash = hashMagicLinkToken(token);
     
-    // Find magic link by hashed token (or plain text for legacy tokens)
+    // Find magic link by hashed token only (legacy plaintext support removed)
     const [links] = await db.query<RowDataPacket[]>(
-      'SELECT * FROM admin_magic_links WHERE token = ? OR token = ?',
-      [tokenHash, token] // Try hash first, then plain text for legacy tokens
+      'SELECT * FROM admin_magic_links WHERE token = ?',
+      [tokenHash]
     );
 
     if (links.length === 0) {
@@ -570,13 +569,19 @@ router.post('/forgot-password', passwordResetLimiter, validateRequest(forgotPass
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetExpiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
 
-    // Store reset token in dedicated fields (does NOT overwrite password)
+    // 🔒 SECURITY: Hash the reset token before storing (same as magic links)
+    // The plain token is sent via email, and on validation we hash the incoming
+    // token and compare it to the stored hash. This prevents token exposure
+    // if the database is compromised.
+    const resetTokenHash = hashMagicLinkToken(resetToken);
+
+    // Store hashed reset token in dedicated fields (does NOT overwrite password)
     await db.query(
       'UPDATE admins SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?',
-      [resetToken, resetExpiry, admin.id]
+      [resetTokenHash, resetExpiry, admin.id]
     );
 
-    // Send reset email
+    // Send reset email with plain token (user receives plain token)
     const resetLink = `${process.env.APP_URL}/admin/reset-password?token=${resetToken}`;
     await sendPasswordResetEmail(email, admin.name, resetLink);
 
@@ -596,10 +601,14 @@ router.post('/reset-password', passwordResetLimiter, validateRequest(resetPasswo
   }
 
   try {
-    // Find admin with this reset token and check expiration
+    // 🔒 SECURITY: Hash the incoming token and compare to stored hash
+    // This prevents token exposure if the database is compromised
+    const tokenHash = hashMagicLinkToken(token);
+
+    // Find admin with this reset token hash and check expiration
     const [admins] = await db.query<RowDataPacket[]>(
       'SELECT id, name, password_reset_expires FROM admins WHERE password_reset_token = ?',
-      [token]
+      [tokenHash]
     );
 
     if (admins.length === 0) {

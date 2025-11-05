@@ -44,6 +44,8 @@ services:
       # Application Configuration
       APP_URL: ${APP_URL:-http://localhost:3003}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # ⚠️ ENABLE_DEV_TOOLS should only be true when NODE_ENV=development.
+      # In production, this must always remain false — startup validation will exit if enabled.
       ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-false}
       
       # Security Configuration
