@@ -122,6 +122,10 @@ export const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests (legitimate auth checks)
+  skip: (req) => {
+    // Skip rate limiting in development/test mode to allow E2E tests to run
+    return process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true';
+  },
 });
 
 // Write rate limiter - moderate limits for write operations
@@ -134,6 +138,10 @@ export const writeLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests (legitimate operations)
+  skip: (req) => {
+    // Skip rate limiting in development/test mode to allow E2E tests to run
+    return process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true';
+  },
 });
 
 // Read rate limiter - relaxed limits for read-only operations
@@ -146,4 +154,8 @@ export const readLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   skipSuccessfulRequests: true, // Don't count successful requests (legitimate usage)
+  skip: (req) => {
+    // Skip rate limiting in development/test mode to allow E2E tests to run
+    return process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true';
+  },
 });
