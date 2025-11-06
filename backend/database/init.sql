@@ -14,9 +14,16 @@ CREATE TABLE IF NOT EXISTS admins (
     password_reset_expires TIMESTAMP NULL DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    -- 🔒 SECURITY: Generated column to enforce unique main admin constraint
+    -- Only one row can have main_admin_token = 1 (when is_main_admin = TRUE)
+    -- All other rows have NULL (which doesn't violate UNIQUE constraint)
+    main_admin_token TINYINT(1) GENERATED ALWAYS AS (
+        CASE WHEN is_main_admin = TRUE THEN 1 ELSE NULL END
+    ) VIRTUAL,
     INDEX idx_email (email),
     INDEX idx_reset_token (password_reset_token),
-    INDEX idx_locked_until (account_locked_until)
+    INDEX idx_locked_until (account_locked_until),
+    UNIQUE INDEX unique_main_admin (main_admin_token)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Login attempts table for account lockout feature
