@@ -92,7 +92,7 @@ export default function Header({ showAdminLink = true }: HeaderProps) {
   };
 
   return (
-    <header className={`bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg ${mobileHeaderContainerClasses}`}>
+    <header className={`sticky top-0 z-40 bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg ${mobileHeaderContainerClasses}`}>
       <div className="container mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
           {/* Logo - Centered on mobile, left-aligned on desktop */}

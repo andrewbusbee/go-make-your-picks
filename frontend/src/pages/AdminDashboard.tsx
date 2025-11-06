@@ -277,7 +277,7 @@ export default function AdminDashboard() {
   return (
     <div className={`${pageContainerClasses} pb-20`}>
       {/* Header */}
-      <header className="bg-gradient-to-r from-indigo-600 to-blue-600 dark:from-indigo-900 dark:to-blue-900 shadow-lg">
+      <header className="sticky top-0 z-40 bg-gradient-to-r from-indigo-600 to-blue-600 dark:from-indigo-900 dark:to-blue-900 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-2 md:py-4">
             <div className="flex items-center space-x-4">

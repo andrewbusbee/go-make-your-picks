@@ -11,7 +11,11 @@
 
 [![Last commit](https://img.shields.io/github/last-commit/andrewbusbee/go-make-your-picks?logo=github&label=Last%20commit)](https://github.com/andrewbusbee/go-make-your-picks/commits/main)
 
-A modern, player-friendly sports prediction platform that brings people together through friendly competition. Create seasons, predict champions, and track player picks across multiple sports.
+## About
+
+**Go Make Your Picks** is a modern, fun, and fully customizable sports prediction game for your group.  
+Create your own season with any combination of sports — from **NFL** to **MLB** to **March Madness** — make your picks each round, and compete with friends and family.  
+Track live scores, follow leaderboards, and celebrate your **season champion**.
 
 ## ✨ Features
 
