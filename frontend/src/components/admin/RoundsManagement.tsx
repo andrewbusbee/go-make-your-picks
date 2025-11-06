@@ -1109,8 +1109,6 @@ export default function RoundsManagement() {
                               const firstPlace = round.results.find((r: any) => r.place === 1);
                               const secondPlace = round.results.find((r: any) => r.place === 2);
                               const thirdPlace = round.results.find((r: any) => r.place === 3);
-                              const fourthPlace = round.results.find((r: any) => r.place === 4);
-                              const fifthPlace = round.results.find((r: any) => r.place === 5);
                               
                               return (
                                 <>
@@ -1119,12 +1117,10 @@ export default function RoundsManagement() {
                                       🏆 Champion: {firstPlace.teamName}
                                     </p>
                                   )}
-                                  {(secondPlace || thirdPlace || fourthPlace || fifthPlace) && (
+                                  {(secondPlace || thirdPlace) && (
                                     <p className={`${alertSuccessTextClasses} mt-1 text-xs`}>
                                       {secondPlace && `🥈 2nd: ${secondPlace.teamName}`}
                                       {thirdPlace && ` | 🥉 3rd: ${thirdPlace.teamName}`}
-                                      {fourthPlace && ` | 4th: ${fourthPlace.teamName}`}
-                                      {fifthPlace && ` | 5th: ${fifthPlace.teamName}`}
                                     </p>
                                   )}
                                 </>
