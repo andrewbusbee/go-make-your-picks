@@ -685,9 +685,10 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
 
   try {
     const { storedWinners, fullLeaderboard } = await withTransaction(async (connection) => {
-      // Check if season exists and is not deleted from seasons_v2
+      // Lock the season row for update to prevent concurrent modifications
+      // This ensures only one request can end the season at a time
       const [seasons] = await connection.query<RowDataPacket[]>(
-        'SELECT * FROM seasons_v2 WHERE id = ? AND deleted_at IS NULL',
+        'SELECT * FROM seasons_v2 WHERE id = ? AND deleted_at IS NULL FOR UPDATE',
         [seasonId]
       );
 
@@ -699,6 +700,20 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
 
       if (season.ended_at) {
         throw new Error('Season has already ended');
+      }
+
+      // Check if season winners already exist (from a previous failed attempt)
+      // This can happen if a previous end attempt inserted winners but failed before setting ended_at
+      const [existingWinners] = await connection.query<RowDataPacket[]>(
+        'SELECT COUNT(*) as count FROM season_winners_v2 WHERE season_id = ?',
+        [seasonId]
+      );
+      
+      if (existingWinners.length > 0 && existingWinners[0].count > 0) {
+        logger.warn('Found existing season winners for non-ended season - cleaning up from previous failed attempt', {
+          seasonId,
+          winnerCount: existingWinners[0].count
+        });
       }
 
       // Check if all sports/rounds for this season are completed from rounds_v2
@@ -799,10 +814,15 @@ router.post('/:id/end', authenticateAdmin, async (req: AuthRequest, res: Respons
         });
         
         // Store winner in season_winners_v2 (no point columns - those are in scoring_rules_v2)
+        // Use ON DUPLICATE KEY UPDATE to handle case where record already exists (from previous failed attempt)
         await connection.query<ResultSetHeader>(
           `INSERT INTO season_winners_v2 
            (season_id, place, user_id, total_points) 
-           VALUES (?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+           user_id = VALUES(user_id),
+           total_points = VALUES(total_points),
+           updated_at = CURRENT_TIMESTAMP`,
           [seasonId, currentRank, player.user_id, playerScore]
         );
       }

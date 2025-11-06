@@ -106,6 +106,7 @@ export default function SeasonsManagement() {
   const [editIsDefault, setEditIsDefault] = useState(false);
   const [editError, setEditError] = useState('');
   const [editLoading, setEditLoading] = useState(false);
+  const [endingSeasonId, setEndingSeasonId] = useState<number | null>(null);
 
   // Copy sports state
   const [copySourceSeasons, setCopySourceSeasons] = useState<any[]>([]);
@@ -296,12 +297,20 @@ export default function SeasonsManagement() {
       return;
     }
 
+    // Prevent double-clicks
+    if (endingSeasonId !== null) {
+      return;
+    }
+
+    setEndingSeasonId(seasonId);
     try {
       const res = await api.post(`/admin/seasons/${seasonId}/end`);
       await loadSeasons();
       alert(`Season ended successfully! Winners: ${res.data.winners.map((w: any) => w.name).join(', ')}`);
     } catch (error: any) {
       alert(error.response?.data?.error || 'Failed to end season');
+    } finally {
+      setEndingSeasonId(null);
     }
   };
 
@@ -529,9 +538,10 @@ export default function SeasonsManagement() {
                 {season.is_active === 1 && (
                   <button
                     onClick={() => handleEndSeason(season.id)}
-                    className={`flex-1 min-w-[110px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonSuccessClasses}`}
+                    disabled={endingSeasonId !== null}
+                    className={`flex-1 min-w-[110px] text-xs py-2 px-3 rounded-md transition font-medium ${buttonSuccessClasses} ${endingSeasonId !== null ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
-                    🏆 End Season
+                    {endingSeasonId === season.id ? 'Ending...' : '🏆 End Season'}
                   </button>
                 )}
               </div>
