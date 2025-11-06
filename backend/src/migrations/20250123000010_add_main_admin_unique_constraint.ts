@@ -1,7 +1,7 @@
 import { Migration } from './Migration';
 import db from '../config/database';
 import logger from '../utils/logger';
-import { RowDataPacket } from 'mysql2';
+import { RowDataPacket, ResultSetHeader } from 'mysql2';
 
 /**
  * Migration: Add unique constraint to ensure only one main admin can exist
@@ -15,6 +15,36 @@ export default class AddMainAdminUniqueConstraint implements Migration {
   description = 'Add unique constraint to ensure only one main admin can exist using generated column';
 
   async up(): Promise<void> {
+    // 🔒 SECURITY: Clean up default admin@example.com if another main admin exists
+    // IMPORTANT: Only deletes if another main admin exists - never deletes if it's the only one
+    // This ensures we preserve admin@example.com for first login if initial setup hasn't happened
+    const [otherMainAdmins] = await db.query<RowDataPacket[]>(
+      `SELECT COUNT(*) as count 
+       FROM admins 
+       WHERE is_main_admin = TRUE 
+       AND email != 'admin@example.com'`
+    );
+
+    const otherMainAdminCount = otherMainAdmins[0]?.count || 0;
+    
+    // Only delete admin@example.com if another main admin exists
+    // If count === 0, admin@example.com is the ONLY main admin (first login not done) - keep it!
+    if (otherMainAdminCount > 0) {
+      // Another main admin exists - safe to delete default admin@example.com
+      const [deleteResult] = await db.query<ResultSetHeader>(
+        `DELETE FROM admins 
+         WHERE email = 'admin@example.com' 
+         AND is_main_admin = TRUE`
+      );
+      
+      if (deleteResult.affectedRows > 0) {
+        logger.info(`🔒 Security: Deleted default admin@example.com (${otherMainAdminCount} other main admin(s) exist)`);
+      }
+    } else {
+      // No other main admin - keep admin@example.com for first login
+      logger.debug('Keeping default admin@example.com (no other main admin exists - awaiting first login)');
+    }
+
     // Check if the column already exists
     const [columns] = await db.query<RowDataPacket[]>(
       `SELECT COLUMN_NAME 
@@ -25,7 +55,7 @@ export default class AddMainAdminUniqueConstraint implements Migration {
     );
 
     if (columns.length > 0) {
-      logger.info('main_admin_token column already exists, skipping migration');
+      logger.info('main_admin_token column already exists, skipping constraint addition');
       return;
     }
 

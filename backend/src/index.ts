@@ -313,6 +313,10 @@ async function startServer() {
     await migrationRunner.runAll(allMigrations);
     logger.info('✅ Database migrations completed');
     
+    // 🔒 SECURITY: Clean up default admin on every startup
+    const { cleanupDefaultAdmin } = await import('./utils/adminCleanup');
+    await cleanupDefaultAdmin();
+    
     // Verify SMTP connection (non-blocking)
     logger.info('📧 Verifying SMTP configuration...');
     try {
