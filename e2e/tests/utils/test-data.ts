@@ -41,10 +41,11 @@ export const testSettings = {
 /**
  * Test admin credentials
  * The default admin (admin@example.com) is changed to these credentials during first login
+ * Password requirements: min 11 chars, uppercase, lowercase, number, special character (!)
  */
 export const testAdmin = {
   email: 'admin2@yourdomain.com',
-  password: 'Ncc1701d!',
+  password: 'Kx9mP@ssw0rd!',
   name: 'Test User',
   // Default admin credentials (used for first login only)
   defaultEmail: 'admin@example.com',

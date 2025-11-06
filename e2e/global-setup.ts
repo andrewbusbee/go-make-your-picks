@@ -20,7 +20,7 @@ async function globalSetup() {
     if (healthResponse.status === 200) {
       console.log('✅ Application is ready');
       console.log('📌 First login test will use: admin@example.com / password');
-      console.log('📌 After password change, tests will use: admin2@yourdomain.com / Ncc1701d!');
+      console.log('📌 After password change, tests will use: admin2@yourdomain.com / Kx9mP@ssw0rd!');
       console.log('✨ Test environment ready!');
     }
   } catch (error: any) {
