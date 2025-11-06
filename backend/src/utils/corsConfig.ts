@@ -25,7 +25,7 @@ export function getAllowedOrigins(): string[] | ((origin: string | undefined, ca
         .filter(origin => origin.length > 0);
       
       if (origins.length > 0) {
-        logger.info('CORS: Using explicit ALLOWED_ORIGINS from environment', {
+        logger.debug('CORS: Using explicit ALLOWED_ORIGINS from environment', {
           originCount: origins.length,
           origins: origins.map(o => o.replace(/\/\/.*@/, '//***@')) // Mask credentials in logs
         });
@@ -36,7 +36,7 @@ export function getAllowedOrigins(): string[] | ((origin: string | undefined, ca
     // Fallback to APP_URL if ALLOWED_ORIGINS not set
     const appUrl = process.env.APP_URL;
     if (appUrl) {
-      logger.info('CORS: Using APP_URL as single allowed origin', {
+      logger.debug('CORS: Using APP_URL as single allowed origin', {
         origin: appUrl.replace(/\/\/.*@/, '//***@') // Mask credentials in logs
       });
       return [appUrl];
@@ -65,7 +65,7 @@ export function getAllowedOrigins(): string[] | ((origin: string | undefined, ca
       allowedOrigins.push(appUrl);
     }
     
-    logger.info('CORS: Development mode - allowing localhost origins', {
+    logger.debug('CORS: Development mode - allowing localhost origins', {
       originCount: allowedOrigins.length
     });
     

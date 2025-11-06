@@ -102,13 +102,14 @@ export const resetAdminMagicLinkLimit = async (email: string) => {
 
 // Auth rate limiter - strict limits for authentication endpoints
 // Used for login, magic link exchange, password reset, etc.
+// Skip successful requests to allow legitimate authentication checks without hitting limits
 export const authLimiter = rateLimit({
   windowMs: RATE_LIMIT_AUTH_WINDOW_MS,
   max: RATE_LIMIT_AUTH_MAX,
   message: { error: 'Too many authentication requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
-  skipSuccessfulRequests: false,
+  skipSuccessfulRequests: true, // Don't count successful requests (legitimate auth checks)
 });
 
 // Write rate limiter - moderate limits for write operations

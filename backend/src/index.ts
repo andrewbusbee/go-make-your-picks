@@ -177,7 +177,17 @@ app.use('/api', healthRoutes);
 // Rate limiters are applied at route group level for better control
 
 // Auth routes (login, password reset, magic links) - strict auth rate limiting
-app.use('/api/auth', authLimiter, authRoutes);
+// /api/auth/me uses readLimiter (frequent status checks shouldn't hit auth limits)
+// All other auth routes use authLimiter
+app.use('/api/auth', (req, res, next) => {
+  // Apply readLimiter for /me endpoint (frequent auth status checks)
+  // When mounted at /api/auth, req.path is relative: '/me' not '/api/auth/me'
+  if (req.path === '/me') {
+    return readLimiter(req, res, next);
+  }
+  // Apply authLimiter for all other auth endpoints
+  return authLimiter(req, res, next);
+}, authRoutes);
 
 // Magic link pick submission (uses magic link token, not admin token) - auth rate limiting
 // These endpoints validate magic links and exchange them for JWTs
