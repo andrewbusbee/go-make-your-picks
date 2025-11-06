@@ -131,9 +131,22 @@ storybook-static/
 # Prisma (if ever used)
 # prisma/migrations/
 
-# Playwright
+# Playwright E2E Tests
 playwright-report/
 playwright/.cache/
+e2e/test-results/
+e2e/playwright-report/
+e2e/playwright/.cache/
+e2e/node_modules/
+*.webm
+*.mp4
+*.trace
+test-results/**/*.webm
+test-results/**/*.mp4
+test-results/**/*.trace
+test-results/**/*.png
+test-results/**/*.jpg
+test-results/**/*.jpeg
 
 # Parcel cache
 .parcel-cache/

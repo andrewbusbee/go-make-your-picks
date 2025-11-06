@@ -20,6 +20,10 @@ export const loginLimiter = rateLimit({
   message: { error: 'Too many login attempts. Please try again in 15 minutes.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting in development/test mode to allow E2E tests to run
+    return process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true';
+  },
 });
 
 // Password reset rate limiter - prevent email spam
@@ -29,6 +33,10 @@ export const passwordResetLimiter = rateLimit({
   message: { error: 'Too many password reset requests. Please try again in an hour.' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    // Skip rate limiting in development/test mode to allow E2E tests to run
+    return process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true';
+  },
 });
 
 // Round activation limiter - prevent magic link email spam
@@ -81,6 +89,10 @@ export const adminMagicLinkLimiter = rateLimit({
   },
   // Skip on successful attempts (handled manually in auth routes)
   skipSuccessfulRequests: false,
+  skip: (req) => {
+    // Skip rate limiting in development/test mode to allow E2E tests to run
+    return process.env.NODE_ENV === 'development' || process.env.DISABLE_RATE_LIMIT === 'true';
+  },
 });
 
 // Helper function to reset rate limit for a specific email after successful login

@@ -6,12 +6,12 @@
 # The main docker-compose.yml uses the published image from ghcr.io
 
 services:
-  mysql:
+  mariadb:
     environment:
-      MYSQL_ROOT_PASSWORD: your-root-password
-      MYSQL_DATABASE: sports_picks
-      MYSQL_USER: picksuser
-      MYSQL_PASSWORD: your-secure-database-password
+      MARIADB_ROOT_PASSWORD: your-root-password
+      MARIADB_DATABASE: gomakeyourpicks
+      MARIADB_USER: gomakeyourpicksuser
+      MARIADB_PASSWORD: your-secure-database-password
 
   go-make-your-picks:
     # Override image with build for local development
@@ -21,6 +21,11 @@ services:
     # Remove image override for development builds
     # image: ghcr.io/andrewbusbee/go-make-your-picks:latest
     environment:
+      # Runtime Environment Configuration
+      # NODE_ENV controls runtime behavior (production vs development) for Express, logging, CORS, etc.
+      # In development, enables verbose logging, permissive CORS for localhost, and development-friendly error details
+      NODE_ENV: development
+      
       # Enable development tools in local development (set to "false" for production)
       ENABLE_DEV_TOOLS: "true"
       
@@ -31,13 +36,22 @@ services:
       # This will be logged on startup so you can verify it's working
       LOG_LEVEL: INFO
       
-      # SMTP Configuration - Required for sending magic links. Gmail requires an app password, not your personal password
-      SMTP_HOST: smtp.gmail.com
-      SMTP_PORT: 587
+      # SMTP Configuration
+      # For local development/testing, use MailHog (captures emails, doesn't send real emails)
+      # For production, use your real SMTP credentials
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
       SMTP_SECURE: false
-      SMTP_USER: your-email@gmail.com
-      SMTP_PASSWORD: your-gmail-app-password
+      SMTP_USER: ""  # MailHog doesn't require authentication
+      SMTP_PASSWORD: ""  # MailHog doesn't require authentication
       SMTP_FROM: noreply@yourdomain.com
+      
+      # To use real SMTP (uncomment and comment out MailHog settings above):
+      # SMTP_HOST: smtp.gmail.com
+      # SMTP_PORT: 587
+      # SMTP_SECURE: false
+      # SMTP_USER: your-email@gmail.com
+      # SMTP_PASSWORD: your-gmail-app-password
       
       # Application URL (used in magic links)
       APP_URL: http://localhost:3003
@@ -47,7 +61,40 @@ services:
       JWT_SECRET: change-this-to-a-long-random-string-32-chars-minimum
       
       # Database Configuration - Use these to override defaults
-      MYSQL_ROOT_PASSWORD: your-root-password
-      MYSQL_DATABASE: go_make_your_picks_db
-      MYSQL_USER: go_make_your_picks_user
-      MYSQL_PASSWORD: your-secure-database-password
+      MARIADB_ROOT_PASSWORD: your-root-password
+      MARIADB_DATABASE: gomakeyourpicks
+      MARIADB_USER: gomakeyourpicksuser
+      MARIADB_PASSWORD: your-secure-database-password
+
+  # Optional: phpMyAdmin for database management
+  # Uncomment to enable
+  # phpmyadmin:
+  #   image: phpmyadmin/phpmyadmin:latest
+  #   container_name: phpmyadmin
+  #   restart: always
+  #   networks:
+  #     - go-make-your-picks-network
+  #   ports:
+  #     - "8080:80"
+  #   environment:
+  #     PMA_HOST: mariadb
+  #     PMA_PORT: 3306
+  #     PMA_USER: gomakeyourpicksuser
+  #     PMA_PASSWORD: your-secure-database-password
+  #     UPLOAD_LIMIT: 64M
+  #   depends_on:
+  #     mariadb:
+  #       condition: service_healthy
+
+  # MailHog - Email testing tool (captures all emails, doesn't send real emails)
+  # Access the web UI at http://localhost:8025 to view captured emails
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    restart: always
+    networks:
+      - go-make-your-picks-network
+    ports:
+      - "1025:1025"  # SMTP server port
+      - "8025:8025"  # Web UI port
+    # No environment variables needed - MailHog works out of the box
