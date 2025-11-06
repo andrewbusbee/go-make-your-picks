@@ -306,6 +306,36 @@ router.get('/season/:seasonId', async (req, res) => {
       });
     }
     
+    // Get all results for completed/locked rounds in this season (single query) from round_results_v2 + teams_v2
+    const resultsMap = new Map<number, any[]>();
+    
+    if (rounds.length > 0) {
+      const completedRoundIds = rounds.filter(r => r.status === 'completed' || r.status === 'locked').map(r => r.id);
+      
+      if (completedRoundIds.length > 0) {
+        const [allResults] = await db.query<RowDataPacket[]>(
+          `SELECT rr.round_id, rr.place, rr.team_id, t.name as team_name
+           FROM round_results_v2 rr
+           JOIN teams_v2 t ON rr.team_id = t.id
+           WHERE rr.round_id IN (?)
+           ORDER BY rr.round_id, rr.place`,
+          [completedRoundIds]
+        );
+        
+        // Build results map for O(1) lookup
+        allResults.forEach(result => {
+          if (!resultsMap.has(result.round_id)) {
+            resultsMap.set(result.round_id, []);
+          }
+          resultsMap.get(result.round_id)!.push({
+            place: result.place,
+            teamId: result.team_id,
+            teamName: result.team_name
+          });
+        });
+      }
+    }
+    
     // Build response with O(1) lookups (no queries in loop)
     const roundsWithParticipants = rounds.map(round => {
       const teams = teamsMap.get(round.id) || [];
@@ -341,10 +371,12 @@ router.get('/season/:seasonId', async (req, res) => {
         }
       }
       
-      // For locked/completed rounds, include teams but no participants
+      // For locked/completed rounds, include teams and results
+      const results = resultsMap.get(round.id) || [];
       return {
         ...round,
-        teams
+        teams,
+        results: results.length > 0 ? results : undefined
       };
     });
     

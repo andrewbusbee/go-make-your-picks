@@ -291,11 +291,20 @@ CREATE TABLE IF NOT EXISTS season_winners (
     CONSTRAINT check_place CHECK (place >= 1 AND place <= 10)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Insert default admin (email: admin@example.com, password: password)
+-- 🔒 SECURITY: Default admin creation (idempotent - safe to run multiple times)
+-- Only creates default admin if NO main admin exists
+-- Deletes default admin if another main admin already exists
 -- Password hash for "password" using bcrypt with salt rounds = 10
-INSERT INTO admins (name, email, password_hash, is_main_admin, is_commissioner, must_change_password) 
-VALUES ('Main Administrator', 'admin@example.com', '$2b$10$sYvBpErqTeSuAEB5OOHML.N.W6yT3YNiHLhu91ffcCt.qJW5mqFHq', TRUE, TRUE, TRUE)
-ON DUPLICATE KEY UPDATE email=email;
+
+-- Step 1: Delete default admin if another main admin exists (cleanup on redeploy)
+DELETE FROM admins 
+WHERE email = 'admin@example.com' 
+AND EXISTS (SELECT 1 FROM admins WHERE is_main_admin = TRUE AND email != 'admin@example.com');
+
+-- Step 2: Insert default admin ONLY if no main admin exists at all
+INSERT INTO admins (name, email, password_hash, is_main_admin, is_commissioner, must_change_password)
+SELECT 'Main Administrator', 'admin@example.com', '$2b$10$sYvBpErqTeSuAEB5OOHML.N.W6yT3YNiHLhu91ffcCt.qJW5mqFHq', TRUE, TRUE, TRUE
+WHERE NOT EXISTS (SELECT 1 FROM admins WHERE is_main_admin = TRUE);
 
 -- Default seasons will be created by admin through the UI
 
