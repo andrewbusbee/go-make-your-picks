@@ -88,11 +88,36 @@ export class AdminAuth {
 
   /**
    * Logout via UI
+   * Clicks the username dropdown in the top right and selects Logout
    */
   static async logoutViaUI(page: Page) {
-    // Click logout button (usually in header/nav)
-    await page.click('button:has-text("Logout"), a:has-text("Logout")');
-    await page.waitForURL(/\/admin\/login/);
+    // The username button is in the header, contains the admin name and has a dropdown arrow
+    // Try to find button by admin name first, then fallback to finding the user menu button
+    const usernameButton = page.locator(`button:has-text("${TEST_CONFIG.defaultAdmin.name}")`).first();
+    
+    // Wait for the button to be visible (admin data should be loaded)
+    await page.waitForLoadState('networkidle');
+    
+    if (await usernameButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await usernameButton.click();
+    } else {
+      // Fallback: find the user menu button (last button in header with SVG dropdown icon)
+      // The button structure: <button><span>Admin Name</span><svg>dropdown icon</svg></button>
+      const userMenuButton = page.locator('header button:has(svg)').last();
+      await userMenuButton.waitFor({ state: 'visible', timeout: 3000 });
+      await userMenuButton.click();
+    }
+    
+    // Wait for dropdown menu to appear (it's an absolute positioned div)
+    const dropdownMenu = page.locator('div[class*="absolute"]:has-text("Logout")');
+    await dropdownMenu.waitFor({ state: 'visible', timeout: 3000 });
+    
+    // Click the "Logout" button in the dropdown menu
+    const logoutButton = page.locator('button:has-text("Logout")').first();
+    await logoutButton.click();
+    
+    // Wait for redirect to login page
+    await page.waitForURL(/\/admin\/login/, { timeout: 5000 });
   }
 }
 
