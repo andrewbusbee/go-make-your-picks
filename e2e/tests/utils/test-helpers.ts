@@ -87,6 +87,23 @@ export class AdminAuth {
   }
 
   /**
+   * Get auth token from page (extracts from localStorage or cookies)
+   */
+  static async getAuthToken(page: Page): Promise<string> {
+    // Try to get token from localStorage
+    const token = await page.evaluate(() => {
+      return localStorage.getItem('token') || '';
+    });
+    
+    if (token) {
+      return token;
+    }
+    
+    // If no token in localStorage, login via API and return token
+    return await this.loginViaAPI();
+  }
+
+  /**
    * Logout via UI
    * Clicks the username dropdown in the top right and selects Logout
    */

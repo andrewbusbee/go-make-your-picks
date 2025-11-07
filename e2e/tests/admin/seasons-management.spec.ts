@@ -32,40 +32,11 @@ test.describe('Seasons Management', () => {
   });
 
   test('should create a new season', async ({ page }) => {
-    // Wait for page to be ready
-    await page.waitForLoadState('networkidle');
+    // Use UI helper to create season (uses data-testid selectors)
+    const { UIHelpers } = await import('../utils/ui-helpers');
+    await UIHelpers.createSeason(page, testSeasons[0].name, testSeasons[0].year);
     
-    // Look for add button
-    const addButton = page.locator('button:has-text("Add"), button:has-text("New"), a:has-text("Create"), button:has-text("+")').first();
-    await addButton.waitFor({ state: 'visible', timeout: 5000 });
-    await addButton.click();
-    
-    // Wait for modal/form to open
-    await page.waitForTimeout(500);
-
-    // Fill in season details
-    const nameField = page.locator('input[name="name"], input[placeholder*="name" i]').first();
-    await nameField.waitFor({ state: 'visible', timeout: 3000 });
-    await nameField.fill(testSeasons[0].name);
-    
-    // Find and fill year field
-    const yearField = page.locator('input[name="year"], input[name="yearStart"], input[type="number"]').first();
-    if (await yearField.isVisible({ timeout: 2000 })) {
-      await yearField.fill(testSeasons[0].year.toString());
-    }
-
-    // Submit
-    const submitButton = page.locator('button[type="submit"], button:has-text("Save"), button:has-text("Create")').first();
-    await submitButton.waitFor({ state: 'visible', timeout: 3000 });
-    await submitButton.click();
-    
-    // Wait for form submission and page update
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-    
-    // Should show success or the new season (check for either)
-    const successOrSeason = page.locator(`text=${testSeasons[0].name}`).or(page.locator('text=/success|created/i'));
-    await expect(successOrSeason).toBeVisible({ timeout: 10000 });
+    // Test passes if createSeason doesn't throw (it verifies season appears)
   });
 
   test('should view season details', async ({ page }) => {

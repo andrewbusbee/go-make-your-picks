@@ -24,38 +24,11 @@ test.describe('Users Management', () => {
   });
 
   test('should add a new player', async ({ page }) => {
-    // Wait for page to be ready
-    await page.waitForLoadState('networkidle');
+    // Use UI helper to add player (uses data-testid selectors)
+    const { UIHelpers } = await import('../utils/ui-helpers');
+    await UIHelpers.addPlayer(page, testPlayers[0].name, testPlayers[0].email);
     
-    // Look for add button
-    const addButton = page.locator('button:has-text("Add Player"), button:has-text("Add"), button:has-text("+")').first();
-    await addButton.waitFor({ state: 'visible', timeout: 5000 });
-    await addButton.click();
-    
-    // Wait for modal/form to open
-    await page.waitForTimeout(500);
-
-    // Fill in player details
-    const nameField = page.locator('input[name="name"], input[placeholder*="name" i]').first();
-    await nameField.waitFor({ state: 'visible', timeout: 3000 });
-    await nameField.fill(testPlayers[0].name);
-    
-    const emailField = page.locator('input[name="email"], input[type="email"]').first();
-    await emailField.waitFor({ state: 'visible', timeout: 3000 });
-    await emailField.fill(testPlayers[0].email);
-    
-    // Submit form
-    const submitButton = page.locator('button[type="submit"], button:has-text("Save"), button:has-text("Add")').first();
-    await submitButton.waitFor({ state: 'visible', timeout: 3000 });
-    await submitButton.click();
-    
-    // Wait for form submission and page update
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
-    
-    // Should show success message or player to appear in list
-    const successOrPlayer = page.locator(`text=${testPlayers[0].name}`).or(page.locator('text=/success|added/i'));
-    await expect(successOrPlayer).toBeVisible({ timeout: 10000 });
+    // Test passes if addPlayer doesn't throw (it verifies player appears in list)
   });
 
   test('should validate email format', async ({ page }) => {

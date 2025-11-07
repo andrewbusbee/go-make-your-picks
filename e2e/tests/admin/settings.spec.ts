@@ -27,57 +27,37 @@ test.describe('Settings', () => {
   });
 
   test('should update app title', async ({ page }) => {
-    const titleInput = page.locator('input[name="app_title"], input[placeholder*="title" i]').first();
-    if (await titleInput.isVisible({ timeout: 3000 })) {
-      await titleInput.fill('Test Championship Title');
-      await page.click('button[type="submit"], button:has-text("Save")');
-      await page.waitForTimeout(1000);
-      await expect(page.locator('text=/success|saved/i')).toBeVisible({ timeout: 3000 });
-    }
-  });
-
-  test('should test email configuration', async ({ page }) => {
     // Wait for page to load
     await page.waitForLoadState('networkidle');
     
-    // Click the "📧 Email" tab to navigate to email settings
-    const emailTab = page.locator('button:has-text("📧 Email"), button:has-text("Email")').first();
-    await emailTab.waitFor({ state: 'visible', timeout: 5000 });
-    await emailTab.click();
+    // Find title input - must exist (no conditional)
+    const titleInput = page.locator('input[name="app_title"], input[placeholder*="title" i]').first();
+    await titleInput.waitFor({ state: 'visible', timeout: 5000 });
     
-    // Wait for email tab content to load
-    await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(1000);
+    // Update title
+    await titleInput.fill('Test Championship Title');
     
-    // Look for "Send Test Email" button (the actual button text)
-    const testEmailButton = page.locator('button:has-text("Send Test Email")').first();
-    await testEmailButton.waitFor({ state: 'visible', timeout: 5000 });
+    // Submit
+    const saveButton = page.locator('button[type="submit"], button:has-text("Save")').first();
+    await saveButton.waitFor({ state: 'visible', timeout: 3000 });
+    await saveButton.click();
     
-    // Clear MailHog before sending test email
-    const { APIHelpers } = await import('../utils/test-helpers');
-    await APIHelpers.clearMailHog();
+    // Wait for API response
+    await page.waitForResponse(response => 
+      response.url().includes('/admin/settings') && response.status() === 200,
+      { timeout: 10000 }
+    ).catch(() => null);
     
-    // Click the button to send test email
-    await testEmailButton.click();
+    // Verify success message
+    await expect(page.locator('text=/success|saved/i')).toBeVisible({ timeout: 5000 });
+  });
+
+  test('should test email configuration', async ({ page }) => {
+    // Use UI helper to send test email (uses data-testid selectors)
+    const { UIHelpers } = await import('../utils/ui-helpers');
+    await UIHelpers.sendTestEmail(page);
     
-    // Wait for form submission and success message
-    await page.waitForTimeout(3000);
-    
-    // Should show success message
-    const successMessage = page.locator('text=/sent successfully|test email sent/i');
-    await expect(successMessage).toBeVisible({ timeout: 10000 });
-    
-    // Verify email was actually sent to MailHog
-    const { TEST_CONFIG } = await import('../utils/test-helpers');
-    const axios = (await import('axios')).default;
-    try {
-      const response = await axios.get(`${TEST_CONFIG.mailhogURL}/api/v2/messages`);
-      const messages = response.data.items || [];
-      expect(messages.length).toBeGreaterThan(0);
-      console.log(`✅ Test email sent - found ${messages.length} email(s) in MailHog`);
-    } catch (error) {
-      console.warn('⚠️  Could not verify email in MailHog - MailHog may not be running');
-    }
+    // Test passes if sendTestEmail doesn't throw (it verifies email in MailHog)
   });
 });
 

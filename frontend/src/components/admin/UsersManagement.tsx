@@ -208,6 +208,7 @@ export default function UsersManagement() {
         <button
           onClick={() => openModal()}
           className={buttonPrimaryClasses}
+          data-testid="add-player-button"
         >
           + Add Player
         </button>
@@ -330,6 +331,7 @@ export default function UsersManagement() {
                   onChange={(e) => setName(e.target.value)}
                   className={inputClasses}
                   required
+                  data-testid="player-name-input"
                 />
               </div>
 
@@ -345,6 +347,7 @@ export default function UsersManagement() {
                   pattern="[^\s@]+@[^\s@]+\.[^\s@]+"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  data-testid="player-email-input"
                   onInvalid={(e) => {
                     const el = e.target as HTMLInputElement;
                     if (el.validity.valueMissing) {
@@ -396,6 +399,7 @@ export default function UsersManagement() {
                   type="submit"
                   disabled={loading}
                   className={"flex-1 " + buttonPrimaryClasses}
+                  data-testid="save-player-button"
                 >
                   {loading ? 'Saving...' : 'Save'}
                 </button>
