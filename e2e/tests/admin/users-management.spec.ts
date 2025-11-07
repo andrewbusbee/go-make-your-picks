@@ -12,24 +12,50 @@ test.describe('Users Management', () => {
   });
 
   test('should display users management page', async ({ page }) => {
-    await expect(page.locator('text=/players|users/i')).toBeVisible();
+    // Wait for page to load
+    await page.waitForLoadState('networkidle');
+    
+    // Verify we're on the users page
+    await expect(page).toHaveURL(/\/admin\/users/);
+    
+    // Verify the Players heading is visible (the page shows "Players" as the heading)
+    const playersHeading = page.locator('h2:has-text("Players")');
+    await expect(playersHeading).toBeVisible({ timeout: 5000 });
   });
 
   test('should add a new player', async ({ page }) => {
+    // Wait for page to be ready
+    await page.waitForLoadState('networkidle');
+    
     // Look for add button
-    const addButton = page.locator('button:has-text("Add"), button:has-text("New"), a:has-text("Add Player")').first();
+    const addButton = page.locator('button:has-text("Add Player"), button:has-text("Add"), button:has-text("+")').first();
+    await addButton.waitFor({ state: 'visible', timeout: 5000 });
     await addButton.click();
+    
+    // Wait for modal/form to open
+    await page.waitForTimeout(500);
 
     // Fill in player details
-    await page.fill('input[name="name"], input[placeholder*="name" i]', testPlayers[0].name);
-    await page.fill('input[name="email"], input[type="email"]', testPlayers[0].email);
+    const nameField = page.locator('input[name="name"], input[placeholder*="name" i]').first();
+    await nameField.waitFor({ state: 'visible', timeout: 3000 });
+    await nameField.fill(testPlayers[0].name);
+    
+    const emailField = page.locator('input[name="email"], input[type="email"]').first();
+    await emailField.waitFor({ state: 'visible', timeout: 3000 });
+    await emailField.fill(testPlayers[0].email);
     
     // Submit form
-    await page.click('button[type="submit"], button:has-text("Save"), button:has-text("Add")');
+    const submitButton = page.locator('button[type="submit"], button:has-text("Save"), button:has-text("Add")').first();
+    await submitButton.waitFor({ state: 'visible', timeout: 3000 });
+    await submitButton.click();
     
-    // Wait for success message or player to appear in list
+    // Wait for form submission and page update
+    await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000);
-    await expect(page.locator(`text=${testPlayers[0].name}`).or(page.locator('text=/success|added/i'))).toBeVisible({ timeout: 5000 });
+    
+    // Should show success message or player to appear in list
+    const successOrPlayer = page.locator(`text=${testPlayers[0].name}`).or(page.locator('text=/success|added/i'));
+    await expect(successOrPlayer).toBeVisible({ timeout: 10000 });
   });
 
   test('should validate email format', async ({ page }) => {

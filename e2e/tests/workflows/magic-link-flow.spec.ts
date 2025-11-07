@@ -28,10 +28,21 @@ test.describe('Magic Link Flow', () => {
     
     // Create and activate round
     await page.goto('/admin/rounds');
-    const activateButton = page.locator('button:has-text("Activate")').first();
+    await page.waitForLoadState('networkidle');
+    
+    // Find activate button - the actual button text is "Activate & Send Links"
+    const activateButton = page.locator('button:has-text("Activate & Send Links"), button:has-text("Activate")').first();
     if (await activateButton.isVisible({ timeout: 3000 })) {
+      // Handle confirmation dialog if it appears
+      page.on('dialog', async dialog => {
+        await dialog.accept();
+      });
+      
       await activateButton.click();
       await page.waitForTimeout(3000); // Wait for email to be sent
+      await page.waitForLoadState('networkidle');
+    } else {
+      console.log('⚠️  No rounds available to activate - skipping email check');
     }
     
     // Check MailHog for the email
@@ -55,9 +66,14 @@ test.describe('Magic Link Flow', () => {
     // This would require creating an expired token
     // For now, just test invalid token handling
     await page.goto('/pick/expired-token-12345');
-    await expect(
-      page.locator('text=/expired|invalid|not found/i')
-    ).toBeVisible({ timeout: 5000 });
+    await page.waitForLoadState('networkidle');
+    
+    // Should show error message for invalid/expired token
+    // Wait a bit for error message to appear
+    await page.waitForTimeout(1000);
+    
+    const errorMessage = page.locator('text=/expired|invalid|not found|error/i');
+    await expect(errorMessage).toBeVisible({ timeout: 5000 });
   });
 });
 

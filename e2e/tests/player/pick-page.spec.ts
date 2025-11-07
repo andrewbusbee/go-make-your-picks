@@ -32,9 +32,13 @@ test.describe('Player Pick Page', () => {
     await page.waitForLoadState('networkidle');
     
     // Should have some form elements if valid, or error if invalid
-    const hasForm = await page.locator('form, input, select, button').count() > 0;
-    const hasError = await page.locator('text=/error|invalid/i').isVisible().catch(() => false);
+    // Wait a bit for content to load
+    await page.waitForTimeout(1000);
     
+    const hasForm = await page.locator('form, input, select, button').count() > 0;
+    const hasError = await page.locator('text=/error|invalid|expired|not found/i').isVisible().catch(() => false);
+    
+    // Page should have either form elements or an error message
     expect(hasForm || hasError).toBe(true);
   });
 

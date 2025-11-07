@@ -54,10 +54,17 @@ test.describe('Complete Season Flow', () => {
     }
     
     // Step 5: Activate round (this would send magic links)
-    const activateButton = page.locator('button:has-text("Activate"), button:has-text("Send Links")').first();
+    await page.waitForLoadState('networkidle');
+    const activateButton = page.locator('button:has-text("Activate & Send Links"), button:has-text("Activate")').first();
     if (await activateButton.isVisible({ timeout: 3000 })) {
+      // Handle confirmation dialog if it appears
+      page.on('dialog', async dialog => {
+        await dialog.accept();
+      });
+      
       await activateButton.click();
-      await page.waitForTimeout(2000);
+      await page.waitForTimeout(3000); // Wait for emails to be sent
+      await page.waitForLoadState('networkidle');
     }
     
     // Step 6: Get magic link from MailHog (if available)

@@ -15,8 +15,12 @@ test.describe('Error Handling', () => {
     await page.context().setOffline(true);
     await page.goto('/');
     
-    // Should handle gracefully
+    // Should handle gracefully - page should still render something (even if it's an error message)
     await page.waitForTimeout(2000);
+    const body = page.locator('body');
+    await expect(body).toBeVisible();
+    
+    // Re-enable network
     await page.context().setOffline(false);
   });
 

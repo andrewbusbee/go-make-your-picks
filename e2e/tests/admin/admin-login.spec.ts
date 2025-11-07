@@ -67,9 +67,19 @@ test.describe('Admin Login', () => {
 
   test('should persist session on page reload', async ({ page }) => {
     await AdminAuth.loginViaUI(page);
+    
+    // Wait for dashboard to load
+    await page.waitForLoadState('networkidle');
+    
+    // Reload the page
     await page.reload();
+    await page.waitForLoadState('networkidle');
+    
     // Should still be logged in (not redirected to login)
-    await expect(page).not.toHaveURL(/\/admin\/login/);
+    await expect(page).not.toHaveURL(/\/admin\/login/, { timeout: 5000 });
+    
+    // Should be on an admin page
+    await expect(page).toHaveURL(/\/admin\//, { timeout: 5000 });
   });
 });
 
