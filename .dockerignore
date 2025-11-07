@@ -29,15 +29,6 @@ backend/scripts
 __tests__
 coverage
 
-# E2E Tests (Playwright)
-e2e/
-test-results/
-playwright-report/
-playwright/.cache/
-*.webm
-*.mp4
-*.trace
-
 # IDE and editor files
 .vscode
 .idea

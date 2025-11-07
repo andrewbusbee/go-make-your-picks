@@ -61,7 +61,6 @@ export default function Settings({ isMainAdmin }: SettingsProps) {
         <button
           onClick={() => handleTabChange('email')}
           className={getSubTabClass('email')}
-          data-testid="settings-email-tab"
         >
           📧 Email
         </button>

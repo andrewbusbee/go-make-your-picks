@@ -815,7 +815,6 @@ export default function RoundsManagement() {
               onClick={openCreateModal}
               disabled={!currentSeason}
               className={buttonPrimaryClasses + " disabled:opacity-50 whitespace-nowrap"}
-              data-testid="add-sport-button"
             >
               + Add Sport
             </button>
@@ -1043,7 +1042,6 @@ export default function RoundsManagement() {
                     disabled={!canActivateRound(round)}
                     className={buttonSmallSuccessClasses}
                     title={!canActivateRound(round) ? "Please fill out all required fields before activating" : ""}
-                    data-testid={`activate-round-button-${round.id}`}
                   >
                     Activate & Send Links
                   </button>
@@ -1189,7 +1187,6 @@ export default function RoundsManagement() {
                   placeholder="e.g., Baseball, Basketball, Wimbledon"
                   className={inputClasses}
                   required
-                  data-testid="sport-name-input"
                 />
               </div>
 
@@ -1334,7 +1331,6 @@ export default function RoundsManagement() {
                   type="submit"
                   disabled={loading}
                   className={`flex-1 ${buttonPrimaryClasses}`}
-                  data-testid="save-sport-button"
                 >
                   {loading ? 'Adding...' : 'Add Sport'}
                 </button>

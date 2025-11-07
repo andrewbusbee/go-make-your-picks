@@ -458,7 +458,6 @@ export default function SeasonsManagement() {
         <button
           onClick={openModal}
           className={buttonPrimaryClasses}
-          data-testid="create-season-button"
         >
           + Create Season
         </button>
@@ -664,7 +663,6 @@ export default function SeasonsManagement() {
                   placeholder="e.g., Sports Picks Championship 2025-2026"
                   className={inputClasses}
                   required
-                  data-testid="season-name-input"
                 />
               </div>
 
@@ -813,7 +811,6 @@ export default function SeasonsManagement() {
                   type="submit"
                   disabled={loading}
                   className={`flex-1 ${buttonPrimaryClasses}`}
-                  data-testid="save-season-button"
                 >
                   {loading ? 'Creating...' : 'Create'}
                 </button>

@@ -585,7 +585,6 @@ export default function TestEmail({ isMainAdmin }: TestEmailProps) {
             type="submit"
             disabled={loading || loadingUser || !currentUser}
             className={"w-full py-3 flex items-center justify-center " + buttonPrimaryClasses}
-            data-testid="send-test-email-button"
           >
             {loading ? (
               <>
