@@ -60,6 +60,10 @@ services:
       # Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
       JWT_SECRET: change-this-to-a-long-random-string-32-chars-minimum
       
+      # JWT Token Expiry (optional - default: 8h)
+      # Format: number + unit (e.g., "8h", "30m", "1d")
+      # JWT_EXPIRY: 8h
+      
       # Database Configuration - Use these to override defaults
       MARIADB_ROOT_PASSWORD: your-root-password
       MARIADB_DATABASE: gomakeyourpicks

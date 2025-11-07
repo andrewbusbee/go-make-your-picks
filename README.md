@@ -168,7 +168,7 @@ services:
       # NODE_ENV controls runtime behavior (production vs development) for Express, logging, CORS, etc.
       # In production, enables production-safe settings (optimized builds, tighter CORS, less verbose logging, limited error details)
       NODE_ENV: production
-
+      
       # Database Configuration
       MARIADB_HOST: mariadb
       MARIADB_PORT: 3306
@@ -178,7 +178,14 @@ services:
       
       # Application Configuration
       APP_URL: ${APP_URL:-http://localhost:3003}
+      # CORS Configuration (Optional - APP_URL used as fallback if not set)
+      # If set, this overrides APP_URL for CORS. Use when you have multiple frontend domains/subdomains.
+      # Format: comma-separated list (e.g., "https://picks.example.com,https://admin.example.com")
+      # If not set, APP_URL is used as the single allowed origin
+      # ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      # ⚠️ ENABLE_DEV_TOOLS should only be true when NODE_ENV=development.
+      # In production, this must always remain false — startup validation will exit if enabled.
       ENABLE_DEV_TOOLS: ${ENABLE_DEV_TOOLS:-false}
       
       # Security Configuration
@@ -186,7 +193,7 @@ services:
       # Run: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY: ${JWT_EXPIRY:-8h}
-
+      
       # SMTP Configuration
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -194,6 +201,12 @@ services:
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_FROM: ${SMTP_FROM:-noreply@example.com}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/api/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
 
 networks:
   go-make-your-picks-network:
@@ -248,6 +261,22 @@ These variables have default values but it is **highly recommended that they be 
 - Default is `false` and can be set to `true` for development/testing convenience
 - **Must be set to `false` for production** to hide seed data buttons and prevent accidental data creation
 - Can be toggled anytime by changing the value and restarting Docker Compose (no rebuild required)
+
+### Optional/Advanced Configuration
+
+These variables are optional, but can be customized for specific needs:
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed origins for CORS in production | Uses `APP_URL` as single allowed origin | `https://picks.example.com,https://admin.example.com` |
+
+**Note on `ALLOWED_ORIGINS`**:
+- **Mutually exclusive with `APP_URL` for CORS**: If `ALLOWED_ORIGINS` is set, it overrides `APP_URL` for CORS configuration
+- If not set, the application uses `APP_URL` as the single allowed origin for CORS
+- Only needed when you have multiple frontend domains or subdomains
+- Format: comma-separated list of URLs (e.g., `https://picks.example.com,https://admin.example.com`)
+- In development mode, CORS is permissive for localhost origins regardless of this setting
+- In `docker-compose.yml`, this variable is commented out by default - uncomment only if you need multiple origins
 
 ### Docker Internal Configuration (Do Not Change)
 
